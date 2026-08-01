@@ -1,0 +1,75 @@
+import { NextRequest, NextResponse } from "next/server";
+import { db } from "@/db/client";
+import { skills } from "@/db/schema";
+import { eq } from "drizzle-orm";
+
+export async function GET() {
+  try {
+    const allSkills = await db.select().from(skills);
+    return NextResponse.json({ skills: allSkills });
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: "Failed to fetch skills", detail: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { name, slug, description, skillMdContent, tags, userId } = body;
+
+    if (!name || !slug) {
+      return NextResponse.json(
+        { error: "name and slug are required" },
+        { status: 400 }
+      );
+    }
+
+    const [skill] = await db
+      .insert(skills)
+      .values({
+        name,
+        slug,
+        description: description || null,
+        skillMdContent: skillMdContent || null,
+        tags: tags || [],
+        userId: userId || null,
+        installed: true,
+      })
+      .returning();
+
+    return NextResponse.json(
+      { skill, message: "Skill saved successfully" },
+      { status: 201 }
+    );
+  } catch (error: any) {
+    if (error.message.includes("unique")) {
+      return NextResponse.json(
+        { error: "Skill with this slug already exists" },
+        { status: 409 }
+      );
+    }
+    return NextResponse.json(
+      { error: "Failed to save skill", detail: error.message },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const id = request.nextUrl.searchParams.get("id");
+    if (!id) {
+      return NextResponse.json({ error: "Skill id required" }, { status: 400 });
+    }
+    await db.delete(skills).where(eq(skills.id, id));
+    return NextResponse.json({ ok: true });
+  } catch (error: any) {
+    return NextResponse.json(
+      { error: "Failed to delete skill", detail: error.message },
+      { status: 500 }
+    );
+  }
+}

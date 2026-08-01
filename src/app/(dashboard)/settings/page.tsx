@@ -9,11 +9,19 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Key, Wallet, Shield, Bot, Save, Loader2 } from "lucide-react";
+import { useEffect } from "react";
 
 export default function SettingsPage() {
   const [ansemPreference, setAnsemPreference] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [userId] = useState<string | null>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("ansemrail_user_id");
+    }
+    return null;
+  });
   const [settings, setSettings] = useState({
     clawpumpApiKey: "",
     moonpayEmail: "",
@@ -22,14 +30,53 @@ export default function SettingsPage() {
     owsWalletName: "",
   });
 
-  function handleSave() {
+  useEffect(() => {
+    if (!userId) return;
+    fetch(`/api/settings?userId=${userId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.payoutWallet) setSettings((prev) => ({ ...prev, payoutWallet: data.payoutWallet }));
+        if (data.moonpayEmail) setSettings((prev) => ({ ...prev, moonpayEmail: data.moonpayEmail }));
+        if (data.telegramChatId) setSettings((prev) => ({ ...prev, telegramChatId: data.telegramChatId }));
+        if (data.owsWalletName) setSettings((prev) => ({ ...prev, owsWalletName: data.owsWalletName }));
+        if (data.ansemPreference !== undefined) setAnsemPreference(data.ansemPreference);
+      })
+      .catch(() => {});
+  }, [userId]);
+
+  async function handleSave() {
     setSaving(true);
     setSaved(false);
-    setTimeout(() => {
-      setSaving(false);
+    setError(null);
+    try {
+      const uid = userId;
+      if (!uid) {
+        setError("Please register first to save settings");
+        setSaving(false);
+        return;
+      }
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: uid,
+          clawpumpApiKey: settings.clawpumpApiKey || undefined,
+          moonpayEmail: settings.moonpayEmail || undefined,
+          payoutWallet: settings.payoutWallet || undefined,
+          telegramChatId: settings.telegramChatId || undefined,
+          owsWalletName: settings.owsWalletName || undefined,
+          ansemPreference,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to save");
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    }, 800);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -54,6 +101,12 @@ export default function SettingsPage() {
             <Bot className="h-3 w-3" /> Telegram
           </TabsTrigger>
         </TabsList>
+
+        {error && (
+          <div className="mt-4 rounded-md border border-red-800 bg-red-950/30 p-3">
+            <p className="text-sm text-red-400">{error}</p>
+          </div>
+        )}
 
         <TabsContent value="apikeys" className="max-w-2xl">
           <Card>

@@ -45,6 +45,8 @@ export default function RegisterPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Registration failed");
       setResult(data);
+      if (data.userId) localStorage.setItem("ansemrail_user_id", data.userId);
+      if (data.agentId) localStorage.setItem("ansemrail_agent_id", data.agentId);
       setTimeout(() => router.push("/dashboard"), 2000);
     } catch (err: any) {
       setError(err.message);
