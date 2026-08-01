@@ -5,11 +5,13 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatSol(lamports: number): string {
+export function formatSol(lamports: number | null | undefined): string {
+  if (lamports == null || isNaN(lamports)) return "— SOL";
   return (lamports / 1e9).toFixed(4) + " SOL";
 }
 
-export function formatUsd(value: number): string {
+export function formatUsd(value: number | null | undefined): string {
+  if (value == null || isNaN(value)) return "$—";
   if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
   if (value >= 1e6) return `$${(value / 1e6).toFixed(2)}M`;
   if (value >= 1e3) return `$${(value / 1e3).toFixed(2)}K`;
