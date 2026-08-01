@@ -2,7 +2,7 @@
 
 ## READ THIS FIRST — YOU ARE CONTINUING, NOT STARTING FRESH
 
-This is a **continuation guide** for the AnsemRail project. Previous sessions completed Phases 0-2 (installs, API verification, full platform build, PayBox integration). **Session 4** fixed a marketplace crash, deployed to Vercel, and tested ALL endpoints in production. **Do NOT redo any completed work.** Pick up where this session left off.
+This is a **continuation guide** for the AnsemRail project. Previous sessions completed Phases 0-2 (installs, API verification, full platform build, PayBox integration). **Session 4** fixed a marketplace crash, deployed to Vercel, tested ALL endpoints in production, and rebuilt the SKILL.md v3.0.0 to match the MoonPay skill.md format. **Do NOT redo any completed work.** Pick up where this session left off.
 
 ---
 
@@ -160,64 +160,39 @@ All verified. See README.md for full matrix.
 
 ### Priority 1 — FIX TELEGRAM BOT TOKEN (CRITICAL)
 
-The Telegram bot token is expired/invalid. Fix this:
+The Telegram bot token is expired/invalid (401 Unauthorized). Fix this:
 
 ```bash
 # 1. Get new token from @BotFather on Telegram
-# 2. Update .env locally:
-#    TELEGRAM_BOT_TOKEN=new_token_here
+# 2. Update .env locally: TELEGRAM_BOT_TOKEN=new_token_here
 # 3. Update on Vercel:
 VERCEL_TOKEN="vcp_8LotOyegDtoW1GtwFBgPrhPjjeXsL44urz9qJxfEcDuCWJFEjh17Vnle"
 PROJECT_ID="prj_RwVskDWF0QuAtI5dkx7a2W6LPztm"
-
-# Delete old env var and recreate
-# First get the env var ID:
-curl -s -H "Authorization: Bearer $VERCEL_TOKEN" \
-  "https://api.vercel.com/v9/projects/$PROJECT_ID/env" | jq '.envs[] | select(.key=="TELEGRAM_BOT_TOKEN") | .id'
-
-# Delete it:
-curl -s -X DELETE -H "Authorization: Bearer $VERCEL_TOKEN" \
-  "https://api.vercel.com/v9/projects/$PROJECT_ID/env/ENV_ID_HERE"
-
-# Create new one:
-curl -s -X POST "https://api.vercel.com/v10/projects/$PROJECT_ID/env" \
-  -H "Authorization: Bearer $VERCEL_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"key":"TELEGRAM_BOT_TOKEN","value":"NEW_TOKEN","type":"encrypted","target":["production","preview","development"]}'
-
-# 4. Redeploy (push to main or trigger new deployment)
-# 5. Set webhook:
+# Delete old env var, create new one, redeploy, set webhook:
 curl -s "https://api.telegram.org/botNEW_TOKEN/setWebhook?url=https://ansemrail.vercel.app/api/telegram"
 ```
 
 ### Priority 2 — ADD GOOGLE OAUTH CREDENTIALS
 
-Currently GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are empty. Create a Google OAuth app:
-
-1. Go to https://console.cloud.google.com/
-2. Create OAuth 2.0 credentials
-3. Set authorized redirect URI to: `https://ansemrail.vercel.app/api/auth/callback/google`
-4. Update .env and Vercel env vars with the credentials
-5. Redeploy
+GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are empty. Create Google OAuth app at https://console.cloud.google.com/, set redirect URI to `https://ansemrail.vercel.app/api/auth/callback/google`, update .env + Vercel env vars, redeploy.
 
 ### Priority 3 — POLISH (Optional)
 
-6. **Add auth middleware** — Protect dashboard routes, redirect to /register if not authenticated. Create `src/middleware.ts`.
-7. **Responsive mobile nav** — Dashboard sidebar is hidden on mobile, needs a hamburger menu.
-8. **Real wallet signing for terminal** — Terminal swap/DCA/perps buttons currently disabled. Integrate Solana wallet adapter or PayBox signing.
-9. **Error boundaries** — Graceful error handling for API failures.
-10. **Loading skeletons** — Better UX for slow API responses.
-11. **Real-time updates** — WebSocket or polling for signals page.
+6. **Add auth middleware** — `src/middleware.ts` to protect dashboard routes
+7. **Responsive mobile nav** — Hamburger menu for dashboard sidebar on mobile
+8. **Real wallet signing for terminal** — Integrate Solana wallet adapter or PayBox signing
+9. **Error boundaries** — Graceful error handling for API failures
+10. **Loading skeletons** — Better UX for slow API responses
 
 ### Priority 4 — FUTURE FEATURES
 
-12. **AnsemRail marketplace listings** — Let users list/buy agents (DB tables exist: listings, bids)
-13. **Bidding system** — Bids on agent listings (DB table exists)
-14. **Signal subscriptions** — Agent-signal subscription toggle (DB table exists)
-15. **OWS policy CRUD** — Create/manage OWS policies from settings page (API exists in paybox.ts)
-16. **Upstash Redis caching** — Rate limiting and caching for API calls
-17. **PayBox deep integration** — Connect PayBox vaults to agent wallets, real signing flow (Note: PayBox MCP endpoint at app.paybox.sh/mcp currently returns 404 — may need to wait for PayBox to go live or use different API path)
-18. **MoonPay CLI integration** — Real `mp` commands from terminal page
+11. **AnsemRail marketplace listings** — List/buy agents (DB tables: listings, bids)
+12. **Bidding system** — Bids on agent listings (DB table exists)
+13. **Signal subscriptions** — Agent-signal subscription toggle (DB table exists)
+14. **OWS policy CRUD** — Create/manage OWS policies from settings page
+15. **Upstash Redis caching** — Rate limiting and caching
+16. **PayBox deep integration** — Connect PayBox vaults to agent wallets (external API at app.paybox.sh/mcp currently 404)
+17. **MoonPay CLI integration** — Real `mp` commands from terminal page
 
 ---
 
