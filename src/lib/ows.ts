@@ -89,8 +89,6 @@ export function signMessage(
 }
 
 export function buildAnsemOnlyPolicy(): object {
-  const ansemMint =
-    process.env.ANSEM_TOKEN_MINT || "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump";
   return {
     id: `ansemrail-ansem-only-${Date.now()}`,
     name: "AnsemRail Ansem-Only Mode",

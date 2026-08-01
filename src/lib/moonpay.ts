@@ -7,6 +7,7 @@ export interface MoonPayToken {
   image: string;
   chain: string;
   decimals: number;
+  description?: string;
   marketData: {
     liquidity: number;
     marketCap: number;
