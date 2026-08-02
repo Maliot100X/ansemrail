@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { users, registrations } from "@/db/schema";
 import { encryptApiKey } from "@/lib/crypto";
+import { randomBytes } from "crypto";
 import { eq } from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
@@ -16,6 +17,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const authToken = randomBytes(32).toString("hex");
+    const encryptedKeys: Record<string, string> = {};
+    if (clawpumpApiKey) {
+      encryptedKeys.clawpumpApiKey = encryptApiKey(clawpumpApiKey);
+    }
+
     let existingUser: typeof users.$inferSelect | undefined;
     if (email) {
       const [found] = await db
@@ -26,14 +33,16 @@ export async function POST(request: NextRequest) {
       existingUser = found;
     }
 
-    const encryptedKey = clawpumpApiKey ? encryptApiKey(clawpumpApiKey) : null;
-
     if (existingUser) {
+      const existingEncryptedKeys = (existingUser.encryptedKeys as Record<string, string>) || {};
+      const mergedKeys = { ...existingEncryptedKeys, ...encryptedKeys };
+
       const [updated] = await db
         .update(users)
         .set({
           walletAddress: walletAddress || existingUser.walletAddress,
-          clawpumpApiKey: encryptedKey || existingUser.clawpumpApiKey,
+          clawpumpApiKey: authToken,
+          encryptedKeys: mergedKeys,
           moonpayEmail: moonpayEmail || existingUser.moonpayEmail,
           googleId: googleId || existingUser.googleId,
           type: "human",
@@ -48,12 +57,13 @@ export async function POST(request: NextRequest) {
           userId: updated!.id,
           type: "human",
           status: "active",
-          payload: { walletAddress, moonpayEmail, hasApiKey: !!encryptedKey },
+          payload: { walletAddress, moonpayEmail, hasApiKey: !!clawpumpApiKey },
         });
 
       return NextResponse.json({
         userId: updated!.id,
-        message: "Human registration updated successfully",
+        authToken,
+        message: "Human registration updated successfully. Use your authToken to log in.",
       });
     }
 
@@ -63,7 +73,8 @@ export async function POST(request: NextRequest) {
         email,
         googleId,
         walletAddress,
-        clawpumpApiKey: encryptedKey,
+        clawpumpApiKey: authToken,
+        encryptedKeys: Object.keys(encryptedKeys).length > 0 ? encryptedKeys : null,
         moonpayEmail,
         type: "human",
         ansemPreference: true,
@@ -74,13 +85,14 @@ export async function POST(request: NextRequest) {
       userId: newUser!.id,
       type: "human",
       status: "active",
-      payload: { walletAddress, moonpayEmail, hasApiKey: !!encryptedKey },
+      payload: { walletAddress, moonpayEmail, hasApiKey: !!clawpumpApiKey },
     });
 
     return NextResponse.json(
       {
         userId: newUser!.id,
-        message: "Human registered successfully",
+        authToken,
+        message: "Human registered successfully. Use your authToken to log in.",
       },
       { status: 201 }
     );

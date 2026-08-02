@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,16 +14,12 @@ import { Key, Wallet, Shield, Bot, Save, Loader2, CheckCircle, AlertCircle } fro
 const ALL_CHAINS = ["Solana", "Ethereum", "Base", "Arbitrum", "Polygon", "Optimism", "BNB", "Avalanche"];
 
 export default function SettingsPage() {
+  const { data: session } = useSession();
+  const userId = (session?.user as any)?.id || null;
   const [ansemPreference, setAnsemPreference] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [userId] = useState<string | null>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("ansemrail_user_id");
-    }
-    return null;
-  });
   const [settings, setSettings] = useState({
     clawpumpApiKey: "",
     moonpayEmail: "",

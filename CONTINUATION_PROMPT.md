@@ -2,7 +2,7 @@
 
 ## READ THIS FIRST — YOU ARE CONTINUING, NOT STARTING FRESH
 
-This is a **continuation guide** for the AnsemRail project. Previous sessions completed Phases 0-2 (installs, API verification, full platform build, PayBox integration). **Session 4** fixed a marketplace crash, deployed to Vercel, tested ALL endpoints in production, and rebuilt the SKILL.md v3.0.0 to match the MoonPay skill.md format. **Session 5** added Ed25519 signature verification to agent registration, rebuilt the register page with a full 8-step agent setup guide, updated SKILL.md to v5.0.0 with a "Creating Agents — Full Guide" section, made all dashboard terminal/skills/settings tabs fully functional with real API calls, and tested the complete registration flow end-to-end. **Do NOT redo any completed work.** Pick up where this session left off.
+This is a **continuation guide** for the AnsemRail project. Previous sessions completed Phases 0-2 (installs, API verification, full platform build, PayBox integration). **Session 4** fixed a marketplace crash, deployed to Vercel, tested ALL endpoints in production, and rebuilt the SKILL.md v3.0.0 to match the MoonPay skill.md format. **Session 5** added Ed25519 signature verification to agent registration, rebuilt the register page with a full 8-step agent setup guide, updated SKILL.md to v5.0.0 with a "Creating Agents — Full Guide" section, made all dashboard terminal/skills/settings tabs fully functional with real API calls, and tested the complete registration flow end-to-end. **Session 6** added full authentication: login page with API token login, auth-aware dashboard layout with logout + user info + mobile menu, NextAuth middleware to protect all dashboard routes, auto-login after registration, session-based settings/skills pages, human registration now generates authToken, and all flows tested end-to-end. **Do NOT redo any completed work.** Pick up where this session left off.
 
 ---
 
@@ -233,6 +233,94 @@ All verified. See README.md for full matrix.
 
 ---
 
+## SESSION 6 — WHAT WAS DONE
+
+### Full Authentication System ✅ IMPLEMENTED
+
+#### Login Page (`src/app/login/page.tsx`) — NEW
+- API token login: users enter their agentToken or authToken to sign in via NextAuth credentials provider
+- Google OAuth button (ready when GOOGLE_CLIENT_ID is set)
+- Link to register page for new users
+- Error handling for invalid tokens
+
+#### Auth-Aware Dashboard Layout (`src/app/(dashboard)/layout.tsx`) — REWRITTEN
+- Client component using `useSession()` from next-auth/react
+- Shows real user name, type (agent/human), and email from session
+- Logout button in sidebar and header (calls `signOut()`)
+- Active nav link highlighting using `usePathname()`
+- Mobile hamburger menu with slide-in drawer
+- Redirects to `/login` if unauthenticated
+- Loading spinner while session loads
+
+#### NextAuth Middleware (`src/middleware.ts`) — NEW
+- Protects all dashboard routes: /dashboard, /agents, /terminal, /signals, /marketplace, /skills, /settings
+- Redirects unauthenticated users to `/login?callbackUrl=...`
+- Uses `withAuth` from next-auth/middleware
+
+#### SessionProvider (`src/components/providers.tsx`) — NEW
+- Wraps entire app in NextAuth SessionProvider
+- Added to root layout (`src/app/layout.tsx`)
+
+#### Auth System Fix (`src/lib/auth.ts`) — UPDATED
+- CredentialsProvider now accepts a `token` field (agentToken or authToken)
+- Queries DB for `clawpumpApiKey === token` to authenticate
+- JWT and session callbacks include user id, email, type, walletAddress, hasClawpumpKey
+- Google OAuth sign-in now generates an authToken for new users
+- Sign-in page changed from `/register` to `/login`
+
+#### Human Registration (`src/app/api/register/human/route.ts`) — UPDATED
+- Now generates an `authToken` (random 32-byte hex) stored in `clawpumpApiKey`
+- Actual ClawPump API key (if provided) is encrypted and stored in `encryptedKeys` JSONB field
+- Returns `authToken` in response so users can log in
+- Existing users get a new authToken on re-registration
+
+#### Settings API (`src/app/api/settings/route.ts`) — UPDATED
+- PUT no longer overwrites `clawpumpApiKey` (which is now the auth token)
+- ClawPump API key is stored in `encryptedKeys` JSONB field instead
+- GET returns `type` field and `hasClawpumpKey` from `encryptedKeys`
+
+#### Register Page (`src/app/register/page.tsx`) — UPDATED
+- Auto-login after successful agent or human registration (calls `signIn()`)
+- Shows authToken for human registrations
+- Added "Already registered? Login" link
+- Redirects to dashboard after auto-login
+
+#### Settings Page (`src/app/(dashboard)/settings/page.tsx`) — UPDATED
+- Uses `useSession()` to get user ID instead of localStorage
+- All API calls use session user ID
+
+#### Skills Page (`src/app/(dashboard)/skills/skills-client.tsx`) — UPDATED
+- Uses `useSession()` to get user ID
+- Skill installation passes userId from session
+- SKILL.md upload auto-logins after agent registration
+
+#### Skills API (`src/app/api/skills/route.ts`) — UPDATED
+- GET supports `?userId=` filter for user-specific skills
+- POST generates unique slug per user to avoid conflicts
+
+#### Landing Page (`src/app/page.tsx`) — UPDATED
+- Added Login button in nav and hero section
+- Added SKILL.md Guide link
+
+### Build & Test Verification ✅ ALL PASSED
+- TypeScript: 0 errors
+- ESLint: 0 errors, 3 warnings (pre-existing img element warnings)
+- Next.js build: succeeds with all 23 routes (including new /login)
+- Local testing:
+  - Agent registration → 201 with agentToken ✅
+  - Human registration → 201 with authToken ✅
+  - Agent login with token → session with type=agent ✅
+  - Human login with token → session with type=human ✅
+  - Invalid token → CredentialsSignin error ✅
+  - Unauthenticated dashboard → redirect to /login ✅
+  - Authenticated dashboard → 200 ✅
+  - All dashboard pages (agents, settings, etc.) → 200 with auth ✅
+  - Swap quote API → working ✅
+  - Agents API → 25 agents from ClawPump ✅
+  - Skill.md endpoint → 200 ✅
+
+---
+
 ## WHAT'S LEFT TO DO ❌ — FOR NEXT AGENT
 
 ### Priority 1 — FIX TELEGRAM BOT TOKEN (CRITICAL)
@@ -255,8 +343,8 @@ GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are empty. Create Google OAuth app at 
 
 ### Priority 3 — POLISH (Optional)
 
-1. **Add auth middleware** — `src/middleware.ts` to protect dashboard routes
-2. **Responsive mobile nav** — Hamburger menu for dashboard sidebar on mobile
+1. ~~**Add auth middleware** — `src/middleware.ts` to protect dashboard routes~~ ✅ DONE in Session 6
+2. ~~**Responsive mobile nav** — Hamburger menu for dashboard sidebar on mobile~~ ✅ DONE in Session 6
 3. **Real wallet signing for terminal** — Integrate Solana wallet adapter or PayBox signing for actual swap execution
 4. **Error boundaries** — Graceful error handling for API failures
 5. **Loading skeletons** — Better UX for slow API responses
@@ -299,7 +387,7 @@ PAYBOX_API_URL=https://app.paybox.sh
 **Additional credentials (not in .env):**
 - Neon API token: `napi_qc3mermompqti0e6dvx2yqq0fs13g8tc6zv94moxc3n0ae7kz3k9r8a6ajdju2k0`
 - Neon org ID: `org-proud-leaf-88507341`
-- GitHub token: `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`
+- GitHub token: `ghp_<PREVIOUS_TOKEN_EXPIRED>`
 - Vercel tokens: `vcp_8LotOyegDtoW1GtwFBgPrhPjjeXsL44urz9qJxfEcDuCWJFEjh17Vnle` / `vcp_61vOK63Bu9cPo1FWCzQJ8H5rKaOldaH7QikR`
 - Vercel user ID: `IngwQOAgmmsn3alTBb62JxId`
 - Vercel team ID: `team_pnet5YnAM2pej7leQ1liFVq3`
@@ -372,8 +460,8 @@ curl -s -X POST "https://api.vercel.com/v13/deployments" \
 
 - **Repo**: https://github.com/Maliot100X/ansemrail
 - **Branch**: main
-- **GitHub token**: `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`
-- **Clone**: `git clone https://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@github.com/Maliot100X/ansemrail.git`
+- **GitHub token**: `ghp_<YOUR_GITHUB_TOKEN>`
+- **Clone**: `git clone https://github.com/Maliot100X/ansemrail.git`
 - **Latest commit**: `c9296ff fix: null-safe formatUsd/formatSol to prevent marketplace page 500 crash`
 
 ## COMPLETE API ENDPOINT REFERENCE (ALL TESTED ON PRODUCTION)
@@ -420,7 +508,7 @@ curl -s -X POST "https://api.vercel.com/v13/deployments" \
 
 ```bash
 # 1. Clone repo
-git clone https://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@github.com/Maliot100X/ansemrail.git
+git clone https://github.com/Maliot100X/ansemrail.git
 cd ansemrail
 
 # 2. Install deps

@@ -21,16 +21,19 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
+
+    const encryptedKeys = (user.encryptedKeys as Record<string, string>) || {};
     return NextResponse.json({
       userId: user.id,
       email: user.email,
+      type: user.type,
       walletAddress: user.walletAddress,
       moonpayEmail: user.moonpayEmail,
       payoutWallet: user.payoutWallet,
       telegramChatId: user.telegramChatId,
       owsWalletName: user.owsWalletName,
       ansemPreference: user.ansemPreference,
-      hasClawpumpKey: !!user.clawpumpApiKey,
+      hasClawpumpKey: !!encryptedKeys.clawpumpApiKey,
     });
   } catch (error: any) {
     return NextResponse.json(
@@ -60,9 +63,22 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    const [existing] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+
+    if (!existing) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
     const updateData: Record<string, unknown> = { updatedAt: new Date() };
+
     if (clawpumpApiKey !== undefined) {
-      updateData.clawpumpApiKey = encryptApiKey(clawpumpApiKey);
+      const existingEncryptedKeys = (existing.encryptedKeys as Record<string, string>) || {};
+      existingEncryptedKeys.clawpumpApiKey = encryptApiKey(clawpumpApiKey);
+      updateData.encryptedKeys = existingEncryptedKeys;
     }
     if (moonpayEmail !== undefined) updateData.moonpayEmail = moonpayEmail;
     if (payoutWallet !== undefined) updateData.payoutWallet = payoutWallet;
@@ -76,12 +92,8 @@ export async function PUT(request: NextRequest) {
       .where(eq(users.id, userId))
       .returning();
 
-    if (!updated) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
     return NextResponse.json({
-      userId: updated.id,
+      userId: updated!.id,
       message: "Settings updated successfully",
     });
   } catch (error: any) {

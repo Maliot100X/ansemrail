@@ -3,8 +3,16 @@ import { db } from "@/db/client";
 import { skills } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const userId = request.nextUrl.searchParams.get("userId");
+    if (userId) {
+      const userSkills = await db
+        .select()
+        .from(skills)
+        .where(eq(skills.userId, userId));
+      return NextResponse.json({ skills: userSkills });
+    }
     const allSkills = await db.select().from(skills);
     return NextResponse.json({ skills: allSkills });
   } catch (error: any) {
@@ -31,7 +39,7 @@ export async function POST(request: NextRequest) {
       .insert(skills)
       .values({
         name,
-        slug,
+        slug: userId ? `${slug}-${userId.slice(0, 8)}` : slug,
         description: description || null,
         skillMdContent: skillMdContent || null,
         tags: tags || [],

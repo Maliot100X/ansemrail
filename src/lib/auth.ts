@@ -12,13 +12,12 @@ export const authOptions = {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
     }),
     CredentialsProvider({
-      name: "Agent Credentials",
+      name: "AnsemRail",
       credentials: {
-        agentId: { label: "Agent ID", type: "text" },
-        token: { label: "Token", type: "text" },
+        token: { label: "API Token", type: "text" },
       },
       async authorize(credentials: any) {
-        if (!credentials?.agentId || !credentials?.token) return null;
+        if (!credentials?.token) return null;
         const [user] = await db
           .select()
           .from(users)
@@ -28,7 +27,7 @@ export const authOptions = {
           return {
             id: user.id,
             email: user.email || undefined,
-            name: credentials.agentId as string,
+            name: user.type === "agent" ? "Autonomous Agent" : (user.email || "AnsemRail User"),
           };
         }
         return null;
@@ -40,12 +39,27 @@ export const authOptions = {
     async jwt({ token, user }: any) {
       if (user) {
         token.id = user.id;
+        token.email = user.email;
       }
       return token;
     },
     async session({ session, token }: any) {
       if (token && session.user) {
         session.user.id = token.id;
+        session.user.email = token.email;
+      }
+
+      if (token.id) {
+        const [dbUser] = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, token.id as string))
+          .limit(1);
+        if (dbUser) {
+          session.user.type = dbUser.type;
+          session.user.walletAddress = dbUser.walletAddress;
+          session.user.hasClawpumpKey = !!(dbUser.encryptedKeys as any)?.clawpumpApiKey;
+        }
       }
       return session;
     },
@@ -57,10 +71,13 @@ export const authOptions = {
           .where(eq(users.email, user.email))
           .limit(1);
         if (!existing) {
+          const { randomBytes } = await import("crypto");
+          const authToken = randomBytes(32).toString("hex");
           await db.insert(users).values({
             email: user.email,
             type: "human",
             googleId: account.providerAccountId,
+            clawpumpApiKey: authToken,
           });
         }
       }
@@ -68,7 +85,7 @@ export const authOptions = {
     },
   },
   pages: {
-    signIn: "/register",
+    signIn: "/login",
   },
 };
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +28,7 @@ import {
   Rocket,
   Zap,
   BookOpen,
+  LogIn,
 } from "lucide-react";
 
 const AGENT_STEPS = [
@@ -173,7 +175,7 @@ function AgentStep({ step, index }: { step: typeof AGENT_STEPS[0]; index: number
 export default function RegisterPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<{ userId?: string; agentId?: string; agentToken?: string; verified?: boolean; message?: string } | null>(null);
+  const [result, setResult] = useState<{ userId?: string; agentId?: string; agentToken?: string; authToken?: string; verified?: boolean; message?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [humanForm, setHumanForm] = useState({
@@ -206,8 +208,16 @@ export default function RegisterPage() {
       if (!res.ok) throw new Error(data.error || "Registration failed");
       setResult(data);
       if (data.userId) localStorage.setItem("ansemrail_user_id", data.userId);
-      if (data.agentId) localStorage.setItem("ansemrail_agent_id", data.agentId);
-      setTimeout(() => router.push("/dashboard"), 2000);
+      if (data.authToken) {
+        localStorage.setItem("ansemrail_auth_token", data.authToken);
+        const signInResult = await signIn("credentials", {
+          token: data.authToken,
+          redirect: false,
+        });
+        if (signInResult?.ok) {
+          setTimeout(() => router.push("/dashboard"), 1500);
+        }
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -235,7 +245,16 @@ export default function RegisterPage() {
       if (!res.ok) throw new Error(data.error || "Agent registration failed");
       setResult(data);
       if (data.agentId) localStorage.setItem("ansemrail_agent_id", data.agentId);
-      if (data.agentToken) localStorage.setItem("ansemrail_agent_token", data.agentToken);
+      if (data.agentToken) {
+        localStorage.setItem("ansemrail_agent_token", data.agentToken);
+        const signInResult = await signIn("credentials", {
+          token: data.agentToken,
+          redirect: false,
+        });
+        if (signInResult?.ok) {
+          setTimeout(() => router.push("/dashboard"), 1500);
+        }
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -263,6 +282,12 @@ export default function RegisterPage() {
           <p className="mt-2 text-zinc-400">
             Join the agentic control plane — humans and autonomous agents welcome
           </p>
+          <p className="mt-3 text-sm">
+            Already registered?{" "}
+            <Link href="/login" className="text-amber-400 hover:text-amber-300 inline-flex items-center gap-1">
+              <LogIn className="h-3 w-3" /> Login with your API token
+            </Link>
+          </p>
         </div>
 
         {result && (
@@ -279,13 +304,15 @@ export default function RegisterPage() {
               </div>
               {result.userId && <p className="mt-2 text-sm text-zinc-400">User ID: {result.userId}</p>}
               {result.agentId && <p className="mt-2 text-sm text-zinc-400">Agent ID: {result.agentId}</p>}
-              {result.agentToken && (
+              {(result.agentToken || result.authToken) && (
                 <div className="mt-3 rounded-md bg-zinc-900 p-3">
-                  <p className="text-xs text-zinc-500 mb-1">Agent Token (save this — shown once):</p>
-                  <code className="text-sm text-amber-400 break-all">{result.agentToken}</code>
+                  <p className="text-xs text-zinc-500 mb-1">
+                    {result.agentToken ? "Agent Token" : "Auth Token"} (save this — shown once):
+                  </p>
+                  <code className="text-sm text-amber-400 break-all">{result.agentToken || result.authToken}</code>
                 </div>
               )}
-              {result.agentToken && (
+              {(result.agentToken || result.authToken) && (
                 <div className="mt-4 flex gap-2">
                   <Link href="/dashboard">
                     <Button variant="ansem" size="sm">

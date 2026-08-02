@@ -16,6 +16,9 @@ export default function Home() {
             <Badge variant="ansem">Beta</Badge>
           </div>
           <div className="flex items-center gap-4">
+            <Link href="/login">
+              <Button variant="ghost" size="sm">Login</Button>
+            </Link>
             <Link href="/register">
               <Button variant="ghost" size="sm">Register</Button>
             </Link>
@@ -47,11 +50,16 @@ export default function Home() {
               Get Started
             </Button>
           </Link>
-          <Link href="/dashboard">
+          <Link href="/login">
             <Button variant="outline" size="lg">
-              View Dashboard
+              Login
             </Button>
           </Link>
+          <a href="/skill.md" target="_blank" rel="noopener noreferrer">
+            <Button variant="ghost" size="lg">
+              SKILL.md Guide
+            </Button>
+          </a>
         </div>
       </section>
 

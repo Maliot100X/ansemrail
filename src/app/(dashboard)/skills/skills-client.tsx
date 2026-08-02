@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useSession } from "next-auth/react";
+import { signIn } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +24,8 @@ interface SkillsClientProps {
 }
 
 export function SkillsClient({ clawpumpSkills, moonpaySkills, error }: SkillsClientProps) {
+  const { data: session } = useSession();
+  const userId = (session?.user as any)?.id || null;
   const [installing, setInstalling] = useState<string | null>(null);
   const [installedSlugs, setInstalledSlugs] = useState<Set<string>>(new Set());
   const [uploadLoading, setUploadLoading] = useState(false);
@@ -42,6 +46,7 @@ export function SkillsClient({ clawpumpSkills, moonpaySkills, error }: SkillsCli
           slug: skill.slug,
           description: skill.description,
           tags: ["clawpump"],
+          userId,
         }),
       });
       const data = await res.json();
@@ -65,6 +70,7 @@ export function SkillsClient({ clawpumpSkills, moonpaySkills, error }: SkillsCli
           slug: skill,
           description: skill.replace("moonpay-", "").replace(/-/g, " "),
           tags: ["moonpay"],
+          userId,
         }),
       });
       const data = await res.json();
@@ -105,7 +111,10 @@ export function SkillsClient({ clawpumpSkills, moonpaySkills, error }: SkillsCli
       if (!res.ok) throw new Error(data.error || "Registration failed");
       setUploadResult(data);
       if (data.agentId) localStorage.setItem("ansemrail_agent_id", data.agentId);
-      if (data.agentToken) localStorage.setItem("ansemrail_agent_token", data.agentToken);
+      if (data.agentToken) {
+        localStorage.setItem("ansemrail_agent_token", data.agentToken);
+        await signIn("credentials", { token: data.agentToken, redirect: false });
+      }
     } catch (err: any) {
       setUploadError(err.message);
     } finally {

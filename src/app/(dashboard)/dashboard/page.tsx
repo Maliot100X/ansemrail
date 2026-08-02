@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { formatUsd, shortAddress } from "@/lib/utils";
-import { Bot, Wallet, TrendingUp, Coins } from "lucide-react";
+import { Bot, TrendingUp, Coins } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
