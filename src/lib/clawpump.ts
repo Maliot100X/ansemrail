@@ -4,9 +4,9 @@ function getApiKey(): string {
   return process.env.CLAWPUMP_API_KEY || "";
 }
 
-function authHeaders(): HeadersInit {
+function authHeaders(userApiKey?: string): HeadersInit {
   return {
-    Authorization: `Bearer ${getApiKey()}`,
+    Authorization: `Bearer ${userApiKey || getApiKey()}`,
     "Content-Type": "application/json",
   };
 }
@@ -53,9 +53,9 @@ export interface ClawPumpToken {
   createdAt: string;
 }
 
-export async function listAgents(): Promise<ClawPumpAgent[]> {
+export async function listAgents(userApiKey?: string): Promise<ClawPumpAgent[]> {
   const res = await fetch(`${CLAWPUMP_BASE}/api/v1/agents`, {
-    headers: authHeaders(),
+    headers: authHeaders(userApiKey),
     next: { revalidate: 30 },
   });
   if (!res.ok) throw new Error(`ClawPump listAgents: ${res.status}`);
@@ -63,9 +63,9 @@ export async function listAgents(): Promise<ClawPumpAgent[]> {
   return data.agents || [];
 }
 
-export async function getAgent(agentId: string): Promise<ClawPumpAgent> {
+export async function getAgent(agentId: string, userApiKey?: string): Promise<ClawPumpAgent> {
   const res = await fetch(`${CLAWPUMP_BASE}/api/v1/agents/${agentId}`, {
-    headers: authHeaders(),
+    headers: authHeaders(userApiKey),
     next: { revalidate: 30 },
   });
   if (!res.ok) throw new Error(`ClawPump getAgent: ${res.status}`);
@@ -77,10 +77,10 @@ export async function createAgent(params: {
   persona?: string;
   model?: string;
   skills?: string[];
-}): Promise<ClawPumpAgent> {
+}, userApiKey?: string): Promise<ClawPumpAgent> {
   const res = await fetch(`${CLAWPUMP_BASE}/api/v1/agents`, {
     method: "POST",
-    headers: authHeaders(),
+    headers: authHeaders(userApiKey),
     body: JSON.stringify(params),
   });
   if (!res.ok) throw new Error(`ClawPump createAgent: ${res.status}`);
@@ -89,28 +89,29 @@ export async function createAgent(params: {
 
 export async function updateAgent(
   agentId: string,
-  params: Partial<Pick<ClawPumpAgent, "name" | "persona" | "model" | "skills">>
+  params: Partial<Pick<ClawPumpAgent, "name" | "persona" | "model" | "skills">>,
+  userApiKey?: string
 ): Promise<ClawPumpAgent> {
   const res = await fetch(`${CLAWPUMP_BASE}/api/v1/agents/${agentId}`, {
     method: "PUT",
-    headers: authHeaders(),
+    headers: authHeaders(userApiKey),
     body: JSON.stringify(params),
   });
   if (!res.ok) throw new Error(`ClawPump updateAgent: ${res.status}`);
   return res.json();
 }
 
-export async function deleteAgent(agentId: string): Promise<void> {
+export async function deleteAgent(agentId: string, userApiKey?: string): Promise<void> {
   const res = await fetch(`${CLAWPUMP_BASE}/api/v1/agents/${agentId}`, {
     method: "DELETE",
-    headers: authHeaders(),
+    headers: authHeaders(userApiKey),
   });
   if (!res.ok) throw new Error(`ClawPump deleteAgent: ${res.status}`);
 }
 
-export async function listSkills(): Promise<ClawPumpSkill[]> {
+export async function listSkills(userApiKey?: string): Promise<ClawPumpSkill[]> {
   const res = await fetch(`${CLAWPUMP_BASE}/api/v1/skills`, {
-    headers: authHeaders(),
+    headers: authHeaders(userApiKey),
     next: { revalidate: 300 },
   });
   if (!res.ok) throw new Error(`ClawPump listSkills: ${res.status}`);
@@ -136,10 +137,10 @@ export async function swapQuote(params: {
   inputMint: string;
   outputMint: string;
   amount: string;
-}): Promise<any> {
+}, userApiKey?: string): Promise<any> {
   const res = await fetch(`${CLAWPUMP_BASE}/api/v1/swap/quote`, {
     method: "POST",
-    headers: authHeaders(),
+    headers: authHeaders(userApiKey),
     body: JSON.stringify({
       input_mint: params.inputMint,
       output_mint: params.outputMint,
@@ -161,10 +162,10 @@ export async function launchTokenGasless(params: {
   imageUrl?: string;
   twitter?: string;
   website?: string;
-}): Promise<any> {
+}, userApiKey?: string): Promise<any> {
   const res = await fetch(`${CLAWPUMP_BASE}/api/v1/launch`, {
     method: "POST",
-    headers: authHeaders(),
+    headers: authHeaders(userApiKey),
     body: JSON.stringify(params),
   });
   if (!res.ok) {
@@ -180,10 +181,10 @@ export async function launchTokenSelfFunded(params: {
   description: string;
   agentId?: string;
   imageUrl?: string;
-}): Promise<any> {
+}, userApiKey?: string): Promise<any> {
   const res = await fetch(`${CLAWPUMP_BASE}/api/v1/launch/self-funded`, {
     method: "POST",
-    headers: authHeaders(),
+    headers: authHeaders(userApiKey),
     body: JSON.stringify(params),
   });
   if (!res.ok) {
@@ -196,7 +197,8 @@ export async function launchTokenSelfFunded(params: {
 export async function browseMarketplace(
   category?: string,
   search?: string,
-  limit = 20
+  limit = 20,
+  userApiKey?: string
 ): Promise<any> {
   const params = new URLSearchParams();
   if (category) params.set("category", category);
@@ -204,7 +206,7 @@ export async function browseMarketplace(
   params.set("limit", String(limit));
   const res = await fetch(
     `${CLAWPUMP_BASE}/api/v1/marketplace?${params.toString()}`,
-    { headers: authHeaders(), next: { revalidate: 60 } }
+    { headers: authHeaders(userApiKey), next: { revalidate: 60 } }
   );
   if (!res.ok) throw new Error(`ClawPump browseMarketplace: ${res.status}`);
   return res.json();
@@ -212,11 +214,12 @@ export async function browseMarketplace(
 
 export async function chatWithAgent(
   agentId: string,
-  message: string
+  message: string,
+  userApiKey?: string
 ): Promise<any> {
   const res = await fetch(`${CLAWPUMP_BASE}/api/v1/agents/${agentId}/chat`, {
     method: "POST",
-    headers: authHeaders(),
+    headers: authHeaders(userApiKey),
     body: JSON.stringify({ message }),
   });
   if (!res.ok) {
@@ -226,19 +229,19 @@ export async function chatWithAgent(
   return res.json();
 }
 
-export async function getWalletSummaries(): Promise<any> {
+export async function getWalletSummaries(userApiKey?: string): Promise<any> {
   const res = await fetch(`${CLAWPUMP_BASE}/api/v1/wallets`, {
-    headers: authHeaders(),
+    headers: authHeaders(userApiKey),
     next: { revalidate: 30 },
   });
   if (!res.ok) throw new Error(`ClawPump getWalletSummaries: ${res.status}`);
   return res.json();
 }
 
-export async function getAgentBalance(agentId: string): Promise<any> {
+export async function getAgentBalance(agentId: string, userApiKey?: string): Promise<any> {
   const res = await fetch(
     `${CLAWPUMP_BASE}/api/v1/agents/${agentId}/balance`,
-    { headers: authHeaders(), next: { revalidate: 30 } }
+    { headers: authHeaders(userApiKey), next: { revalidate: 30 } }
   );
   if (!res.ok) throw new Error(`ClawPump getAgentBalance: ${res.status}`);
   return res.json();

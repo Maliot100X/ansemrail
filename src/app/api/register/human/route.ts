@@ -41,7 +41,6 @@ export async function POST(request: NextRequest) {
         .update(users)
         .set({
           walletAddress: walletAddress || existingUser.walletAddress,
-          clawpumpApiKey: authToken,
           encryptedKeys: mergedKeys,
           moonpayEmail: moonpayEmail || existingUser.moonpayEmail,
           googleId: googleId || existingUser.googleId,
@@ -62,7 +61,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         userId: updated!.id,
-        authToken,
+        authToken: existingUser.clawpumpApiKey,
         message: "Human registration updated successfully. Use your authToken to log in.",
       });
     }

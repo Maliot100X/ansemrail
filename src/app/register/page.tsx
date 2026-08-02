@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -173,7 +172,6 @@ function AgentStep({ step, index }: { step: typeof AGENT_STEPS[0]; index: number
 }
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ userId?: string; agentId?: string; agentToken?: string; authToken?: string; verified?: boolean; message?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -215,7 +213,7 @@ export default function RegisterPage() {
           redirect: false,
         });
         if (signInResult?.ok) {
-          setTimeout(() => router.push("/dashboard"), 1500);
+          void signInResult;
         }
       }
     } catch (err: any) {
@@ -252,7 +250,7 @@ export default function RegisterPage() {
           redirect: false,
         });
         if (signInResult?.ok) {
-          setTimeout(() => router.push("/dashboard"), 1500);
+          void signInResult;
         }
       }
     } catch (err: any) {

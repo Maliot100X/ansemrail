@@ -3,6 +3,9 @@ import { db } from "@/db/client";
 import { skills } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function GET(request: NextRequest) {
   try {
     const userId = request.nextUrl.searchParams.get("userId");
@@ -72,7 +75,22 @@ export async function DELETE(request: NextRequest) {
     if (!id) {
       return NextResponse.json({ error: "Skill id required" }, { status: 400 });
     }
-    await db.delete(skills).where(eq(skills.id, id));
+    let targetId = id;
+    if (!UUID_RE.test(id)) {
+      const [found] = await db
+        .select()
+        .from(skills)
+        .where(eq(skills.slug, id))
+        .limit(1);
+      if (!found) {
+        return NextResponse.json(
+          { error: "Skill not found" },
+          { status: 404 }
+        );
+      }
+      targetId = found.id;
+    }
+    await db.delete(skills).where(eq(skills.id, targetId));
     return NextResponse.json({ ok: true });
   } catch (error: any) {
     return NextResponse.json(

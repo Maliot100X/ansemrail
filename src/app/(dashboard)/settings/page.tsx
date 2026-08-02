@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Key, Wallet, Shield, Bot, Save, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+import { Key, Wallet, Shield, Bot, Save, Loader2, CheckCircle, AlertCircle, Link2 } from "lucide-react";
 
 const ALL_CHAINS = ["Solana", "Ethereum", "Base", "Arbitrum", "Polygon", "Optimism", "BNB", "Avalanche"];
 
@@ -27,6 +27,9 @@ export default function SettingsPage() {
     telegramChatId: "",
     owsWalletName: "",
   });
+  const [hasClawpumpKey, setHasClawpumpKey] = useState(false);
+  const [connecting, setConnecting] = useState(false);
+  const [connectResult, setConnectResult] = useState<string | null>(null);
 
   // OWS / PayBox state
   const [enabledChains, setEnabledChains] = useState<Set<string>>(new Set(["Solana"]));
@@ -46,6 +49,7 @@ export default function SettingsPage() {
         if (data.telegramChatId) setSettings((prev) => ({ ...prev, telegramChatId: data.telegramChatId }));
         if (data.owsWalletName) setSettings((prev) => ({ ...prev, owsWalletName: data.owsWalletName }));
         if (data.ansemPreference !== undefined) setAnsemPreference(data.ansemPreference);
+        if (data.hasClawpumpKey !== undefined) setHasClawpumpKey(!!data.hasClawpumpKey);
       })
       .catch(() => {});
   }, [userId]);
@@ -104,6 +108,38 @@ export default function SettingsPage() {
     });
   }
 
+  async function handleConnectClawpump() {
+    if (!settings.clawpumpApiKey) {
+      setConnectResult("Please enter a ClawPump API key first");
+      return;
+    }
+    setConnecting(true);
+    setConnectResult(null);
+    setError(null);
+    try {
+      const uid = userId;
+      if (!uid) {
+        setConnectResult("Please register first to connect accounts");
+        setConnecting(false);
+        return;
+      }
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: uid, clawpumpApiKey: settings.clawpumpApiKey }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to connect");
+      setHasClawpumpKey(true);
+      setConnectResult("ClawPump account connected successfully");
+      setSettings((prev) => ({ ...prev, clawpumpApiKey: "" }));
+    } catch (err: any) {
+      setConnectResult(err.message);
+    } finally {
+      setConnecting(false);
+    }
+  }
+
   async function handleCreateAnsemPolicy() {
     setPayboxLoading(true);
     setPayboxError(null);
@@ -159,6 +195,9 @@ export default function SettingsPage() {
         <TabsList>
           <TabsTrigger value="apikeys" className="flex items-center gap-1 text-xs">
             <Key className="h-3 w-3" /> API Keys
+          </TabsTrigger>
+          <TabsTrigger value="accounts" className="flex items-center gap-1 text-xs">
+            <Link2 className="h-3 w-3" /> Accounts
           </TabsTrigger>
           <TabsTrigger value="wallets" className="flex items-center gap-1 text-xs">
             <Wallet className="h-3 w-3" /> Wallets
@@ -217,6 +256,56 @@ export default function SettingsPage() {
               <Button variant="ansem" onClick={handleSave} disabled={saving}>
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4" /> Save Keys</>}
               </Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* CONNECTED ACCOUNTS */}
+        <TabsContent value="accounts" className="max-w-2xl">
+          <Card>
+            <CardHeader>
+              <CardTitle>Connected Accounts</CardTitle>
+              <CardDescription>Link external accounts for unlimited agent chat and trading</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-zinc-200">ClawPump</p>
+                    <p className="text-xs text-zinc-500">Connect your own API key for unlimited agent chat (bypasses shared quota)</p>
+                  </div>
+                  {hasClawpumpKey ? (
+                    <Badge variant="success">
+                      <CheckCircle className="h-3 w-3 mr-1" /> Connected
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary">Not Connected</Badge>
+                  )}
+                </div>
+                {hasClawpumpKey ? (
+                  <p className="text-xs text-zinc-500">
+                    Your ClawPump API key is encrypted at rest. Agent chat will use your key automatically.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    <Input
+                      type="password"
+                      placeholder="cpk_..."
+                      value={settings.clawpumpApiKey}
+                      onChange={(e) => setSettings({ ...settings, clawpumpApiKey: e.target.value })}
+                    />
+                    <Button variant="ansem" size="sm" onClick={handleConnectClawpump} disabled={connecting}>
+                      {connecting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Link2 className="h-3 w-3" />}
+                      Connect ClawPump
+                    </Button>
+                  </div>
+                )}
+                {connectResult && (
+                  <p className={`text-xs ${connectResult.includes("success") ? "text-green-400" : "text-red-400"}`}>
+                    {connectResult}
+                  </p>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getBalance, getTokenAccountsByOwner } from "@/lib/helius";
+import {
+  getBalance,
+  getTokenAccountsByOwner,
+  isEvmAddress,
+  getEthBalance,
+  getEvmTokenBalances,
+} from "@/lib/helius";
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,6 +15,22 @@ export async function GET(request: NextRequest) {
         { error: "address is required" },
         { status: 400 }
       );
+    }
+
+    if (isEvmAddress(address)) {
+      const [ethBalanceHex, tokens] = await Promise.all([
+        getEthBalance(address),
+        getEvmTokenBalances(address),
+      ]);
+      const ethBalanceWei = BigInt(ethBalanceHex);
+      return NextResponse.json({
+        address,
+        chain: "ethereum",
+        ethBalance: Number(ethBalanceWei) / 1e18,
+        ethBalanceWei: ethBalanceHex,
+        solBalance: 0,
+        tokens,
+      });
     }
 
     const [solBalance, tokenAccounts] = await Promise.all([
@@ -25,6 +47,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       address,
+      chain: "solana",
       solBalance: solBalance / 1e9,
       solBalanceLamports: solBalance,
       tokens,

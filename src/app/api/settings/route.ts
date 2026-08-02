@@ -2,42 +2,44 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { users } from "@/db/schema";
 import { encryptApiKey } from "@/lib/crypto";
+import { getRequestUser } from "@/lib/auth-session";
 import { eq } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.nextUrl.searchParams.get("userId");
-    if (!userId) {
+    const user = await getRequestUser(request);
+    if (!user) {
       return NextResponse.json(
-        { error: "userId is required" },
-        { status: 400 }
+        { error: "Authentication required" },
+        { status: 401 }
       );
     }
-    const [user] = await db
+    const [row] = await db
       .select()
       .from(users)
-      .where(eq(users.id, userId))
+      .where(eq(users.id, user.id))
       .limit(1);
-    if (!user) {
+    if (!row) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const encryptedKeys = (user.encryptedKeys as Record<string, string>) || {};
+    const encryptedKeys = (row.encryptedKeys as Record<string, string>) || {};
     return NextResponse.json({
-      userId: user.id,
-      email: user.email,
-      type: user.type,
-      walletAddress: user.walletAddress,
-      moonpayEmail: user.moonpayEmail,
-      payoutWallet: user.payoutWallet,
-      telegramChatId: user.telegramChatId,
-      owsWalletName: user.owsWalletName,
-      ansemPreference: user.ansemPreference,
+      userId: row.id,
+      email: row.email,
+      type: row.type,
+      walletAddress: row.walletAddress,
+      moonpayEmail: row.moonpayEmail,
+      payoutWallet: row.payoutWallet,
+      telegramChatId: row.telegramChatId,
+      owsWalletName: row.owsWalletName,
+      ansemPreference: row.ansemPreference,
       hasClawpumpKey: !!encryptedKeys.clawpumpApiKey,
     });
   } catch (error: any) {
+    console.error("Settings GET error:", error.message);
     return NextResponse.json(
-      { error: "Failed to fetch settings", detail: error.message },
+      { error: "Failed to fetch settings" },
       { status: 500 }
     );
   }
@@ -45,9 +47,15 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const user = await getRequestUser(request);
+    if (!user) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
     const body = await request.json();
     const {
-      userId,
       clawpumpApiKey,
       moonpayEmail,
       payoutWallet,
@@ -56,17 +64,10 @@ export async function PUT(request: NextRequest) {
       ansemPreference,
     } = body;
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: "userId is required" },
-        { status: 400 }
-      );
-    }
-
     const [existing] = await db
       .select()
       .from(users)
-      .where(eq(users.id, userId))
+      .where(eq(users.id, user.id))
       .limit(1);
 
     if (!existing) {
@@ -76,7 +77,8 @@ export async function PUT(request: NextRequest) {
     const updateData: Record<string, unknown> = { updatedAt: new Date() };
 
     if (clawpumpApiKey !== undefined) {
-      const existingEncryptedKeys = (existing.encryptedKeys as Record<string, string>) || {};
+      const existingEncryptedKeys =
+        (existing.encryptedKeys as Record<string, string>) || {};
       existingEncryptedKeys.clawpumpApiKey = encryptApiKey(clawpumpApiKey);
       updateData.encryptedKeys = existingEncryptedKeys;
     }
@@ -89,7 +91,7 @@ export async function PUT(request: NextRequest) {
     const [updated] = await db
       .update(users)
       .set(updateData)
-      .where(eq(users.id, userId))
+      .where(eq(users.id, user.id))
       .returning();
 
     return NextResponse.json({
@@ -97,8 +99,9 @@ export async function PUT(request: NextRequest) {
       message: "Settings updated successfully",
     });
   } catch (error: any) {
+    console.error("Settings PUT error:", error.message);
     return NextResponse.json(
-      { error: "Failed to update settings", detail: error.message },
+      { error: "Failed to update settings" },
       { status: 500 }
     );
   }

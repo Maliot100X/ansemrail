@@ -1,13 +1,50 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listAgents, createAgent, deleteAgent } from "@/lib/clawpump";
+import { getRequestUser, getUserClawpumpApiKey } from "@/lib/auth-session";
+import { db } from "@/db/client";
+import { agents as agentsTable } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
-export async function GET() {
+const DEFAULT_SKILLS = [
+  "defi-trading",
+  "perps-trading",
+  "sniper",
+  "market-intelligence",
+];
+
+export async function GET(request: NextRequest) {
   try {
-    const agents = await listAgents();
-    return NextResponse.json({ agents });
+    const user = await getRequestUser(request);
+    const userApiKey = await getUserClawpumpApiKey(user?.id);
+    const [clawpumpAgents, dbAgents] = await Promise.all([
+      listAgents(userApiKey),
+      db.select().from(agentsTable),
+    ]);
+
+    const dbByClawpumpId = new Map(
+      dbAgents
+        .filter((a) => a.clawpumpAgentId)
+        .map((a) => [a.clawpumpAgentId as string, a])
+    );
+
+    const merged = clawpumpAgents.map((a) => {
+      const dbAgent = dbByClawpumpId.get(a.id);
+      return {
+        ...a,
+        userId: dbAgent?.userId ?? null,
+        isPublic: dbAgent ? dbAgent.isPublic : true,
+      };
+    });
+
+    const visible = merged.filter((a) => {
+      if (a.isPublic !== false) return true;
+      return user?.id && a.userId === user.id;
+    });
+
+    return NextResponse.json({ agents: visible });
   } catch (error: any) {
     return NextResponse.json(
-      { error: error.message },
+      { error: "Failed to list agents", detail: error.message },
       { status: 500 }
     );
   }
@@ -15,12 +52,46 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getRequestUser(request);
+    if (!user) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
     const body = await request.json();
-    const agent = await createAgent(body);
-    return NextResponse.json(agent, { status: 201 });
+    const skills =
+      Array.isArray(body.skills) && body.skills.length > 0
+        ? body.skills
+        : DEFAULT_SKILLS;
+
+    const userApiKey = await getUserClawpumpApiKey(user.id);
+    const agent = await createAgent(
+      { ...body, skills },
+      userApiKey
+    );
+
+    await db
+      .insert(agentsTable)
+      .values({
+        userId: user.id,
+        clawpumpAgentId: agent.id,
+        name: agent.name,
+        persona: agent.persona || body.persona || null,
+        model: agent.model || body.model || null,
+        skills,
+        isPublic: false,
+        status: "stopped",
+      })
+      .returning();
+
+    return NextResponse.json(
+      { ...agent, userId: user.id, isPublic: false, skills },
+      { status: 201 }
+    );
   } catch (error: any) {
     return NextResponse.json(
-      { error: error.message },
+      { error: "Failed to create agent", detail: error.message },
       { status: 500 }
     );
   }
@@ -28,15 +99,30 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const user = await getRequestUser(request);
+    if (!user) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
     const id = request.nextUrl.searchParams.get("id");
     if (!id) {
       return NextResponse.json({ error: "Agent id required" }, { status: 400 });
     }
-    await deleteAgent(id);
+    const userApiKey = await getUserClawpumpApiKey(user.id);
+    await deleteAgent(id, userApiKey);
+    try {
+      await db
+        .delete(agentsTable)
+        .where(eq(agentsTable.clawpumpAgentId, id));
+    } catch {
+      // DB record may not exist
+    }
     return NextResponse.json({ ok: true });
   } catch (error: any) {
     return NextResponse.json(
-      { error: error.message },
+      { error: "Failed to delete agent", detail: error.message },
       { status: 500 }
     );
   }

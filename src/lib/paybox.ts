@@ -1,4 +1,4 @@
-const PAYBOX_BASE = process.env.PAYBOX_API_URL || "https://app.paybox.sh";
+const PAYBOX_BASE = process.env.PAYBOX_API_URL || "https://api.paybox.sh";
 
 export interface PayBoxVault {
   id: string;
