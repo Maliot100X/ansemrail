@@ -56,20 +56,42 @@ export function isEvmAddress(address: string): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(address);
 }
 
-function evmRpcUrl(): string {
+function evmRpcUrls(): string[] {
+  const urls: string[] = [];
   const key = process.env.ALCHEMY_API_KEY;
-  if (key) return `https://eth-mainnet.g.alchemy.com/v2/${key}`;
-  return "https://eth.llamarpc.com";
+  if (key) urls.push(`https://eth-mainnet.g.alchemy.com/v2/${key}`);
+  urls.push("https://ethereum-rpc.publicnode.com");
+  urls.push("https://cloudflare-eth.com");
+  urls.push("https://rpc.ankr.com/eth");
+  return urls;
 }
 
 async function evmRpc(method: string, params: any[] = []): Promise<any> {
-  const res = await fetch(evmRpcUrl(), {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-  });
-  if (!res.ok) throw new Error(`EVM RPC ${method}: ${res.status}`);
-  return res.json();
+  const urls = evmRpcUrls();
+  let lastError: Error | null = null;
+  for (const url of urls) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+      });
+      if (!res.ok) {
+        lastError = new Error(`EVM RPC ${method}: ${res.status} (${url})`);
+        continue;
+      }
+      const data = await res.json();
+      if (data.error) {
+        lastError = new Error(`EVM RPC ${method}: ${data.error.message} (${url})`);
+        continue;
+      }
+      return data;
+    } catch (err: any) {
+      lastError = err;
+      continue;
+    }
+  }
+  throw lastError || new Error(`EVM RPC ${method}: all endpoints failed`);
 }
 
 export async function getEthBalance(address: string): Promise<string> {

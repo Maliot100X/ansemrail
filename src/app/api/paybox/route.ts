@@ -48,9 +48,11 @@ export async function GET(request: NextRequest) {
         });
     }
   } catch (error: any) {
+    const msg = error.message || "PayBox request failed";
+    const status = msg.includes("not reachable") || msg.includes("404") ? 503 : 500;
     return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
+      { error: msg },
+      { status }
     );
   }
 }
@@ -109,9 +111,11 @@ export async function POST(request: NextRequest) {
         );
     }
   } catch (error: any) {
+    const msg = error.message || "PayBox request failed";
+    const status = msg.includes("not reachable") || msg.includes("404") ? 503 : 500;
     return NextResponse.json(
-      { error: error.message },
-      { status: 500 }
+      { error: msg },
+      { status }
     );
   }
 }

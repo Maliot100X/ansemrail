@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,8 +13,6 @@ import { Key, Wallet, Shield, Bot, Save, Loader2, CheckCircle, AlertCircle, Link
 const ALL_CHAINS = ["Solana", "Ethereum", "Base", "Arbitrum", "Polygon", "Optimism", "BNB", "Avalanche"];
 
 export default function SettingsPage() {
-  const { data: session } = useSession();
-  const userId = (session?.user as any)?.id || null;
   const [ansemPreference, setAnsemPreference] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -40,8 +37,7 @@ export default function SettingsPage() {
   const [payboxInfo, setPayboxInfo] = useState<any>(null);
 
   useEffect(() => {
-    if (!userId) return;
-    fetch(`/api/settings?userId=${userId}`)
+    fetch("/api/settings")
       .then((r) => r.json())
       .then((data) => {
         if (data.payoutWallet) setSettings((prev) => ({ ...prev, payoutWallet: data.payoutWallet }));
@@ -52,7 +48,7 @@ export default function SettingsPage() {
         if (data.hasClawpumpKey !== undefined) setHasClawpumpKey(!!data.hasClawpumpKey);
       })
       .catch(() => {});
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     fetch("/api/paybox?action=tools")
@@ -69,17 +65,10 @@ export default function SettingsPage() {
     setSaved(false);
     setError(null);
     try {
-      const uid = userId;
-      if (!uid) {
-        setError("Please register first to save settings");
-        setSaving(false);
-        return;
-      }
       const res = await fetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userId: uid,
           clawpumpApiKey: settings.clawpumpApiKey || undefined,
           moonpayEmail: settings.moonpayEmail || undefined,
           payoutWallet: settings.payoutWallet || undefined,
@@ -117,16 +106,10 @@ export default function SettingsPage() {
     setConnectResult(null);
     setError(null);
     try {
-      const uid = userId;
-      if (!uid) {
-        setConnectResult("Please register first to connect accounts");
-        setConnecting(false);
-        return;
-      }
       const res = await fetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: uid, clawpumpApiKey: settings.clawpumpApiKey }),
+        body: JSON.stringify({ clawpumpApiKey: settings.clawpumpApiKey }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to connect");

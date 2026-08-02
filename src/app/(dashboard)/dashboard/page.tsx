@@ -1,5 +1,8 @@
 import { listAgents } from "@/lib/clawpump";
 import { getAnsemTokenInfo, getClawTokenInfo, getTrendingTokens } from "@/lib/moonpay";
+import { getUserClawpumpApiKey } from "@/lib/auth-session";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
@@ -9,8 +12,15 @@ import { Bot, TrendingUp, Coins } from "lucide-react";
 export const dynamic = "force-dynamic";
 
 async function getDashboardData() {
+  let userApiKey: string | undefined;
+  try {
+    const session = await getServerSession(authOptions);
+    const userId = (session?.user as any)?.id;
+    if (userId) userApiKey = await getUserClawpumpApiKey(userId);
+  } catch {}
+
   const results = await Promise.allSettled([
-    listAgents(),
+    listAgents(userApiKey),
     getAnsemTokenInfo(),
     getClawTokenInfo(),
     getTrendingTokens("solana", 10, 1),

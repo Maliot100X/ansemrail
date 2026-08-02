@@ -56,19 +56,31 @@ export async function payboxRequest(
   params: Record<string, unknown> = {},
   token?: string
 ): Promise<any> {
-  const res = await fetch(`${PAYBOX_BASE}/mcp`, {
-    method: "POST",
-    headers: getAuthHeaders(token),
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: Date.now(),
-      method,
-      params,
-    }),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${PAYBOX_BASE}/mcp`, {
+      method: "POST",
+      headers: getAuthHeaders(token),
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: Date.now(),
+        method,
+        params,
+      }),
+    });
+  } catch {
+    throw new Error(
+      "PayBox MCP endpoint is not reachable. The service may be down or not yet live. Set PAYBOX_API_URL and provide a valid Bearer token."
+    );
+  }
+  if (res.status === 404) {
+    throw new Error(
+      "PayBox MCP endpoint returned 404. Ensure PAYBOX_API_URL points to the live MCP server and a valid Bearer token is provided."
+    );
+  }
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`PayBox ${method}: ${res.status} ${text}`);
+    const text = await res.text().catch(() => "");
+    throw new Error(`PayBox ${method}: ${res.status} ${text.slice(0, 200)}`);
   }
   const data = await res.json();
   if (data.error) {
