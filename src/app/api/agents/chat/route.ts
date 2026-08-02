@@ -22,6 +22,9 @@ export async function POST(request: NextRequest) {
     if (msg.includes("401") || msg.includes("403")) {
       status = 401;
       userMsg = "Authentication failed. Connect your own ClawPump API key in Settings to get unlimited agent chat.";
+    } else if (msg.includes("402") || msg.includes("quota")) {
+      status = 402;
+      userMsg = "Free chat quota exceeded. Connect your own ClawPump API key in Settings → Connected Accounts for unlimited agent chat.";
     } else if (msg.includes("404")) {
       status = 404;
       userMsg = "Agent not found. It may have been deleted.";
