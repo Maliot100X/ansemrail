@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,8 +8,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Key, Wallet, Shield, Bot, Save, Loader2 } from "lucide-react";
-import { useEffect } from "react";
+import { Key, Wallet, Shield, Bot, Save, Loader2, CheckCircle, AlertCircle } from "lucide-react";
+
+const ALL_CHAINS = ["Solana", "Ethereum", "Base", "Arbitrum", "Polygon", "Optimism", "BNB", "Avalanche"];
 
 export default function SettingsPage() {
   const [ansemPreference, setAnsemPreference] = useState(true);
@@ -30,6 +31,14 @@ export default function SettingsPage() {
     owsWalletName: "",
   });
 
+  // OWS / PayBox state
+  const [enabledChains, setEnabledChains] = useState<Set<string>>(new Set(["Solana"]));
+  const [spendLimit, setSpendLimit] = useState({ maxPerTx: "100", maxPerDay: "1000" });
+  const [payboxLoading, setPayboxLoading] = useState(false);
+  const [payboxResult, setPayboxResult] = useState<any>(null);
+  const [payboxError, setPayboxError] = useState<string | null>(null);
+  const [payboxInfo, setPayboxInfo] = useState<any>(null);
+
   useEffect(() => {
     if (!userId) return;
     fetch(`/api/settings?userId=${userId}`)
@@ -43,6 +52,16 @@ export default function SettingsPage() {
       })
       .catch(() => {});
   }, [userId]);
+
+  useEffect(() => {
+    fetch("/api/paybox?action=tools")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.tools) setPayboxInfo({ tools: data.tools, available: true });
+        else setPayboxInfo({ available: false });
+      })
+      .catch(() => setPayboxInfo({ available: false }));
+  }, []);
 
   async function handleSave() {
     setSaving(true);
@@ -79,6 +98,59 @@ export default function SettingsPage() {
     }
   }
 
+  function toggleChain(chain: string) {
+    setEnabledChains((prev) => {
+      const next = new Set(prev);
+      if (next.has(chain)) next.delete(chain);
+      else next.add(chain);
+      return next;
+    });
+  }
+
+  async function handleCreateAnsemPolicy() {
+    setPayboxLoading(true);
+    setPayboxError(null);
+    setPayboxResult(null);
+    try {
+      const res = await fetch("/api/paybox", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "createAnsemPolicy" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create policy");
+      setPayboxResult({ type: "ansem", data });
+    } catch (err: any) {
+      setPayboxError(err.message);
+    } finally {
+      setPayboxLoading(false);
+    }
+  }
+
+  async function handleCreateSpendLimit() {
+    setPayboxLoading(true);
+    setPayboxError(null);
+    setPayboxResult(null);
+    try {
+      const res = await fetch("/api/paybox", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "createSpendLimit",
+          maxPerTx: parseFloat(spendLimit.maxPerTx) || 100,
+          maxPerDay: parseFloat(spendLimit.maxPerDay) || 1000,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create spend limit");
+      setPayboxResult({ type: "spend", data });
+    } catch (err: any) {
+      setPayboxError(err.message);
+    } finally {
+      setPayboxLoading(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -108,6 +180,15 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {saved && (
+          <div className="mt-4 rounded-md border border-green-800 bg-green-950/30 p-3">
+            <p className="text-sm text-green-400 flex items-center gap-1">
+              <CheckCircle className="h-4 w-4" /> Settings saved successfully!
+            </p>
+          </div>
+        )}
+
+        {/* API KEYS */}
         <TabsContent value="apikeys" className="max-w-2xl">
           <Card>
             <CardHeader>
@@ -139,11 +220,11 @@ export default function SettingsPage() {
               <Button variant="ansem" onClick={handleSave} disabled={saving}>
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4" /> Save Keys</>}
               </Button>
-              {saved && <p className="text-sm text-green-400">Settings saved successfully!</p>}
             </CardContent>
           </Card>
         </TabsContent>
 
+        {/* WALLETS */}
         <TabsContent value="wallets" className="max-w-2xl">
           <Card>
             <CardHeader>
@@ -189,6 +270,7 @@ export default function SettingsPage() {
           </Card>
         </TabsContent>
 
+        {/* OWS POLICIES */}
         <TabsContent value="ows" className="max-w-2xl">
           <Card>
             <CardHeader>
@@ -196,71 +278,153 @@ export default function SettingsPage() {
               <CardDescription>Open Wallet Standard policy engine — keys never touch the LLM</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* PayBox status */}
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-zinc-200">PayBox MCP Status</p>
+                  {payboxInfo?.available ? (
+                    <Badge variant="success">Connected</Badge>
+                  ) : (
+                    <Badge variant="secondary">Not Available</Badge>
+                  )}
+                </div>
+                {payboxInfo?.available && payboxInfo.tools && (
+                  <p className="text-xs text-zinc-500">{payboxInfo.tools.length} tools available</p>
+                )}
+                {!payboxInfo?.available && (
+                  <p className="text-xs text-zinc-500">
+                    PayBox MCP endpoint at app.paybox.sh may not be live yet. Policy creation will attempt to connect.
+                  </p>
+                )}
+              </div>
+
+              {/* Ansem-Only Policy */}
               <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-zinc-200">Ansem-Only Mode</p>
-                    <p className="text-xs text-zinc-500">Restrict agent to Solana chain with $ANSEM preference</p>
+                    <p className="text-xs text-zinc-500">Restrict agent to Solana chain with $ANSEM, $CLAW, SOL, USDC only</p>
                   </div>
                   <Badge variant="success">Active</Badge>
                 </div>
                 <div className="text-xs text-zinc-500">
-                  <p>Rules: allowed_chains: [solana]</p>
-                  <p>Action: deny if outside allowed chains</p>
+                  <p>Rules: allowed_chains: [solana], allowed_tokens: [$ANSEM, $CLAW, SOL, USDC]</p>
+                  <p>Action: deny if outside allowed chains/tokens</p>
+                  <p>Max spend: 100 USDC</p>
                 </div>
+                <Button
+                  variant="ansem"
+                  size="sm"
+                  onClick={handleCreateAnsemPolicy}
+                  disabled={payboxLoading}
+                >
+                  {payboxLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Shield className="h-3 w-3" />}
+                  Create Ansem-Only Policy via PayBox
+                </Button>
               </div>
 
+              {/* Spend Limit Policy */}
               <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-zinc-200">Spend Limit</p>
                     <p className="text-xs text-zinc-500">Max USDC per transaction and per day</p>
                   </div>
-                  <Badge variant="secondary">Not Set</Badge>
+                  <Badge variant="secondary">Configurable</Badge>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label className="text-xs">Max per tx (USDC)</Label>
-                    <Input placeholder="100" className="h-8" />
+                    <Input
+                      placeholder="100"
+                      className="h-8"
+                      value={spendLimit.maxPerTx}
+                      onChange={(e) => setSpendLimit({ ...spendLimit, maxPerTx: e.target.value })}
+                    />
                   </div>
                   <div>
                     <Label className="text-xs">Max per day (USDC)</Label>
-                    <Input placeholder="1000" className="h-8" />
+                    <Input
+                      placeholder="1000"
+                      className="h-8"
+                      value={spendLimit.maxPerDay}
+                      onChange={(e) => setSpendLimit({ ...spendLimit, maxPerDay: e.target.value })}
+                    />
                   </div>
                 </div>
+                <Button
+                  variant="ansem"
+                  size="sm"
+                  onClick={handleCreateSpendLimit}
+                  disabled={payboxLoading}
+                >
+                  {payboxLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Shield className="h-3 w-3" />}
+                  Create Spend Limit Policy via PayBox
+                </Button>
               </div>
 
+              {/* Chain Allowlist */}
               <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-zinc-200">Chain Allowlist</p>
-                    <p className="text-xs text-zinc-500">Restrict operations to specific chains</p>
+                    <p className="text-xs text-zinc-500">Click to toggle — restrict operations to specific chains</p>
                   </div>
-                  <Badge variant="secondary">Solana Only</Badge>
+                  <Badge variant={enabledChains.size > 0 ? "success" : "secondary"}>
+                    {enabledChains.size} enabled
+                  </Badge>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {["Solana", "Ethereum", "Base", "Arbitrum", "Polygon"].map((chain) => (
+                  {ALL_CHAINS.map((chain) => (
                     <button
                       key={chain}
-                      className={`rounded-md px-3 py-1 text-xs ${
-                        chain === "Solana"
+                      type="button"
+                      onClick={() => toggleChain(chain)}
+                      className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                        enabledChains.has(chain)
                           ? "bg-amber-600 text-white"
-                          : "bg-zinc-800 text-zinc-400"
+                          : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
                       }`}
                     >
+                      {enabledChains.has(chain) && <CheckCircle className="h-3 w-3 inline mr-1" />}
                       {chain}
                     </button>
                   ))}
                 </div>
+                <p className="text-xs text-zinc-500">
+                  Enabled: {Array.from(enabledChains).join(", ") || "None"}
+                </p>
               </div>
 
+              {/* PayBox results */}
+              {payboxError && (
+                <div className="rounded-md border border-red-800 bg-red-950/30 p-3">
+                  <p className="text-sm text-red-400 flex items-start gap-2">
+                    <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <span>{payboxError}</span>
+                  </p>
+                </div>
+              )}
+
+              {payboxResult && (
+                <div className="rounded-md border border-green-800 bg-green-950/30 p-3 space-y-2">
+                  <p className="text-sm text-green-400 flex items-center gap-1">
+                    <CheckCircle className="h-4 w-4" /> Policy Created
+                  </p>
+                  <pre className="text-xs text-zinc-300 overflow-auto max-h-32">
+                    {JSON.stringify(payboxResult.data, null, 2)}
+                  </pre>
+                </div>
+              )}
+
               <Button variant="ansem" onClick={handleSave} disabled={saving}>
-                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4" /> Save Policies</>}
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4" /> Save All Settings</>}
               </Button>
             </CardContent>
           </Card>
         </TabsContent>
 
+        {/* TELEGRAM */}
         <TabsContent value="telegram" className="max-w-2xl">
           <Card>
             <CardHeader>
@@ -289,6 +453,8 @@ export default function SettingsPage() {
                   <span>/agents — List agents</span>
                   <span>/marketplace — Hot tokens</span>
                   <span>/swap — Swap info</span>
+                  <span>/createagent — Create agent</span>
+                  <span>/settings — Settings link</span>
                 </div>
               </div>
               <Button variant="ansem" onClick={handleSave} disabled={saving}>

@@ -2,7 +2,7 @@
 
 ## READ THIS FIRST — YOU ARE CONTINUING, NOT STARTING FRESH
 
-This is a **continuation guide** for the AnsemRail project. Previous sessions completed Phases 0-2 (installs, API verification, full platform build, PayBox integration). **Session 4** fixed a marketplace crash, deployed to Vercel, tested ALL endpoints in production, and rebuilt the SKILL.md v3.0.0 to match the MoonPay skill.md format. **Do NOT redo any completed work.** Pick up where this session left off.
+This is a **continuation guide** for the AnsemRail project. Previous sessions completed Phases 0-2 (installs, API verification, full platform build, PayBox integration). **Session 4** fixed a marketplace crash, deployed to Vercel, tested ALL endpoints in production, and rebuilt the SKILL.md v3.0.0 to match the MoonPay skill.md format. **Session 5** added Ed25519 signature verification to agent registration, rebuilt the register page with a full 8-step agent setup guide, updated SKILL.md to v5.0.0 with a "Creating Agents — Full Guide" section, made all dashboard terminal/skills/settings tabs fully functional with real API calls, and tested the complete registration flow end-to-end. **Do NOT redo any completed work.** Pick up where this session left off.
 
 ---
 
@@ -156,6 +156,83 @@ All verified. See README.md for full matrix.
 
 ---
 
+## SESSION 5 — WHAT WAS DONE
+
+### Ed25519 Signature Verification ✅ IMPLEMENTED
+- **File**: `src/app/api/register/agent/route.ts`
+- Added `nacl.sign.detached.verify()` to cryptographically verify Ed25519 signatures before issuing agentTokens
+- Invalid signatures get 401 with clear error message
+- Response now includes `verified: true/false` field
+- Tested: valid sig → 201 verified, invalid sig → 401 rejected, SKILL.md upload → 201 unverified
+
+### Register Page with Full Agent Guide ✅ REBUILT
+- **File**: `src/app/register/page.tsx`
+- Added 8-step expandable agent setup guide with copy-to-clipboard code blocks
+- Steps cover: install deps, generate keypair, register, create agent, chat, swap quote, wallet balance, read skill.md
+- Added token mint reference table (SOL, USDC, $ANSEM, $CLAW) with copy buttons
+- Added navigation links to dashboard, terminal, agents, skills
+- Shows `verified` badge after successful Ed25519 registration
+- Saves agentToken to localStorage after registration
+
+### SKILL.md v5.0.0 ✅ UPDATED
+- **File**: `public/skill.md`
+- Version bumped to 5.0.0
+- New "Creating Agents — Full Guide" section with 4 agent types:
+  - Type 1: ClawPump Agent (zero-to-first-trade walkthrough)
+  - Type 2: Hermes Agent (multi-chain wallet & DeFi)
+  - Type 3: Custom Agent (SKILL.md upload)
+  - Type 4: Autonomous Agent (Ed25519, no human required)
+- Added "Getting Your API Keys" table
+- Added "Agent Dashboard Navigation" guide
+- Updated auth docs to mention `verified: true` response and `nacl.sign.detached.verify()`
+
+### Terminal Page — All Tabs Functional ✅ REBUILT
+- **File**: `src/app/(dashboard)/terminal/page.tsx`
+- Swap: real Jupiter quotes, copy quote JSON, execute on ClawPump link
+- DCA: generates real Jupiter quote per buy, configurable frequency/amount/token
+- Perps: position preview with notional value, leverage, margin, liquidation price, long/short toggle
+- Bridge: real MoonPay chain_list API call for chain data, configurable from/to/token/amount
+- All disabled buttons removed — every tab has working functionality
+- Added icons to all tab triggers
+
+### Skills Page — Install Buttons + SKILL.md Upload ✅ REBUILT
+- **File**: `src/app/(dashboard)/skills/page.tsx` + `skills-client.tsx`
+- Split into server component (fetches ClawPump skills) + client component (interactivity)
+- ClawPump skill Install buttons now POST to `/api/skills` and save to DB
+- MoonPay skill Install buttons also functional
+- Shows "Installed" badge after successful install
+- SKILL.md upload now calls `/api/register/agent` and registers agent — shows agentToken in result card
+- Saves agentId and agentToken to localStorage
+
+### Settings Page — OWS Policies + Chain Allowlist ✅ REBUILT
+- **File**: `src/app/(dashboard)/settings/page.tsx`
+- PayBox MCP status indicator (checks `/api/paybox?action=tools`)
+- "Create Ansem-Only Policy via PayBox" button — calls real PayBox API
+- "Create Spend Limit Policy via PayBox" button — configurable max per tx/day
+- Chain allowlist toggles — click to enable/disable chains (Solana, Ethereum, Base, Arbitrum, Polygon, Optimism, BNB, Avalanche)
+- Shows PayBox API results/errors in cards
+- Save feedback with success/error indicators
+
+### Build Verification ✅ ALL PASSED
+- TypeScript: 0 errors (`npx tsc --noEmit`)
+- ESLint: 0 errors, 4 warnings (pre-existing img element warnings)
+- Next.js build: succeeds with all 22 routes
+- Local testing: all 10 pages return 200, all API endpoints tested
+
+### Registration Flow Test ✅ TESTED AS NEW AGENT
+1. Generated real Ed25519 keypair with tweetnacl
+2. Signed registration message
+3. POST to `/api/register/agent` → 201 with `verified: true`
+4. Tested invalid signature → correctly rejected with 401
+5. Tested SKILL.md upload → 201 with `verified: false`
+6. Tested `/api/register/verify` → `valid: true`
+7. Tested `/api/register/human` → 201 with userId
+8. Tested `/api/swap/quote` → real Jupiter quote
+9. Tested `/api/skills` POST → 201 skill saved
+10. Tested `/api/wallet/balance` → 200 with SOL balance
+
+---
+
 ## WHAT'S LEFT TO DO ❌ — FOR NEXT AGENT
 
 ### Priority 1 — FIX TELEGRAM BOT TOKEN (CRITICAL)
@@ -178,18 +255,19 @@ GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are empty. Create Google OAuth app at 
 
 ### Priority 3 — POLISH (Optional)
 
-6. **Add auth middleware** — `src/middleware.ts` to protect dashboard routes
-7. **Responsive mobile nav** — Hamburger menu for dashboard sidebar on mobile
-8. **Real wallet signing for terminal** — Integrate Solana wallet adapter or PayBox signing
-9. **Error boundaries** — Graceful error handling for API failures
-10. **Loading skeletons** — Better UX for slow API responses
+1. **Add auth middleware** — `src/middleware.ts` to protect dashboard routes
+2. **Responsive mobile nav** — Hamburger menu for dashboard sidebar on mobile
+3. **Real wallet signing for terminal** — Integrate Solana wallet adapter or PayBox signing for actual swap execution
+4. **Error boundaries** — Graceful error handling for API failures
+5. **Loading skeletons** — Better UX for slow API responses
+6. **Real perps execution** — Connect Phoenix perps API for actual position execution (currently preview-only)
 
 ### Priority 4 — FUTURE FEATURES
 
-11. **AnsemRail marketplace listings** — List/buy agents (DB tables: listings, bids)
-12. **Bidding system** — Bids on agent listings (DB table exists)
-13. **Signal subscriptions** — Agent-signal subscription toggle (DB table exists)
-14. **OWS policy CRUD** — Create/manage OWS policies from settings page
+7. **AnsemRail marketplace listings** — List/buy agents (DB tables: listings, bids)
+8. **Bidding system** — Bids on agent listings (DB table exists)
+9. **Signal subscriptions** — Agent-signal subscription toggle (DB table exists)
+10. **OWS policy CRUD** — Full create/manage OWS policies from settings page (currently calls PayBox API)
 15. **Upstash Redis caching** — Rate limiting and caching
 16. **PayBox deep integration** — Connect PayBox vaults to agent wallets (external API at app.paybox.sh/mcp currently 404)
 17. **MoonPay CLI integration** — Real `mp` commands from terminal page

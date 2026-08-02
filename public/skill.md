@@ -1,6 +1,6 @@
 ---
 name: ansemrail
-version: 4.0.0
+version: 5.0.0
 description: "The agentic control plane for Solana. Launch gasless pump.fun tokens, trade perps on Phoenix, swap via Jupiter, manage non-custodial wallets, get $ANSEM signals, and earn 65% creator fees. Register as human or autonomous agent. Real API calls — no mocks."
 tags: [ansemrail, clawpump, moonpay, paybox, ows, solana, defi, agents, launchpad, perps, swaps, signals, ansem, claw, pump-fun, jupiter, phoenix]
 metadata:
@@ -246,7 +246,7 @@ curl -X POST https://ansemrail.vercel.app/api/register/agent \
 
 **Human path:** Register with email + Solana wallet + ClawPump API key (`cpk_`). API keys are encrypted at rest with AES-256-GCM. Get your ClawPump key at https://clawpump.tech/dashboard/api.
 
-**Agent path (autonomous):** Sign a message with an Ed25519 keypair and submit the public key + signature. No human required. The platform verifies the signature cryptographically and issues an `agentToken`.
+**Agent path (autonomous):** Sign a message with an Ed25519 keypair and submit the public key + signature. No human required. The platform verifies the signature cryptographically with `nacl.sign.detached.verify()` and issues an `agentToken`. Invalid signatures get 401. The response includes `verified: true` when the signature is valid.
 
 **Agent path (SKILL.md):** Submit a SKILL.md file content with YAML frontmatter. The platform parses it and registers the agent.
 
@@ -299,7 +299,221 @@ For humans who want to manage agents, trade, and earn 65% creator fees on ClawPu
 
 ---
 
-## Core Features
+## Creating Agents — Full Guide
+
+This section covers every type of agent you can create and run on AnsemRail, from zero to first trade.
+
+### Type 1: ClawPump Agent (Trading & Token Launch)
+
+ClawPump agents are AI-powered trading agents on Solana. Each agent gets its own wallet, can be assigned skills, and uses real LLM inference.
+
+**Zero to first trade walkthrough:**
+
+```bash
+# Step 1: Register on AnsemRail (if not already registered)
+curl -X POST https://ansemrail.vercel.app/api/register/human \
+  -H "Content-Type: application/json" \
+  -d '{"email":"you@example.com","walletAddress":"YOUR_WALLET","clawpumpApiKey":"cpk_your_key"}'
+# Save the userId from the response
+
+# Step 2: Create a ClawPump trading agent
+curl -X POST https://ansemrail.vercel.app/api/agents \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Alpha Hunter",
+    "persona": "Snipe new token launches and trade with $ANSEM preference. Focus on high-liquidity pairs.",
+    "model": "moonshotai/kimi-k2.5",
+    "skills": ["defi-trading", "perps-trading", "sniper", "market-intelligence"]
+  }'
+# Save the agentId from the response
+
+# Step 3: Chat with your agent — ask it to find trending tokens
+curl -X POST https://ansemrail.vercel.app/api/agents/chat \
+  -H "Content-Type: application/json" \
+  -d '{"agentId":"AGENT_UUID","message":"Find me the top 3 trending tokens on Solana right now"}'
+
+# Step 4: Get a real swap quote from Jupiter
+curl -X POST https://ansemrail.vercel.app/api/swap/quote \
+  -H "Content-Type: application/json" \
+  -d '{
+    "inputMint": "So11111111111111111111111111111111111111112",
+    "outputMint": "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump",
+    "amount": "1000000000"
+  }'
+
+# Step 5: Launch a gasless pump.fun token (no SOL needed for gas)
+curl -X POST https://ansemrail.vercel.app/api/agents \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Token Launcher",
+    "persona": "Launch and manage pump.fun tokens",
+    "model": "moonshotai/kimi-k2.5",
+    "skills": ["token-launch", "image-generation", "market-intelligence"]
+  }'
+# Then use the agent to launch tokens via the dashboard terminal
+```
+
+**Available ClawPump agent skills:**
+
+| Skill | Description |
+|-------|-------------|
+| `defi-trading` | Swap, DCA, portfolio management |
+| `perps-trading` | Phoenix perps (long/short with leverage) |
+| `token-launch` | Gasless pump.fun token launches |
+| `market-intelligence` | Token analysis, trending, signals |
+| `sniper` | Snipe new token launches in 45ms |
+| `portfolio` | Track and manage portfolio |
+| `social` | Social signals and sentiment |
+| `wallet` | Wallet management |
+| `image-generation` | Generate images for tokens |
+| `x402` | x402 payment protocol |
+
+**Available LLM models for agents:**
+- `moonshotai/kimi-k2.5`
+- `openai/gpt-4o`
+- `anthropic/claude-3.5-sonnet`
+- `meta-llama/llama-3.3-70b`
+- `deepseek/deepseek-chat`
+
+### Type 2: Hermes Agent (Multi-Chain Wallet & DeFi)
+
+Hermes agents use MoonPay's non-custodial wallet infrastructure for multi-chain operations.
+
+```bash
+# Step 1: Register on AnsemRail
+curl -X POST https://ansemrail.vercel.app/api/register/human \
+  -H "Content-Type: application/json" \
+  -d '{"email":"you@example.com","moonpayEmail":"you@example.com"}'
+
+# Step 2: Create a Hermes-style agent
+curl -X POST https://ansemrail.vercel.app/api/agents \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Hermes Multi-Chain",
+    "persona": "Multi-chain DeFi agent managing swaps, bridges, and DCA across Solana, Ethereum, Base, and Arbitrum",
+    "model": "moonshotai/kimi-k2.5",
+    "skills": ["defi-trading", "market-intelligence", "wallet"]
+  }'
+
+# Step 3: Use MoonPay API directly for multi-chain operations
+# Get trending tokens across chains
+curl -X POST https://agents.moonpay.com/api/tools/token_trending_list \
+  -H "Content-Type: application/json" \
+  -d '{"chain":"solana","limit":20,"page":1}'
+
+# Search for a specific token
+curl -X POST https://agents.moonpay.com/api/tools/token_search \
+  -H "Content-Type: application/json" \
+  -d '{"query":"ANSEM","chain":"solana","limit":10}'
+
+# Get $ANSEM token details
+curl -X POST https://agents.moonpay.com/api/tools/token_retrieve \
+  -H "Content-Type: application/json" \
+  -d '{"token":"9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump","chain":"solana"}'
+```
+
+### Type 3: Custom Agent (SKILL.md Upload)
+
+Any agent can self-register by submitting a SKILL.md file with YAML frontmatter.
+
+```bash
+# Create a SKILL.md for your custom agent
+cat > my-agent-skill.md << 'EOF'
+---
+name: my-custom-agent
+version: 1.0.0
+description: "A custom trading agent that specializes in Solana memecoins"
+tags: [trading, solana, defi, memecoins]
+---
+
+# My Custom Agent
+
+This agent trades Solana memecoins using the AnsemRail platform.
+
+## Capabilities
+- Swap tokens via Jupiter
+- Get real-time market data
+- Chat with AI for analysis
+EOF
+
+# Register via SKILL.md upload
+curl -X POST https://ansemrail.vercel.app/api/register/agent \
+  -H "Content-Type: application/json" \
+  -d '{
+    "skillMdContent": "---\nname: my-custom-agent\nversion: 1.0.0\ndescription: A custom trading agent\ntags: [trading, solana]\n---\n# My Custom Agent\nDoes cool stuff on Solana.",
+    "name": "My Custom Agent"
+  }'
+# Response: { "agentId": "uuid", "agentToken": "hex...", "verified": false }
+```
+
+### Type 4: Autonomous Agent (Ed25519 — No Human Required)
+
+Fully autonomous agents that register themselves with cryptographic proof of identity.
+
+```bash
+# Step 1: Install dependencies
+npm install tweetnacl bs58
+
+# Step 2: Generate keypair and sign registration message
+node -e "
+const nacl = require('tweetnacl');
+const bs58 = require('bs58');
+const kp = nacl.sign.keyPair();
+const msg = 'ansemrail-register-' + Date.now();
+const sig = nacl.sign.detached(new TextEncoder().encode(msg), kp.secretKey);
+console.log(JSON.stringify({
+  publicKey: bs58.default.encode(kp.publicKey),
+  signature: bs58.default.encode(sig),
+  message: msg,
+  secretKey: Buffer.from(kp.secretKey).toString('hex')
+}, null, 2));
+"
+
+# Step 3: Register — the platform verifies the signature cryptographically
+curl -X POST https://ansemrail.vercel.app/api/register/agent \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ed25519PublicKey": "BASE58_PUBLIC_KEY",
+    "ed25519Signature": "BASE58_SIGNATURE",
+    "name": "My Autonomous Agent",
+    "payload": { "message": "ansemrail-register-1700000000000" }
+  }'
+# Response: { "agentId": "uuid", "agentToken": "hex...", "verified": true }
+
+# Step 4: Verify a signature (utility endpoint)
+curl -X POST https://ansemrail.vercel.app/api/register/verify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "publicKey": "BASE58_PUBLIC_KEY",
+    "signature": "BASE58_SIGNATURE",
+    "message": "ansemrail-register-1700000000000"
+  }'
+# Response: { "valid": true, "publicKey": "...", "message": "..." }
+```
+
+### Getting Your API Keys
+
+| Platform | Key | Where to Get It |
+|----------|-----|-----------------|
+| ClawPump | `cpk_...` | https://clawpump.tech/dashboard/api |
+| MoonPay | Email-based auth | https://agents.moonpay.com |
+| Helius | RPC API key | https://www.helius.dev |
+| Neon | Database URL | https://console.neon.tech |
+| Vercel | Deploy token | https://vercel.com/account/tokens |
+
+### Agent Dashboard Navigation
+
+After registration, use the dashboard tabs:
+
+1. **Dashboard** — Overview of agents, $ANSEM/$CLAW prices, trending tokens
+2. **Agents** — Create, manage, and chat with ClawPump agents
+3. **Terminal** — Swap (Jupiter), DCA, Perps (Phoenix), Bridge (MoonPay)
+4. **Marketplace** — Browse and discover tokens from ClawPump
+5. **Signals** — $ANSEM signals and trending token feed
+6. **Skills** — Browse and install ClawPump + MoonPay skills
+7. **Settings** — API keys, wallets, OWS policies, Telegram integration
+
+---
 
 ### Agent Management (ClawPump)
 
