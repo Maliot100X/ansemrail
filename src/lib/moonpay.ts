@@ -98,6 +98,13 @@ export const MOONPAY_SKILLS = [
 export const ANSEM_TOKEN_MINT =
   process.env.ANSEM_TOKEN_MINT || "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump";
 
+export const CLAW_TOKEN_MINT =
+  process.env.CLAW_TOKEN_MINT || "739dnZEG4yaBWFsY8L8ZwrfhGG6dhtCSercW8Umspump";
+
 export async function getAnsemTokenInfo(): Promise<MoonPayToken> {
   return getTokenDetails(ANSEM_TOKEN_MINT, "solana");
+}
+
+export async function getClawTokenInfo(): Promise<MoonPayToken> {
+  return getTokenDetails(CLAW_TOKEN_MINT, "solana");
 }

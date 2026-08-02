@@ -28,7 +28,7 @@ export default function Home() {
 
       <section className="mx-auto max-w-7xl px-6 py-24 text-center">
         <Badge variant="ansem" className="mb-6 text-base">
-          $ANSEM — The Black Bull
+          $ANSEM — The Black Bull &nbsp;·&nbsp; $CLAW — ClawPump Official
         </Badge>
         <h1 className="mx-auto max-w-4xl text-5xl font-bold tracking-tight text-zinc-50 sm:text-7xl">
           The Agentic Control Plane for{" "}
@@ -125,13 +125,16 @@ export default function Home() {
           <Card>
             <CardHeader>
               <Coins className="h-8 w-8 text-amber-500" />
-              <CardTitle className="mt-2">$ANSEM Utility</CardTitle>
+              <CardTitle className="mt-2">$ANSEM &amp; $CLAW Utility</CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-zinc-400">
-                $ANSEM (The Black Bull) token at{" "}
-                <code className="text-xs text-amber-400">9cRCn9...pump</code>. Signals,
-                copy-trading agents, $ANSEM as preferred payment for inference.
+                $ANSEM (The Black Bull) at{" "}
+                <code className="text-xs text-amber-400">9cRCn9...pump</code>. $CLAW (ClawPump
+                Official) at{" "}
+                <code className="text-xs text-blue-400">739dnZ...pump</code>. Signals,
+                copy-trading agents, $ANSEM as preferred payment for inference. Beware of
+                impersonator tokens.
               </p>
             </CardContent>
           </Card>

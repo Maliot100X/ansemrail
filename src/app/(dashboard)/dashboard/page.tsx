@@ -1,5 +1,5 @@
 import { listAgents } from "@/lib/clawpump";
-import { getAnsemTokenInfo, getTrendingTokens } from "@/lib/moonpay";
+import { getAnsemTokenInfo, getClawTokenInfo, getTrendingTokens } from "@/lib/moonpay";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
@@ -12,22 +12,28 @@ async function getDashboardData() {
   const results = await Promise.allSettled([
     listAgents(),
     getAnsemTokenInfo(),
+    getClawTokenInfo(),
     getTrendingTokens("solana", 10, 1),
   ]);
 
   return {
     agents: results[0].status === "fulfilled" ? results[0].value : [],
     ansem: results[1].status === "fulfilled" ? results[1].value : null,
-    trending: results[2].status === "fulfilled" ? results[2].value : [],
+    claw: results[2].status === "fulfilled" ? results[2].value : null,
+    trending: results[3].status === "fulfilled" ? results[3].value : [],
   };
 }
 
 export default async function DashboardPage() {
-  const { agents, ansem, trending } = await getDashboardData();
+  const { agents, ansem, claw, trending } = await getDashboardData();
 
   const ansemPrice = ansem?.marketData?.price ?? 0;
   const ansemMcap = ansem?.marketData?.marketCap ?? 0;
   const ansemLiq = ansem?.marketData?.liquidity ?? 0;
+
+  const clawPrice = claw?.marketData?.price ?? 0;
+  const clawMcap = claw?.marketData?.marketCap ?? 0;
+  const clawLiq = claw?.marketData?.liquidity ?? 0;
 
   return (
     <div className="space-y-6">
@@ -63,12 +69,12 @@ export default async function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-zinc-400">65% Earnings</CardTitle>
-            <Wallet className="h-4 w-4 text-amber-500" />
+            <CardTitle className="text-sm font-medium text-zinc-400">$CLAW Price</CardTitle>
+            <Coins className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-zinc-50">--</div>
-            <p className="text-xs text-zinc-500 mt-1">Creator fee share</p>
+            <div className="text-3xl font-bold text-zinc-50">${clawPrice.toFixed(6)}</div>
+            <p className="text-xs text-zinc-500 mt-1">MCap: {formatUsd(clawMcap)}</p>
           </CardContent>
         </Card>
 
@@ -197,6 +203,43 @@ export default async function DashboardPage() {
                 <p className="text-sm font-mono text-zinc-400">{shortAddress(ansem.address)}</p>
               </div>
             </div>
+            <p className="text-xs text-zinc-500 mt-3">
+              65% of supply sent to Ansem&apos;s wallet. All fees redirected to him. $ANSEM is preferred payment for inference.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {claw && (
+        <Card className="border-blue-800/50 bg-gradient-to-r from-blue-950/20 to-cyan-950/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <span className="text-2xl">🐾</span> $CLAW — ClawPump Official Token
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+              <div>
+                <p className="text-xs text-zinc-500">Price</p>
+                <p className="text-lg font-bold text-blue-400">${clawPrice.toFixed(6)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-zinc-500">Market Cap</p>
+                <p className="text-lg font-bold text-zinc-200">{formatUsd(clawMcap)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-zinc-500">Liquidity</p>
+                <p className="text-lg font-bold text-zinc-200">{formatUsd(clawLiq)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-zinc-500">Mint</p>
+                <p className="text-sm font-mono text-zinc-400">{shortAddress(claw.address)}</p>
+              </div>
+            </div>
+            <p className="text-xs text-zinc-500 mt-3">
+              The official ClawPump token. Beware of impersonator sites and tokens. Mint:{" "}
+              <code className="text-blue-400">739dnZEG4yaBWFsY8L8ZwrfhGG6dhtCSercW8Umspump</code>
+            </p>
           </CardContent>
         </Card>
       )}

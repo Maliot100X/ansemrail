@@ -12,6 +12,7 @@ import { Loader2, ArrowRight, Zap } from "lucide-react";
 const SOL_MINT = "So11111111111111111111111111111111111111112";
 const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const ANSEM_MINT = "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump";
+const CLAW_MINT = "739dnZEG4yaBWFsY8L8ZwrfhGG6dhtCSercW8Umspump";
 
 export default function TerminalPage() {
   const [swapForm, setSwapForm] = useState({
@@ -77,6 +78,7 @@ export default function TerminalPage() {
                     <option value={SOL_MINT}>SOL</option>
                     <option value={USDC_MINT}>USDC</option>
                     <option value={ANSEM_MINT}>$ANSEM</option>
+                    <option value={CLAW_MINT}>$CLAW</option>
                   </select>
                 </div>
 
@@ -94,6 +96,7 @@ export default function TerminalPage() {
                     <option value={SOL_MINT}>SOL</option>
                     <option value={USDC_MINT}>USDC</option>
                     <option value={ANSEM_MINT}>$ANSEM</option>
+                    <option value={CLAW_MINT}>$CLAW</option>
                   </select>
                 </div>
 

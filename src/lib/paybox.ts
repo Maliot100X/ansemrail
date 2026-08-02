@@ -151,6 +151,7 @@ export function buildAnsemPayBoxPolicy(): PayBoxPolicy {
         type: "allowed_tokens",
         allowedTokens: [
           "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump",
+          "739dnZEG4yaBWFsY8L8ZwrfhGG6dhtCSercW8Umspump",
           "So11111111111111111111111111111111111111112",
           "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
         ],
