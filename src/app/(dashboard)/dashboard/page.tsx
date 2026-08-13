@@ -1,4 +1,4 @@
-import { listAgents } from "@/lib/clawpump";
+import { listAgents, getClawpumpTokens, getAgentPonsLaunches } from "@/lib/clawpump";
 import { getAnsemTokenInfo, getClawTokenInfo, getTrendingTokens } from "@/lib/moonpay";
 import { getUserClawpumpApiKey } from "@/lib/auth-session";
 import { getServerSession } from "next-auth";
@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 import { formatUsd, shortAddress } from "@/lib/utils";
-import { Bot, TrendingUp, Coins } from "lucide-react";
+import { Bot, TrendingUp, Coins, Rocket } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -24,18 +24,31 @@ async function getDashboardData() {
     getAnsemTokenInfo(),
     getClawTokenInfo(),
     getTrendingTokens("solana", 10, 1),
+    getClawpumpTokens("hot", 6, 0, userApiKey),
   ]);
 
+  const agents = results[0].status === "fulfilled" ? results[0].value : [];
+  const clawpumpTokens = results[4].status === "fulfilled" ? results[4].value : [];
+
+  const ponsResults = await Promise.allSettled(
+    agents.slice(0, 5).map((a) => getAgentPonsLaunches(a.id, userApiKey))
+  );
+  const allPonsLaunches = ponsResults
+    .filter((r): r is PromiseFulfilledResult<any[]> => r.status === "fulfilled")
+    .flatMap((r) => r.value);
+
   return {
-    agents: results[0].status === "fulfilled" ? results[0].value : [],
+    agents,
     ansem: results[1].status === "fulfilled" ? results[1].value : null,
     claw: results[2].status === "fulfilled" ? results[2].value : null,
     trending: results[3].status === "fulfilled" ? results[3].value : [],
+    clawpumpTokens,
+    ponsLaunches: allPonsLaunches,
   };
 }
 
 export default async function DashboardPage() {
-  const { agents, ansem, claw, trending } = await getDashboardData();
+  const { agents, ansem, claw, trending, clawpumpTokens, ponsLaunches } = await getDashboardData();
 
   const ansemPrice = ansem?.marketData?.price ?? 0;
   const ansemMcap = ansem?.marketData?.marketCap ?? 0;
@@ -186,6 +199,103 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {ponsLaunches.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Rocket className="h-5 w-5 text-amber-500" />
+              Gasless PONS Launches (Robinhood Chain)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Token</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Address</TableHead>
+                  <TableHead>Tx Hash</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {ponsLaunches.map((launch, i) => (
+                  <TableRow key={launch.tokenAddress || i}>
+                    <TableCell className="font-medium text-zinc-200">
+                      {launch.symbol || launch.name || "--"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={launch.status === "confirmed" || launch.status === "soft_confirmed" ? "success" : "secondary"}>
+                        {launch.status || "pending"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-zinc-400 text-xs font-mono">
+                      {launch.tokenAddress ? (
+                        <a href={`https://clawpump.tech/tokens/${launch.tokenAddress}`} target="_blank" rel="noopener noreferrer" className="text-amber-500 underline">
+                          {shortAddress(launch.tokenAddress)}
+                        </a>
+                      ) : "--"}
+                    </TableCell>
+                    <TableCell className="text-zinc-400 text-xs font-mono">
+                      {launch.txHash ? shortAddress(launch.txHash) : "--"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
+
+      {clawpumpTokens.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-amber-500" />
+              Hot Tokens on ClawPump
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {clawpumpTokens.map((token) => (
+                <div key={token.mintAddress} className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
+                  <div className="flex items-center gap-3 mb-2">
+                    {token.imageUrl && (
+                      <img src={token.imageUrl} alt={token.symbol} className="h-8 w-8 rounded-full" />
+                    )}
+                    <div>
+                      <p className="text-sm font-medium text-zinc-200">${token.symbol}</p>
+                      <p className="text-xs text-zinc-500">{token.name}</p>
+                    </div>
+                    {token.isGraduated && <Badge variant="success">Graduated</Badge>}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-zinc-500">MCap: </span>
+                      <span className="text-zinc-300">{formatUsd(token.marketCap)}</span>
+                    </div>
+                    <div>
+                      <span className="text-zinc-500">Price: </span>
+                      <span className="text-zinc-300">${token.price?.toFixed(8)}</span>
+                    </div>
+                    <div>
+                      <span className="text-zinc-500">24h Vol: </span>
+                      <span className="text-zinc-300">{formatUsd(token.volume24h)}</span>
+                    </div>
+                    <div>
+                      <span className="text-zinc-500">Liq: </span>
+                      <span className="text-zinc-300">{formatUsd(token.liquidity)}</span>
+                    </div>
+                  </div>
+                  <a href={`https://clawpump.tech/tokens/${token.mintAddress}`} target="_blank" rel="noopener noreferrer" className="text-xs text-amber-500 underline mt-2 inline-block">
+                    View on ClawPump →
+                  </a>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {ansem && (
         <Card className="border-amber-800/50 bg-gradient-to-r from-amber-950/20 to-orange-950/20">

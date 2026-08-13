@@ -30,8 +30,8 @@ const MODELS = [
 ];
 
 const AVAILABLE_SKILLS = [
-  "defi-trading",
-  "perps-trading",
+  "trading",
+  "perps",
   "token-launch",
   "portfolio",
   "market-intelligence",
@@ -56,7 +56,7 @@ export default function AgentsPage() {
     name: "",
     persona: "A skilled Solana DeFi trading agent.",
     model: MODELS[0],
-    skills: ["defi-trading", "perps-trading"],
+    skills: ["trading", "perps"],
   });
 
   const fetchAgents = useCallback(async () => {
@@ -93,7 +93,7 @@ export default function AgentsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to create agent");
       setCreateOpen(false);
-      setForm({ name: "", persona: "A skilled Solana DeFi trading agent.", model: MODELS[0], skills: ["defi-trading", "perps-trading"] });
+      setForm({ name: "", persona: "A skilled Solana DeFi trading agent.", model: MODELS[0], skills: ["trading", "perps"] });
       fetchAgents();
     } catch (err: any) {
       setError(err.message);

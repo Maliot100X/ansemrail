@@ -6,8 +6,8 @@ import { agents as agentsTable } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 const DEFAULT_SKILLS = [
-  "defi-trading",
-  "perps-trading",
+  "trading",
+  "perps",
   "sniper",
   "market-intelligence",
 ];

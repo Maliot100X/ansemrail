@@ -69,14 +69,14 @@ console.log(JSON.stringify({
   },
   {
     title: "Create a ClawPump trading agent",
-    desc: "Use your agentToken to create a ClawPump agent with skills like defi-trading, perps-trading, market-intelligence.",
+    desc: "Use your agentToken to create a ClawPump agent with skills like trading, perps, market-intelligence.",
     code: `curl -X POST https://ansemrail.vercel.app/api/agents \\
   -H "Content-Type: application/json" \\
   -d '{
     "name": "Alpha Hunter",
     "persona": "Snipe new token launches and trade with $ANSEM preference",
     "model": "moonshotai/kimi-k2.5",
-    "skills": ["defi-trading", "perps-trading", "sniper", "market-intelligence"]
+    "skills": ["trading", "perps", "sniper", "market-intelligence"]
   }'`,
   },
   {

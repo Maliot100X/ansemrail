@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ArrowRight, Zap, Repeat, TrendingUp, Network as BridgeIcon } from "lucide-react";
+import { Loader2, ArrowRight, Zap, Repeat, TrendingUp, Network as BridgeIcon, Rocket } from "lucide-react";
 
 const SOL_MINT = "So11111111111111111111111111111111111111112";
 const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
@@ -89,6 +89,21 @@ export default function TerminalPage() {
   const [bridgeLoading, setBridgeLoading] = useState(false);
   const [bridgeError, setBridgeError] = useState<string | null>(null);
 
+  // PONS Launch state
+  const [ponsForm, setPonsForm] = useState({
+    agentId: "",
+    name: "",
+    symbol: "",
+    description: "",
+    logoUrl: "",
+    payoutWallet: "",
+  });
+  const [ponsResult, setPonsResult] = useState<any>(null);
+  const [ponsLoading, setPonsLoading] = useState(false);
+  const [ponsError, setPonsError] = useState<string | null>(null);
+  const [ponsLaunches, setPonsLaunches] = useState<any[]>([]);
+  const [ponsLaunchesLoading, setPonsLaunchesLoading] = useState(false);
+
   async function handleQuote(e: React.FormEvent) {
     e.preventDefault();
     setQuoteLoading(true);
@@ -160,8 +175,8 @@ export default function TerminalPage() {
         margin: marginUsd,
         notionalValue: notional,
         liquidationPrice: perpsForm.side === "long" ? marginUsd / notional : undefined,
-        message: `Position preview: ${perpsForm.side.toUpperCase()} ${sizeNum} ${perpsForm.market} at ${perpsForm.leverage} leverage. Notional: $${notional.toFixed(2)}. Margin: $${marginUsd}. Execute via ClawPump agent with perps-trading skill.`,
-        warning: "Perps can result in total loss of margin. Ensure your agent has the perps-trading skill enabled.",
+        message: `Position preview: ${perpsForm.side.toUpperCase()} ${sizeNum} ${perpsForm.market} at ${perpsForm.leverage} leverage. Notional: $${notional.toFixed(2)}. Margin: $${marginUsd}. Execute via ClawPump agent with perps skill.`,
+        warning: "Perps can result in total loss of margin. Ensure your agent has the perps skill enabled.",
       });
     } catch (err: any) {
       setPerpsError(err.message);
@@ -200,6 +215,43 @@ export default function TerminalPage() {
     }
   }
 
+  async function handlePonsLaunch(e: React.FormEvent) {
+    e.preventDefault();
+    setPonsLoading(true);
+    setPonsError(null);
+    setPonsResult(null);
+    try {
+      const res = await fetch("/api/launch/pons", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(ponsForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "PONS launch failed");
+      setPonsResult(data);
+      if (data.launch?.tokenAddress || data.launch?.predictedTokenAddress) {
+        setTimeout(() => fetchPonsLaunches(ponsForm.agentId), 3000);
+      }
+    } catch (err: any) {
+      setPonsError(err.message);
+    } finally {
+      setPonsLoading(false);
+    }
+  }
+
+  async function fetchPonsLaunches(agentId: string) {
+    if (!agentId) return;
+    setPonsLaunchesLoading(true);
+    try {
+      const res = await fetch(`/api/launch/pons?agentId=${agentId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPonsLaunches(data?.launches || []);
+      }
+    } catch {}
+    setPonsLaunchesLoading(false);
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -208,7 +260,7 @@ export default function TerminalPage() {
       </div>
 
       <Tabs defaultValue="swap">
-        <TabsList className="grid w-full grid-cols-4 max-w-2xl">
+        <TabsList className="grid w-full grid-cols-5 max-w-2xl">
           <TabsTrigger value="swap" className="flex items-center gap-1">
             <Zap className="h-3 w-3" /> Swap
           </TabsTrigger>
@@ -220,6 +272,9 @@ export default function TerminalPage() {
           </TabsTrigger>
           <TabsTrigger value="bridge" className="flex items-center gap-1">
             <BridgeIcon className="h-3 w-3" /> Bridge
+          </TabsTrigger>
+          <TabsTrigger value="pons" className="flex items-center gap-1">
+            <Rocket className="h-3 w-3" /> Launch
           </TabsTrigger>
         </TabsList>
 
@@ -620,6 +675,150 @@ export default function TerminalPage() {
                     </div>
                   )}
                   <p className="text-xs text-zinc-400">{bridgeResult.message}</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* PONS LAUNCH */}
+        <TabsContent value="pons" className="max-w-2xl">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Rocket className="h-5 w-5 text-amber-500" />
+                Gasless Token Launch (Robinhood Chain)
+              </CardTitle>
+              <CardDescription>
+                Launch a token on Robinhood Chain — ClawPump fronts gas & fees. Creator fees route to your payout wallet.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handlePonsLaunch} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="pons-agent">ClawPump Agent ID</Label>
+                  <Input
+                    id="pons-agent"
+                    placeholder="Agent UUID from your ClawPump dashboard"
+                    value={ponsForm.agentId}
+                    onChange={(e) => {
+                      setPonsForm({ ...ponsForm, agentId: e.target.value });
+                    }}
+                  />
+                  <p className="text-xs text-zinc-500">
+                    Find your agent ID on the{" "}
+                    <a href="/agents" className="text-amber-500 underline">Agents page</a>
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="pons-name">Token Name</Label>
+                    <Input
+                      id="pons-name"
+                      placeholder="My Token"
+                      value={ponsForm.name}
+                      onChange={(e) => setPonsForm({ ...ponsForm, name: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pons-symbol">Ticker (max 12)</Label>
+                    <Input
+                      id="pons-symbol"
+                      placeholder="CLAW"
+                      value={ponsForm.symbol}
+                      onChange={(e) => setPonsForm({ ...ponsForm, symbol: e.target.value.toUpperCase() })}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pons-desc">Description (optional)</Label>
+                  <Input
+                    id="pons-desc"
+                    placeholder="Token description"
+                    value={ponsForm.description}
+                    onChange={(e) => setPonsForm({ ...ponsForm, description: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pons-payout">Payout Address (0x... EVM)</Label>
+                  <Input
+                    id="pons-payout"
+                    placeholder="0x... where creator fees land"
+                    value={ponsForm.payoutWallet}
+                    onChange={(e) => setPonsForm({ ...ponsForm, payoutWallet: e.target.value })}
+                  />
+                  <p className="text-xs text-zinc-500">Your Robinhood Chain payout address — where ETH/WETH creator fees land</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pons-logo">Logo URL (optional, https)</Label>
+                  <Input
+                    id="pons-logo"
+                    placeholder="https://..."
+                    value={ponsForm.logoUrl}
+                    onChange={(e) => setPonsForm({ ...ponsForm, logoUrl: e.target.value })}
+                  />
+                </div>
+                <Button type="submit" variant="ansem" className="w-full" disabled={ponsLoading}>
+                  {ponsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Launch Gasless Token <Rocket className="h-4 w-4" /></>}
+                </Button>
+              </form>
+
+              {ponsError && (
+                <div className="mt-4 rounded-md border border-red-800 bg-red-950/30 p-3">
+                  <p className="text-sm text-red-400">{ponsError}</p>
+                </div>
+              )}
+
+              {ponsResult && (
+                <div className="mt-4 space-y-3 rounded-md border border-green-800 bg-green-950/30 p-4">
+                  <p className="text-sm font-medium text-green-400 flex items-center gap-1">
+                    <Rocket className="h-4 w-4" /> Launch Initiated
+                  </p>
+                  <pre className="text-xs text-zinc-300 overflow-auto max-h-48">
+                    {JSON.stringify(ponsResult, null, 2)}
+                  </pre>
+                  {ponsResult.launch?.tokenAddress && (
+                    <a
+                      href={`https://clawpump.tech/tokens/${ponsResult.launch.tokenAddress}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Button variant="ansem" size="sm" className="w-full">
+                        View Token on ClawPump
+                      </Button>
+                    </a>
+                  )}
+                  {ponsResult.launch?.status === "reserved" && (
+                    <p className="text-xs text-amber-400">
+                      Token is being minted on Robinhood Chain. Check back shortly — do NOT re-submit or you will mint a second token.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {ponsLaunches.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  <p className="text-sm font-medium text-zinc-300">Your PONS Launches</p>
+                  {ponsLaunches.map((launch, i) => (
+                    <div key={i} className="rounded-md border border-zinc-700 bg-zinc-900/50 p-3">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-zinc-200">{launch.symbol || launch.name}</span>
+                        <Badge variant={launch.status === "confirmed" || launch.status === "soft_confirmed" ? "default" : "secondary"}>
+                          {launch.status}
+                        </Badge>
+                      </div>
+                      {launch.tokenAddress && (
+                        <a
+                          href={`https://clawpump.tech/tokens/${launch.tokenAddress}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-amber-500 underline"
+                        >
+                          {launch.tokenAddress.slice(0, 12)}...{launch.tokenAddress.slice(-8)}
+                        </a>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>

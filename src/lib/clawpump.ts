@@ -246,3 +246,62 @@ export async function getAgentBalance(agentId: string, userApiKey?: string): Pro
   if (!res.ok) throw new Error(`ClawPump getAgentBalance: ${res.status}`);
   return res.json();
 }
+
+export async function launchPonsToken(params: {
+  agentId: string;
+  name: string;
+  symbol: string;
+  description: string;
+  logoUrl?: string;
+  payoutWallet: string;
+}, userApiKey?: string): Promise<any> {
+  const res = await fetch(`${CLAWPUMP_BASE}/api/v1/launch/pons`, {
+    method: "POST",
+    headers: authHeaders(userApiKey),
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`ClawPump launchPonsToken: ${res.status} ${text}`);
+  }
+  return res.json();
+}
+
+export async function getPonsLaunches(agentId: string, userApiKey?: string): Promise<any> {
+  const res = await fetch(
+    `${CLAWPUMP_BASE}/api/agents/${agentId}/pons/launches`,
+    { headers: authHeaders(userApiKey), next: { revalidate: 10 } }
+  );
+  if (!res.ok) throw new Error(`ClawPump getPonsLaunches: ${res.status}`);
+  return res.json();
+}
+
+export async function getClawpumpTokens(
+  sort: "new" | "hot" | "mcap" | "volume" = "hot",
+  limit = 50,
+  offset = 0,
+  userApiKey?: string
+): Promise<ClawPumpToken[]> {
+  const res = await fetch(
+    `${CLAWPUMP_BASE}/api/tokens?sort=${sort}&limit=${limit}&offset=${offset}`,
+    { headers: authHeaders(userApiKey), next: { revalidate: 60 } }
+  );
+  if (!res.ok) throw new Error(`ClawPump getClawpumpTokens: ${res.status}`);
+  const data = await res.json();
+  return data.tokens || [];
+}
+
+export async function getClawpumpProfile(userApiKey?: string): Promise<any> {
+  const res = await fetch(`${CLAWPUMP_BASE}/api/v1/agents`, {
+    headers: authHeaders(userApiKey),
+    next: { revalidate: 30 },
+  });
+  if (!res.ok) throw new Error(`ClawPump getClawpumpProfile: ${res.status}`);
+  const data = await res.json();
+  return data;
+}
+
+export async function getAgentPonsLaunches(agentId: string, userApiKey?: string): Promise<any[]> {
+  const data = await getPonsLaunches(agentId, userApiKey);
+  return data?.launches || [];
+}

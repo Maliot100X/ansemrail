@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { swapQuote } from "@/lib/clawpump";
+import { getRequestUser, getUserClawpumpApiKey } from "@/lib/auth-session";
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,7 +11,12 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    const result = await swapQuote({ inputMint, outputMint, amount });
+    let userApiKey: string | undefined;
+    try {
+      const user = await getRequestUser(request);
+      if (user) userApiKey = await getUserClawpumpApiKey(user.id);
+    } catch {}
+    const result = await swapQuote({ inputMint, outputMint, amount }, userApiKey);
     return NextResponse.json(result);
   } catch (error: any) {
     return NextResponse.json(

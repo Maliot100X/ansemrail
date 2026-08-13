@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   listPayBoxTools,
-  listPayBoxVaults,
-  createPayBoxVault,
-  getPayBoxBalance,
+  listPayBoxCredentials,
+  getPayBoxPortfolio,
+  requestPayBoxTransfer,
+  requestPayBoxSwap,
   signWithPayBox,
-  createPayBoxPolicy,
-  listPayBoxPolicies,
-  buildAnsemPayBoxPolicy,
-  buildSpendLimitPayBoxPolicy,
+  getPayBoxRequest,
+  discoverPayBoxServices,
+  getPayBoxBuyLink,
+  worldFindMarkets,
+  worldPositions,
+  verifySolanaBalance,
 } from "@/lib/paybox";
 
 export async function GET(request: NextRequest) {
@@ -21,39 +24,89 @@ export async function GET(request: NextRequest) {
         const tools = await listPayBoxTools(token);
         return NextResponse.json({ tools });
       }
+      case "credentials":
       case "vaults": {
-        const vaults = await listPayBoxVaults(token);
-        return NextResponse.json({ vaults });
+        const result = await listPayBoxCredentials(token);
+        return NextResponse.json(result);
       }
-      case "policies": {
-        const policies = await listPayBoxPolicies(token);
-        return NextResponse.json({ policies });
-      }
+      case "portfolio":
       case "balance": {
-        const vaultId = request.nextUrl.searchParams.get("vaultId");
-        if (!vaultId) {
+        const credentialId = request.nextUrl.searchParams.get("credentialId") || request.nextUrl.searchParams.get("vaultId");
+        if (!credentialId) {
           return NextResponse.json(
-            { error: "vaultId is required for balance action" },
+            { error: "credentialId is required for portfolio action" },
             { status: 400 }
           );
         }
-        const balance = await getPayBoxBalance(vaultId, token);
-        return NextResponse.json(balance);
+        const portfolio = await getPayBoxPortfolio(credentialId, token);
+        return NextResponse.json(portfolio);
+      }
+      case "services": {
+        const services = await discoverPayBoxServices(token);
+        return NextResponse.json({ services });
+      }
+      case "request": {
+        const requestId = request.nextUrl.searchParams.get("requestId");
+        if (!requestId) {
+          return NextResponse.json(
+            { error: "requestId is required for request action" },
+            { status: 400 }
+          );
+        }
+        const req = await getPayBoxRequest(requestId, token);
+        return NextResponse.json(req);
+      }
+      case "world-markets": {
+        const status = request.nextUrl.searchParams.get("status") || undefined;
+        const events = request.nextUrl.searchParams.get("events") === "true";
+        const markets = await worldFindMarkets({ events, status }, token);
+        return NextResponse.json(markets);
+      }
+      case "world-positions": {
+        const address = request.nextUrl.searchParams.get("address");
+        if (!address) {
+          return NextResponse.json(
+            { error: "address is required for world-positions action" },
+            { status: 400 }
+          );
+        }
+        const positions = await worldPositions(address, token);
+        return NextResponse.json(positions);
+      }
+      case "verify-balance": {
+        const address = request.nextUrl.searchParams.get("address");
+        const tokenMint = request.nextUrl.searchParams.get("tokenMint");
+        const txSig = request.nextUrl.searchParams.get("txSignature");
+        if (!address || !tokenMint || !txSig) {
+          return NextResponse.json(
+            { error: "address, tokenMint, and txSignature are required" },
+            { status: 400 }
+          );
+        }
+        const result = await verifySolanaBalance(address, tokenMint, txSig, token);
+        return NextResponse.json(result);
       }
       default:
         return NextResponse.json({
           status: "PayBox MCP endpoint",
-          actions: ["tools", "vaults", "policies", "balance"],
-          message: "Use POST to create vaults, sign, send, or create policies",
+          url: "https://api.paybox.sh/mcp",
+          actions: [
+            "tools",
+            "credentials",
+            "portfolio",
+            "services",
+            "request",
+            "world-markets",
+            "world-positions",
+            "verify-balance",
+          ],
+          message: "Use POST to transfer, swap, sign, buy link, or poll requests",
         });
     }
   } catch (error: any) {
     const msg = error.message || "PayBox request failed";
     const status = msg.includes("not reachable") || msg.includes("404") ? 503 : 500;
-    return NextResponse.json(
-      { error: msg },
-      { status }
-    );
+    return NextResponse.json({ error: msg }, { status });
   }
 }
 
@@ -63,48 +116,69 @@ export async function POST(request: NextRequest) {
     const { action, token, ...params } = body;
 
     switch (action) {
-      case "createVault": {
-        const vault = await createPayBoxVault(
-          params.name,
-          params.passphrase,
-          token
+      case "transfer": {
+        const result = await requestPayBoxTransfer(
+          params.credentialId,
+          params.chain || "solana:mainnet",
+          params.to,
+          params.amount,
+          token,
+          params.tokenMint
         );
-        return NextResponse.json(vault, { status: 201 });
+        return NextResponse.json(result);
       }
-      case "sign": {
-        const result = await signWithPayBox(
-          params.vaultId,
-          params.message,
-          params.passphrase,
+      case "swap": {
+        const result = await requestPayBoxSwap(
+          params.credentialId,
+          params.srcChain || "solana:mainnet",
+          params.srcToken || "native",
+          params.dstToken,
+          params.amount,
           token
         );
         return NextResponse.json(result);
       }
-      case "createPolicy": {
-        const policy = await createPayBoxPolicy(params.policy, token);
-        return NextResponse.json(policy, { status: 201 });
-      }
-      case "createAnsemPolicy": {
-        const policy = await createPayBoxPolicy(buildAnsemPayBoxPolicy(), token);
-        return NextResponse.json(policy, { status: 201 });
-      }
-      case "createSpendLimit": {
-        const policy = await createPayBoxPolicy(
-          buildSpendLimitPayBoxPolicy(params.maxPerTx, params.maxPerDay),
+      case "sign": {
+        const result = await signWithPayBox(
+          params.credentialId,
+          params.message,
+          undefined,
           token
         );
-        return NextResponse.json(policy, { status: 201 });
+        return NextResponse.json(result);
+      }
+      case "buyLink": {
+        const result = await getPayBoxBuyLink(
+          params.credentialId,
+          params.chain || "solana:mainnet",
+          token
+        );
+        return NextResponse.json(result);
+      }
+      case "pollRequest": {
+        const result = await getPayBoxRequest(params.requestId, token);
+        return NextResponse.json(result);
+      }
+      case "verifyBalance": {
+        const result = await verifySolanaBalance(
+          params.address,
+          params.tokenMint,
+          params.txSignature,
+          token
+        );
+        return NextResponse.json(result);
       }
       default:
         return NextResponse.json(
           {
             error: "Unknown action",
             availableActions: [
-              "createVault",
+              "transfer",
+              "swap",
               "sign",
-              "createPolicy",
-              "createAnsemPolicy",
-              "createSpendLimit",
+              "buyLink",
+              "pollRequest",
+              "verifyBalance",
             ],
           },
           { status: 400 }
@@ -113,9 +187,6 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     const msg = error.message || "PayBox request failed";
     const status = msg.includes("not reachable") || msg.includes("404") ? 503 : 500;
-    return NextResponse.json(
-      { error: msg },
-      { status }
-    );
+    return NextResponse.json({ error: msg }, { status });
   }
 }

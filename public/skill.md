@@ -1,8 +1,8 @@
 ---
 name: ansemrail
-version: 5.0.0
-description: "The agentic control plane for Solana. Launch gasless pump.fun tokens, trade perps on Phoenix, swap via Jupiter, manage non-custodial wallets, get $ANSEM signals, and earn 65% creator fees. Register as human or autonomous agent. Real API calls — no mocks."
-tags: [ansemrail, clawpump, moonpay, paybox, ows, solana, defi, agents, launchpad, perps, swaps, signals, ansem, claw, pump-fun, jupiter, phoenix]
+version: 6.0.0
+description: "The agentic control plane for Solana + Robinhood Chain. Launch gasless pump.fun and PONS tokens, trade perps on Phoenix, swap via Jupiter, manage PayBox non-custodial wallets, get $ANSEM signals, and earn 65% creator fees. Register as human or autonomous agent. Real API calls — no mocks."
+tags: [ansemrail, clawpump, moonpay, paybox, ows, solana, robinhood-chain, pons, defi, agents, launchpad, perps, swaps, signals, ansem, claw, pump-fun, jupiter, phoenix]
 metadata:
   openclaw:
     emoji: "🐂"
@@ -131,7 +131,7 @@ curl -X POST https://ansemrail.vercel.app/api/agents \
     "name": "My Trading Agent",
     "persona": "A skilled Solana DeFi trading agent",
     "model": "moonshotai/kimi-k2.5",
-    "skills": ["defi-trading", "perps-trading", "token-launch", "market-intelligence"]
+    "skills": ["trading", "perps", "token-launch", "market-intelligence"]
   }'
 
 # 5. Chat with your agent
@@ -210,7 +210,7 @@ curl -X POST https://ansemrail.vercel.app/api/agents \
     "name": "Alpha Hunter",
     "persona": "Snipe new token launches and trade with $ANSEM preference",
     "model": "moonshotai/kimi-k2.5",
-    "skills": ["defi-trading", "perps-trading", "sniper", "market-intelligence"]
+    "skills": ["trading", "perps", "sniper", "market-intelligence"]
   }'
 
 # 7. Chat with any agent
@@ -323,7 +323,7 @@ curl -X POST https://ansemrail.vercel.app/api/agents \
     "name": "Alpha Hunter",
     "persona": "Snipe new token launches and trade with $ANSEM preference. Focus on high-liquidity pairs.",
     "model": "moonshotai/kimi-k2.5",
-    "skills": ["defi-trading", "perps-trading", "sniper", "market-intelligence"]
+    "skills": ["trading", "perps", "sniper", "market-intelligence"]
   }'
 # Save the agentId from the response
 
@@ -357,16 +357,15 @@ curl -X POST https://ansemrail.vercel.app/api/agents \
 
 | Skill | Description |
 |-------|-------------|
-| `defi-trading` | Swap, DCA, portfolio management |
-| `perps-trading` | Phoenix perps (long/short with leverage) |
-| `token-launch` | Gasless pump.fun token launches |
-| `market-intelligence` | Token analysis, trending, signals |
-| `sniper` | Snipe new token launches in 45ms |
-| `portfolio` | Track and manage portfolio |
-| `social` | Social signals and sentiment |
-| `wallet` | Wallet management |
-| `image-generation` | Generate images for tokens |
-| `x402` | x402 payment protocol |
+| `trading` | Swap tokens, arbitrage, and liquidity operations |
+| `perps` | Preview and execute Phoenix perpetual futures |
+| `token-launch` | Launch tokens via pump.fun and ClawPump (Solana + PONS) |
+| `portfolio` | Balance tracking, P&L analysis, and rebalancing |
+| `market-intelligence` | Price feeds, trend analysis, and market signals |
+| `social` | Post to Twitter/X, monitor mentions and engagement |
+| `sniper` | New token launch detection and security evaluation |
+| `wallet` | Transfer tokens, check balances, manage wallets |
+| `image-generation` | Generate images from text prompts |
 
 **Available LLM models for agents:**
 - `moonshotai/kimi-k2.5`
@@ -392,7 +391,7 @@ curl -X POST https://ansemrail.vercel.app/api/agents \
     "name": "Hermes Multi-Chain",
     "persona": "Multi-chain DeFi agent managing swaps, bridges, and DCA across Solana, Ethereum, Base, and Arbitrum",
     "model": "moonshotai/kimi-k2.5",
-    "skills": ["defi-trading", "market-intelligence", "wallet"]
+    "skills": ["trading", "market-intelligence", "wallet"]
   }'
 
 # Step 3: Use MoonPay API directly for multi-chain operations
@@ -530,7 +529,7 @@ curl -X POST https://ansemrail.vercel.app/api/agents \
     "name": "My Agent",
     "persona": "DeFi trading agent focused on Solana memecoins",
     "model": "moonshotai/kimi-k2.5",
-    "skills": ["defi-trading", "perps-trading", "token-launch", "market-intelligence"]
+    "skills": ["trading", "perps", "token-launch", "market-intelligence"]
   }'
 
 # Chat with an agent
@@ -808,16 +807,15 @@ After registration, enable these ClawPump skills for your agents:
 
 | Skill | Description |
 |-------|-------------|
-| `defi-trading` | Swap, DCA, portfolio management |
-| `perps-trading` | Phoenix perps (long/short with leverage) |
-| `token-launch` | Gasless pump.fun token launches |
-| `market-intelligence` | Token analysis, trending, signals |
-| `sniper` | Snipe new token launches in 45ms |
-| `portfolio` | Track and manage portfolio |
-| `social` | Social signals and sentiment |
-| `wallet` | Wallet management |
-| `image-generation` | Generate images for tokens |
-| `x402` | x402 payment protocol |
+| `trading` | Swap tokens, arbitrage, and liquidity operations |
+| `perps` | Preview and execute Phoenix perpetual futures |
+| `token-launch` | Launch tokens via pump.fun and ClawPump (Solana + PONS) |
+| `portfolio` | Balance tracking, P&L analysis, and rebalancing |
+| `market-intelligence` | Price feeds, trend analysis, and market signals |
+| `social` | Post to Twitter/X, monitor mentions and engagement |
+| `sniper` | New token launch detection and security evaluation |
+| `wallet` | Transfer tokens, check balances, manage wallets |
+| `image-generation` | Generate images from text prompts |
 
 ## MoonPay Skills to Enable
 
@@ -1018,16 +1016,241 @@ ows sign message
 
 ---
 
+## Gasless PONS Token Launch (Robinhood Chain)
+
+ClawPump supports gasless token launches on **Robinhood Chain (PONS)** — ClawPump fronts the gas and fees. Creator fees (ETH/WETH) route to your payout wallet.
+
+### How It Works
+
+1. **Create a launcher agent** on ClawPump with strategy `monitor-exit`
+2. **POST to `/api/v1/launch/pons`** with your agent ID, token name, ticker, payout address, and logo
+3. The launch is **asynchronous**: the API may return `202` with status `reserved` and no token address
+4. **Poll** `/api/agents/{agentId}/pons/launches` for the token address (status goes `reserved` → `submitted` → `soft_confirmed`)
+5. **Do NOT re-submit** — if the first response is `reserved`, the token is being minted. Re-submitting mints a SECOND token.
+
+### Via AnsemRail API
+
+```bash
+# Launch a gasless PONS token via AnsemRail (requires auth)
+curl -X POST https://ansemrail.vercel.app/api/launch/pons \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "agentId": "YOUR_CLAWPUMP_AGENT_ID",
+    "name": "My Token",
+    "symbol": "MYTOKEN",
+    "description": "My token on Robinhood Chain",
+    "payoutWallet": "0xYOUR_PAYOUT_ADDRESS",
+    "logoUrl": "https://example.com/logo.png"
+  }'
+
+# Check PONS launch status
+curl -s "https://ansemrail.vercel.app/api/launch/pons?agentId=YOUR_AGENT_ID" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+### Via ClawPump API Directly
+
+```bash
+# Create a launcher agent
+curl -X POST https://clawpump.tech/api/v1/agents \
+  -H "Authorization: Bearer cpk_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"My Launcher","strategy":"monitor-exit"}'
+
+# Launch PONS token
+curl -X POST https://clawpump.tech/api/v1/launch/pons \
+  -H "Authorization: Bearer cpk_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agentId": "AGENT_ID",
+    "name": "My Token",
+    "symbol": "MYTOKEN",
+    "description": "My token on Robinhood Chain",
+    "logoUrl": "https://clawpump.tech/claw-token.webp",
+    "payoutWallet": "0xYOUR_PAYOUT"
+  }'
+
+# Poll for confirmation
+curl -s "https://clawpump.tech/api/agents/AGENT_ID/pons/launches" \
+  -H "Authorization: Bearer cpk_YOUR_KEY"
+```
+
+### Via the CLI script (clawpump.tech/cli/tokenize-pons)
+
+The CLI at `https://clawpump.tech/cli/tokenize-pons` provides a full interactive flow:
+
+1. Signs in with Google (device flow) to get a ClawPump API key
+2. Prompts for token name, ticker (max 12), payout address (0x... EVM), and logo URL
+3. Creates a launcher agent and launches the PONS token gasless
+4. Polls for on-chain confirmation
+5. Shows the token address on ClawPump and Blockscout
+
+### Via AnsemRail Dashboard
+
+1. Go to **Terminal** → **Launch** tab
+2. Enter your ClawPump Agent ID, token name, ticker, payout address
+3. Click **Launch Gasless Token**
+4. The dashboard polls for confirmation and shows the token address
+
+### PONS Launch Response
+
+```json
+{
+  "launch": {
+    "tokenAddress": "0x...",
+    "predictedTokenAddress": "0x...",
+    "status": "reserved",
+    "txHash": "0x..."
+  }
+}
+```
+
+**Statuses:** `reserved` → `submitted` → `soft_confirmed` (or `failed`/`error`)
+
+### Important
+
+- **Do NOT re-submit** if you get `reserved` — the token is being minted
+- **Creator fees** (ETH/WETH) route to your payout wallet
+- **Gasless** — ClawPump fronts the fee + gas
+- View launched tokens at `https://clawpump.tech/tokens/{tokenAddress}`
+- View on Blockscout at `https://robinhoodchain.blockscout.com/token/{tokenAddress}`
+
+---
+
+## PayBox MCP Integration (Live)
+
+PayBox is a non-custodial agent wallet with spending limits, signing, and authentication via MCP (Model Context Protocol).
+
+**MCP Endpoint:** `https://api.paybox.sh/mcp`
+
+**Transport:** MCP Streamable HTTP (requires `Accept: application/json, text/event-stream` header)
+
+**Auth:** Bearer token (`pbx_live_...`)
+
+### PayBox Capabilities
+
+| Tool | Description |
+|------|-------------|
+| `list_credentials` | List wallet credentials (Solana + EVM) |
+| `get_portfolio` | Get wallet portfolio and balances |
+| `request_transfer` | Send native SOL/ETH or tokens |
+| `request_swap` | Swap tokens across chains |
+| `request_wallet_sign` | Sign messages (EIP-191/712, Solana, raw) |
+| `get_request` | Poll request status (pending → success/denied/error) |
+| `discover_services` | Discover x402 paid services |
+| `use_service` | Use x402 paid service (buy on Amazon, book flights, etc.) |
+| `get_buy_link` | Get fiat on-ramp checkout link |
+| `verify_solana_balance` | Verify Solana transaction effect on balance |
+| `world_find_markets` | Browse World prediction markets |
+| `world_buy_outcome` | Buy YES/NO World positions |
+| `world_positions` | List World prediction-market positions |
+| `world_redeem` | Redeem settled World positions |
+
+### Via AnsemRail API
+
+```bash
+# List PayBox credentials (wallets)
+curl -s "https://ansemrail.vercel.app/api/paybox?action=credentials"
+
+# Get wallet portfolio
+curl -s "https://ansemrail.vercel.app/api/paybox?action=portfolio&credentialId=CRED_ID"
+
+# Transfer tokens
+curl -X POST https://ansemrail.vercel.app/api/paybox \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "transfer",
+    "credentialId": "CRED_ID",
+    "chain": "solana:mainnet",
+    "to": "RECIPIENT",
+    "amount": "1000000"
+  }'
+
+# Discover x402 services
+curl -s "https://ansemrail.vercel.app/api/paybox?action=services"
+
+# Browse World prediction markets
+curl -s "https://ansemrail.vercel.app/api/paybox?action=world-markets"
+
+# Check World positions
+curl -s "https://ansemrail.vercel.app/api/paybox?action=world-positions&address=WALLET"
+```
+
+### Direct MCP Call Example
+
+```bash
+# Initialize MCP session
+curl -s https://api.paybox.sh/mcp -X POST \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -H "Authorization: Bearer pbx_YOUR_TOKEN" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"ansemrail","version":"1.0"}}}'
+
+# Send initialized notification
+curl -s https://api.paybox.sh/mcp -X POST \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -H "Authorization: Bearer pbx_YOUR_TOKEN" \
+  -d '{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}'
+
+# List tools
+curl -s https://api.paybox.sh/mcp -X POST \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -H "Authorization: Bearer pbx_YOUR_TOKEN" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'
+
+# Call list_credentials
+curl -s https://api.paybox.sh/mcp -X POST \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -H "Authorization: Bearer pbx_YOUR_TOKEN" \
+  -d '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"list_credentials","arguments":{}}}'
+```
+
+---
+
+## Updated API Endpoints
+
+### PONS Launch
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/api/launch/pons` | POST | Bearer | Launch gasless PONS token on Robinhood Chain |
+| `/api/launch/pons` | GET | Bearer | Get PONS launches for an agent (`?agentId=X`) |
+
+### PayBox (Updated)
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/api/paybox` | GET | None | PayBox MCP info/tools/credentials/portfolio/services |
+| `/api/paybox` | POST | None | PayBox transfer/swap/sign/buyLink/pollRequest |
+| `/api/paybox?action=credentials` | GET | None | List wallet credentials |
+| `/api/paybox?action=portfolio&credentialId=X` | GET | None | Get wallet portfolio |
+| `/api/paybox?action=services` | GET | None | Discover x402 services |
+| `/api/paybox?action=world-markets` | GET | None | Browse World prediction markets |
+| `/api/paybox?action=world-positions&address=X` | GET | None | Check World positions |
+
+### Skill.md
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/skill.md` | GET | None | Serve SKILL.md as text/markdown |
+
+---
+
 ## Links
 
 - **Web App:** https://ansemrail.vercel.app
 - **Skill.md:** https://ansemrail.vercel.app/skill.md
 - **Dashboard:** https://ansemrail.vercel.app/dashboard
 - **Register:** https://ansemrail.vercel.app/register
+- **Terminal (Launch PONS):** https://ansemrail.vercel.app/terminal
 - **GitHub:** https://github.com/Maliot100X/ansemrail
 - **ClawPump:** https://clawpump.tech
+- **ClawPump PONS CLI:** https://clawpump.tech/cli/tokenize-pons
+- **ClawPump API:** https://clawpump.tech/api/v1
 - **MoonPay:** https://agents.moonpay.com
 - **MoonPay Skill.md:** https://agents.moonpay.com/skill.md
-- **PayBox:** https://app.paybox.sh
+- **PayBox:** https://api.paybox.sh/mcp
+- **PayBox App:** https://app.paybox.sh
 - **$CLAW Token:** `739dnZEG4yaBWFsY8L8ZwrfhGG6dhtCSercW8Umspump` (Solana)
 - **$ANSEM Token:** `9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump` (Solana)
