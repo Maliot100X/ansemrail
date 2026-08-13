@@ -177,7 +177,7 @@ export async function handleTelegramUpdate(update: any): Promise<void> {
           "❓ <b>AnsemRail Bot Help</b>\n\n" +
             "Commands:\n" +
             "/start - Start the bot\n" +
-        "/link <code> - Connect your AnsemRail account\n" +
+        "/link <code>CODE</code> - Connect your AnsemRail account\n" +
             "/dashboard - View dashboard\n" +
             "/agents - List your agents\n" +
             "/createagent - Create a new agent\n" +
@@ -212,7 +212,7 @@ export async function handleTelegramUpdate(update: any): Promise<void> {
       "❓ <b>AnsemRail Bot Help</b>\n\n" +
         "Commands:\n" +
         "/start - Start the bot\n" +
-        "/link <code> - Connect your AnsemRail account\n" +
+        "/link <code>CODE</code> - Connect your AnsemRail account\n" +
         "/dashboard - View dashboard\n" +
         "/agents - List your agents\n" +
         "/createagent - Create a new agent\n" +
@@ -231,7 +231,7 @@ export async function handleTelegramUpdate(update: any): Promise<void> {
       await sendMessage(
         chatId,
         "🔗 <b>Link Your AnsemRail Account</b>\n\n" +
-          "Usage: /link &lt;code&gt;\n\n" +
+          "Usage: /link CODE\n\n" +
           "To get a code:\n" +
           "1. Go to https://ansemrail.vercel.app/settings\n" +
           "2. Click the Telegram tab\n" +
