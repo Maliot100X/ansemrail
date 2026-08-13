@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomBytes } from "crypto";
 import { db } from "@/db/client";
 import { users } from "@/db/schema";
 import { encryptApiKey } from "@/lib/crypto";
@@ -102,6 +103,60 @@ export async function PUT(request: NextRequest) {
     console.error("Settings PUT error:", error.message);
     return NextResponse.json(
       { error: "Failed to update settings" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const user = await getRequestUser(request);
+    if (!user) {
+      return NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+    const { action } = body;
+
+    if (action === "generate-telegram-code") {
+      const code = randomBytes(4).toString("hex");
+      const expiry = new Date(Date.now() + 10 * 60 * 1000);
+      await db
+        .update(users)
+        .set({
+          telegramVerifyCode: code,
+          telegramVerifyExpiry: expiry,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, user.id));
+      return NextResponse.json({
+        code,
+        expiresIn: "10 minutes",
+        message: "Send /link " + code + " to @AnsemClawBot on Telegram",
+      });
+    }
+
+    if (action === "unlink-telegram") {
+      await db
+        .update(users)
+        .set({
+          telegramChatId: null,
+          telegramVerifyCode: null,
+          telegramVerifyExpiry: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, user.id));
+      return NextResponse.json({ message: "Telegram unlinked successfully" });
+    }
+
+    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+  } catch (error: any) {
+    console.error("Settings POST error:", error.message);
+    return NextResponse.json(
+      { error: "Failed to process request" },
       { status: 500 }
     );
   }

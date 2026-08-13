@@ -1,3 +1,7 @@
+import { db } from "@/db/client";
+import { users } from "@/db/schema";
+import { eq } from "drizzle-orm";
+
 const TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN || "";
 const TELEGRAM_API = `https://api.telegram.org/bot${TELEGRAM_TOKEN}`;
 
@@ -173,6 +177,7 @@ export async function handleTelegramUpdate(update: any): Promise<void> {
           "❓ <b>AnsemRail Bot Help</b>\n\n" +
             "Commands:\n" +
             "/start - Start the bot\n" +
+        "/link <code> - Connect your AnsemRail account\n" +
             "/dashboard - View dashboard\n" +
             "/agents - List your agents\n" +
             "/createagent - Create a new agent\n" +
@@ -207,6 +212,7 @@ export async function handleTelegramUpdate(update: any): Promise<void> {
       "❓ <b>AnsemRail Bot Help</b>\n\n" +
         "Commands:\n" +
         "/start - Start the bot\n" +
+        "/link <code> - Connect your AnsemRail account\n" +
         "/dashboard - View dashboard\n" +
         "/agents - List your agents\n" +
         "/createagent - Create a new agent\n" +
@@ -219,6 +225,52 @@ export async function handleTelegramUpdate(update: any): Promise<void> {
         "/help - Show this help",
       mainKeyboard()
     );
+  } else if (text?.startsWith("/link")) {
+    const code = text.replace("/link", "").trim();
+    if (!code || code.length < 4) {
+      await sendMessage(
+        chatId,
+        "🔗 <b>Link Your AnsemRail Account</b>\n\n" +
+          "Usage: /link &lt;code&gt;\n\n" +
+          "To get a code:\n" +
+          "1. Go to https://ansemrail.vercel.app/settings\n" +
+          "2. Click the Telegram tab\n" +
+          "3. Click \"Generate Link Code\"\n" +
+          "4. Copy the code and send it here",
+        mainKeyboard()
+      );
+    } else {
+      try {
+        const { neon } = await import("@neondatabase/serverless");
+        const sql = neon(process.env.DATABASE_URL!);
+        const result = await sql`SELECT id, telegram_verify_expiry FROM users WHERE telegram_verify_code = ${code} LIMIT 1`;
+        if (!result || result.length === 0) {
+          await sendMessage(chatId, "❌ Invalid or expired code. Generate a new one in Settings → Telegram.", mainKeyboard());
+        } else {
+          const user = result[0];
+          const expiry = new Date(user.telegram_verify_expiry);
+          if (expiry < new Date()) {
+            await sendMessage(chatId, "❌ Code expired. Generate a new one in Settings → Telegram.", mainKeyboard());
+          } else {
+            await sql`UPDATE users SET telegram_chat_id = ${String(chatId)}, telegram_verify_code = NULL, telegram_verify_expiry = NULL, updated_at = NOW() WHERE id = ${user.id}`;
+            await sendMessage(
+              chatId,
+              "✅ <b>Account Linked!</b>\n\n" +
+                "Your Telegram is now connected to AnsemRail.\n\n" +
+                "You can now:\n" +
+                "• /myagents — View your agents\n" +
+                "• /balance — Check your wallet\n" +
+                "• /signals — Get trading signals\n" +
+                "• /ansem — Live $ANSEM price\n\n" +
+                "Visit the dashboard: https://ansemrail.vercel.app/dashboard",
+              mainKeyboard()
+            );
+          }
+        }
+      } catch (err: any) {
+        await sendMessage(chatId, "❌ Link failed: " + err.message, mainKeyboard());
+      }
+    }
   } else if (text === "/ansem") {
     const { getAnsemTokenInfo } = await import("@/lib/moonpay");
     try {
@@ -283,6 +335,61 @@ export async function handleTelegramUpdate(update: any): Promise<void> {
       await sendMessage(chatId, msg, mainKeyboard());
     } catch {
       await sendMessage(chatId, "Could not fetch agents. Make sure CLAWPUMP_API_KEY is set.", mainKeyboard());
+    }
+  } else if (text === "/myagents") {
+    try {
+      const { neon } = await import("@neondatabase/serverless");
+      const sql = neon(process.env.DATABASE_URL!);
+      const result = await sql`SELECT id, name, status, wallet_address, skills, model FROM agents WHERE user_id IN (SELECT id FROM users WHERE telegram_chat_id = ${String(chatId)}) ORDER BY created_at DESC LIMIT 10`;
+      if (!result || result.length === 0) {
+        await sendMessage(
+          chatId,
+          "🤖 <b>No Agents Found</b>\n\n" +
+            "Create one at: https://ansemrail.vercel.app/agents",
+          mainKeyboard()
+        );
+      } else {
+        let msg = "🤖 <b>Your Agents</b>\n\n";
+        for (const a of result) {
+          const status = a.status === "running" ? "🟢" : "🔴";
+          msg += status + " <b>" + a.name + "</b>\n";
+          msg += "   Model: " + (a.model || "unknown") + "\n";
+          msg += "   Wallet: <code>" + (a.wallet_address?.slice(0, 8) || "?") + "...</code>\n";
+          msg += "   Skills: " + (a.skills?.length || 0) + "\n\n";
+        }
+        await sendMessage(chatId, msg, mainKeyboard());
+      }
+    } catch (err: any) {
+      await sendMessage(chatId, "❌ Could not fetch your agents: " + err.message, mainKeyboard());
+    }
+  } else if (text === "/balance") {
+    try {
+      const { neon } = await import("@neondatabase/serverless");
+      const sql = neon(process.env.DATABASE_URL!);
+      const result = await sql`SELECT wallet_address FROM users WHERE telegram_chat_id = ${String(chatId)} LIMIT 1`;
+      if (!result || result.length === 0 || !result[0].wallet_address) {
+        await sendMessage(
+          chatId,
+          "💰 <b>No Wallet Connected</b>\n\n" +
+            "Set your payout wallet in Settings: https://ansemrail.vercel.app/settings",
+          mainKeyboard()
+        );
+      } else {
+        const addr = result[0].wallet_address;
+        const { getBalance } = await import("@/lib/helius");
+        const lamports = await getBalance(addr);
+        const sol = (lamports / 1e9).toFixed(4);
+        await sendMessage(
+          chatId,
+          "💰 <b>Wallet Balance</b>\n\n" +
+            "Address: <code>" + addr.slice(0, 8) + "..." + addr.slice(-6) + "</code>\n" +
+            "Balance: <b>" + sol + " SOL</b>\n\n" +
+            "Full details: https://ansemrail.vercel.app/settings",
+          mainKeyboard()
+        );
+      }
+    } catch (err: any) {
+      await sendMessage(chatId, "❌ Could not fetch balance: " + err.message, mainKeyboard());
     }
   } else if (text?.startsWith("/createagent")) {
     await sendMessage(

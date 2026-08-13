@@ -35,6 +35,8 @@ export default function SettingsPage() {
   const [payboxResult, setPayboxResult] = useState<any>(null);
   const [payboxError, setPayboxError] = useState<string | null>(null);
   const [payboxInfo, setPayboxInfo] = useState<any>(null);
+  const [linkCode, setLinkCode] = useState<string | null>(null);
+  const [linkLoading, setLinkLoading] = useState(false);
 
   useEffect(() => {
     fetch("/api/settings")
@@ -59,6 +61,24 @@ export default function SettingsPage() {
       })
       .catch(() => setPayboxInfo({ available: false }));
   }, []);
+
+  async function handleGenerateLinkCode() {
+    setLinkLoading(true);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "generate-telegram-code" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to generate code");
+      setLinkCode(data.code);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLinkLoading(false);
+    }
+  }
 
   async function handleSave() {
     setSaving(true);
@@ -513,19 +533,59 @@ export default function SettingsPage() {
                   Message @userinfobot on Telegram to get your chat ID
                 </p>
               </div>
-              <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 space-y-2">
                 <p className="text-sm text-zinc-300 mb-2">Bot Commands:</p>
                 <div className="grid grid-cols-2 gap-1 text-xs text-zinc-500">
                   <span>/start — Welcome</span>
+                  <span>/link &lt;code&gt; — Connect account</span>
+                  <span>/myagents — Your agents</span>
+                  <span>/balance — Wallet balance</span>
                   <span>/ansem — $ANSEM info</span>
                   <span>/signals — Trending</span>
-                  <span>/agents — List agents</span>
                   <span>/marketplace — Hot tokens</span>
-                  <span>/swap — Swap info</span>
-                  <span>/createagent — Create agent</span>
-                  <span>/settings — Settings link</span>
+                  <span>/help — All commands</span>
                 </div>
               </div>
+
+              {settings.telegramChatId ? (
+                <div className="rounded-lg border border-green-800 bg-green-950/30 p-4 space-y-2">
+                  <p className="text-sm text-green-400 flex items-center gap-1">
+                    <CheckCircle className="h-4 w-4" /> Telegram Linked
+                  </p>
+                  <p className="text-xs text-zinc-400">
+                    Chat ID: <code>{settings.telegramChatId}</code>
+                  </p>
+                  <p className="text-xs text-zinc-500">
+                    Bot: <a href="https://t.me/AnsemClawBot" target="_blank" className="text-amber-400 underline">@AnsemClawBot</a>
+                  </p>
+                  <Button variant="destructive" size="sm" onClick={async () => {
+                    await fetch("/api/settings", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({action:"unlink-telegram"}) });
+                    setSettings(prev => ({...prev, telegramChatId: ""}));
+                  }}>Unlink Telegram</Button>
+                </div>
+              ) : (
+                <div className="rounded-lg border border-amber-800 bg-amber-950/30 p-4 space-y-3">
+                  <p className="text-sm font-medium text-amber-300">Link Your Telegram</p>
+                  <ol className="text-xs text-zinc-400 space-y-1 list-decimal list-inside">
+                    <li>Open <a href="https://t.me/AnsemClawBot" target="_blank" className="text-amber-400 underline">@AnsemClawBot</a> on Telegram</li>
+                    <li>Send <code>/start</code> to the bot</li>
+                    <li>Click the button below to get a link code</li>
+                    <li>Send <code>/link &lt;code&gt;</code> to the bot</li>
+                  </ol>
+                  {linkCode ? (
+                    <div className="rounded-md bg-zinc-900 border border-amber-700 p-3 space-y-2">
+                      <p className="text-xs text-amber-400">Your link code (expires in 10 minutes):</p>
+                      <code className="text-xl font-bold text-amber-300 block tracking-wider">{linkCode}</code>
+                      <p className="text-xs text-zinc-500">Send to bot: <code>/link {linkCode}</code></p>
+                    </div>
+                  ) : (
+                    <Button variant="ansem" size="sm" onClick={handleGenerateLinkCode} disabled={linkLoading}>
+                      {linkLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <><Link2 className="h-3 w-3" /> Generate Link Code</>}
+                    </Button>
+                  )}
+                </div>
+              )}
+
               <Button variant="ansem" onClick={handleSave} disabled={saving}>
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4" /> Save Telegram Settings</>}
               </Button>

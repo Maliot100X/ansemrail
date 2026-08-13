@@ -47,6 +47,8 @@ export const users = pgTable("users", {
   owsWalletId: text("ows_wallet_id"),
   owsWalletName: text("ows_wallet_name"),
   telegramChatId: text("telegram_chat_id"),
+  telegramVerifyCode: text("telegram_verify_code"),
+  telegramVerifyExpiry: timestamp("telegram_verify_expiry"),
   ansemPreference: boolean("ansem_preference").notNull().default(true),
   payoutWallet: text("payout_wallet"),
   encryptedKeys: jsonb("encrypted_keys"),
