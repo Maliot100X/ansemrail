@@ -80,6 +80,9 @@ export async function POST(request: NextRequest) {
       symbol: symbol.toUpperCase().slice(0, 12),
       description,
       imageUrl: imageUrl || undefined,
+      image_url: imageUrl || undefined,
+      network: "solana",
+      initialBuySol: devBuy ? Number(devBuy) : undefined,
       devBuy: devBuy || undefined,
     };
 

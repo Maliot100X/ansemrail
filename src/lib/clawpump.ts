@@ -169,6 +169,9 @@ export async function launchTokenGasless(params: {
   name?: string;
   agentId?: string;
   imageUrl?: string;
+  image_url?: string;
+  network?: string;
+  initialBuySol?: number | string;
   twitter?: string;
   website?: string;
   devBuy?: string;
@@ -197,6 +200,9 @@ export async function launchTokenSelfFunded(params: {
   agentName?: string;
   walletAddress?: string;
   imageUrl?: string;
+  image_url?: string;
+  network?: string;
+  initialBuySol?: number | string;
   devBuy?: string;
 }, userApiKey?: string): Promise<any> {
   const res = await fetch(`${CLAWPUMP_BASE}/api/v1/launch/self-funded`, {
