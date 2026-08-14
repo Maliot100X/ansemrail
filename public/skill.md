@@ -1003,7 +1003,7 @@ curl -X POST https://ansemrail.vercel.app/api/paybox \
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
 | `/api/clawpump/mcp` | GET | None | MCP proxy info + available actions |
-| `/api/clawpump/mcp` | POST | Bearer `cpk_` | JSON-RPC proxy to ClawPump MCP (`mcp.clawpump.tech`) |
+| `/api/clawpump/mcp` | POST | OAuth | JSON-RPC proxy to ClawPump MCP (`mcp.clawpump.tech`) — upstream MCP is OAuth-only and rejects `cpk_` keys (`invalid_token`); use the REST API for `cpk_` keys |
 | `/api/clawpump/oauth` | GET | None | Build ClawPump OAuth2 authorize URL (PKCE) |
 | `/api/clawpump/oauth/callback` | GET | OAuth code | Exchange code + save token |
 

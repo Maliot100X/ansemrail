@@ -10,7 +10,8 @@ export async function GET(request: NextRequest) {
     action,
     message: "Use POST with JSON-RPC to call ClawPump MCP tools",
     availableActions: ["initialize", "tools/list", "tools/call"],
-    note: "Authenticate with Authorization: Bearer <clawpump_api_key>",
+    note: "ClawPump MCP is OAuth-only — cpk_ API keys are rejected upstream with invalid_token. Use the ClawPump REST API (/api/v1/* via your connected cpk_ key) for agent control, swaps, and launches.",
+    oauthOnly: true,
   });
 }
 
