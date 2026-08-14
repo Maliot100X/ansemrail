@@ -26,6 +26,24 @@ export async function GET(request: NextRequest) {
     }
 
     const encryptedKeys = (row.encryptedKeys as Record<string, string>) || {};
+    let clawpumpProfile: any = encryptedKeys.clawpumpProfile
+      ? (() => {
+          try {
+            return JSON.parse(decryptApiKey(encryptedKeys.clawpumpProfile));
+          } catch {
+            return null;
+          }
+        })()
+      : null;
+    if (encryptedKeys.clawpumpApiKey && !clawpumpProfile) {
+      try {
+        const key = decryptApiKey(encryptedKeys.clawpumpApiKey);
+        const agents = await listAgents(key);
+        clawpumpProfile = { agents };
+      } catch {
+        clawpumpProfile = null;
+      }
+    }
     return NextResponse.json({
       userId: row.id,
       email: row.email,
@@ -39,15 +57,7 @@ export async function GET(request: NextRequest) {
       hasClawpumpKey: !!encryptedKeys.clawpumpApiKey,
       hasPayboxKey: !!encryptedKeys.payboxApiKey,
       payboxPolicies: await getUserPayboxPolicies(row.id),
-      clawpumpProfile: encryptedKeys.clawpumpProfile
-        ? (() => {
-            try {
-              return JSON.parse(decryptApiKey(encryptedKeys.clawpumpProfile));
-            } catch {
-              return null;
-            }
-          })()
-        : null,
+      clawpumpProfile,
     });
   } catch (error: any) {
     console.error("Settings GET error:", error.message);
