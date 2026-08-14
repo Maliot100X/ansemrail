@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { chatWithAgent } from "@/lib/clawpump";
 import { getRequestUser, getUserClawpumpApiKey } from "@/lib/auth-session";
+import { db } from "@/db/client";
+import { agents as agentsTable } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +16,24 @@ export async function POST(request: NextRequest) {
     }
     const user = await getRequestUser(request);
     const userApiKey = await getUserClawpumpApiKey(user?.id);
-    const result = await chatWithAgent(agentId, message, userApiKey);
+
+    // Resolve the real ClawPump agent ID: agentId may be a local DB uuid
+    // or a ClawPump agent id. Look up the DB record first.
+    let clawpumpAgentId = agentId;
+    try {
+      const [dbAgent] = await db
+        .select()
+        .from(agentsTable)
+        .where(eq(agentsTable.id, agentId))
+        .limit(1);
+      if (dbAgent?.clawpumpAgentId) {
+        clawpumpAgentId = dbAgent.clawpumpAgentId;
+      }
+    } catch {
+      // Not a valid uuid — assume it's already a ClawPump agent id
+    }
+
+    const result = await chatWithAgent(clawpumpAgentId, message, userApiKey);
     return NextResponse.json(result);
   } catch (error: any) {
     const msg = error.message || "";

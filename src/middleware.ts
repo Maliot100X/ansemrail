@@ -15,5 +15,11 @@ export const config = {
     "/marketplace/:path*",
     "/skills/:path*",
     "/settings/:path*",
+    "/trading/:path*",
+    "/earnings/:path*",
+    "/wallet/:path*",
+    "/chat/:path*",
+    "/analytics/:path*",
+    "/portfolio/:path*",
   ],
 };

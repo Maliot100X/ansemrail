@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { users, registrations } from "@/db/schema";
+import { encryptApiKey } from "@/lib/crypto";
 import { randomBytes } from "crypto";
 import nacl from "tweetnacl";
 import bs58 from "bs58";
@@ -8,8 +9,14 @@ import bs58 from "bs58";
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { ed25519PublicKey, ed25519Signature, skillMdContent, name, payload } =
-      body;
+    const {
+      ed25519PublicKey,
+      ed25519Signature,
+      skillMdContent,
+      name,
+      payload,
+      clawpumpApiKey,
+    } = body;
 
     if (!ed25519PublicKey && !skillMdContent) {
       return NextResponse.json(
@@ -62,11 +69,17 @@ export async function POST(request: NextRequest) {
 
     const agentToken = randomBytes(32).toString("hex");
 
+    const encryptedKeys: Record<string, string> = {};
+    if (clawpumpApiKey) {
+      encryptedKeys.clawpumpApiKey = encryptApiKey(clawpumpApiKey);
+    }
+
     const [newUser] = await db
       .insert(users)
       .values({
         type: "agent",
         clawpumpApiKey: agentToken,
+        encryptedKeys: Object.keys(encryptedKeys).length > 0 ? encryptedKeys : null,
       })
       .returning();
 

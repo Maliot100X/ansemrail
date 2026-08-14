@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       telegramChatId: row.telegramChatId,
       owsWalletName: row.owsWalletName,
       ansemPreference: row.ansemPreference,
-      hasClawpumpKey: !!encryptedKeys.clawpumpApiKey,
+      hasClawpumpKey: !!encryptedKeys.clawpumpApiKey || !!row.clawpumpApiKey,
     });
   } catch (error: any) {
     console.error("Settings GET error:", error.message);

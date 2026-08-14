@@ -16,6 +16,12 @@ import {
   Menu,
   X,
   Loader2,
+  TrendingUp,
+  Coins,
+  Wallet as WalletIcon,
+  MessageSquare,
+  BarChart3,
+  PieChart,
 } from "lucide-react";
 
 const navItems = [
@@ -26,6 +32,12 @@ const navItems = [
   { href: "/marketplace", label: "Marketplace", icon: Store },
   { href: "/skills", label: "Skills", icon: Sparkles },
   { href: "/settings", label: "Settings", icon: SettingsIcon },
+  { href: "/trading", label: "Trading", icon: TrendingUp },
+  { href: "/earnings", label: "Earnings", icon: Coins },
+  { href: "/wallet", label: "Wallet", icon: WalletIcon },
+  { href: "/chat", label: "Chat", icon: MessageSquare },
+  { href: "/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/portfolio", label: "Portfolio", icon: PieChart },
 ];
 
 export default function DashboardLayout({

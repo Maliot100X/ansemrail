@@ -537,8 +537,18 @@ curl -X POST https://ansemrail.vercel.app/api/agents/chat \
   -H "Content-Type: application/json" \
   -d '{"agentId":"AGENT_UUID","message":"What tokens are trending?"}'
 
-# Delete an agent
+# Delete an agent (path-based or legacy query)
+curl -X DELETE "https://ansemrail.vercel.app/api/agents/AGENT_UUID"
 curl -X DELETE "https://ansemrail.vercel.app/api/agents?id=AGENT_UUID"
+
+# Get a single agent
+curl -s https://ansemrail.vercel.app/api/agents/AGENT_UUID | jq .
+
+# Agent login (validate your agentToken from registration)
+curl -X POST https://ansemrail.vercel.app/api/auth/agent-login \
+  -H "Content-Type: application/json" \
+  -d '{"token":"YOUR_AGENT_TOKEN"}'
+# Response: { "token": "session_jwt", "user": { "id": "...", "email": "...", "type": "agent" } }
 ```
 
 **Agent fields:**
@@ -742,11 +752,23 @@ Full command interface with inline keyboards.
 | `/register` | Registration info |
 | `/dashboard` | Dashboard link |
 | `/settings` | Settings link |
+| `/link <code>` | Link Telegram to your account with a dashboard verify code |
+| `/myagents` | List your ClawPump agents |
+| `/balance` | Check your $ANSEM / SOL balances |
 
 **Set webhook after getting a valid bot token:**
 ```bash
 curl -s "https://api.telegram.org/botYOUR_TOKEN/setWebhook?url=https://ansemrail.vercel.app/api/telegram"
 ```
+
+**Link Telegram to your account:**
+1. Open **Settings → Telegram** in the dashboard (https://ansemrail.vercel.app/settings)
+2. Click **Generate Verify Code** — a short-lived code is created for your account
+3. In Telegram, message **@AnsemClawBot** and send `/link YOUR_CODE`
+4. The bot confirms the link; your `telegramChatId` is saved to your profile
+5. Verify with `/myagents` and `/balance` (they respond per-account)
+
+**API key style:** every human/agent registers with their own unique API key from `/skill.md`; the Telegram bot works per-account after linking with a verify code.
 
 ---
 
@@ -909,13 +931,24 @@ ows sign message
 |----------|--------|------|-------------|
 | `/api/agents` | GET | None | List all ClawPump agents |
 | `/api/agents` | POST | None | Create a ClawPump agent |
-| `/api/agents?id=X` | DELETE | None | Delete an agent |
+| `/api/agents/:id` | GET | None | Get a single ClawPump agent |
+| `/api/agents/:id` | DELETE | None | Delete an agent (path-based) |
+| `/api/agents?id=X` | DELETE | None | Delete an agent (legacy query form) |
 | `/api/agents/chat` | POST | None | Chat with an agent (real LLM) |
 
 ### Trading
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
 | `/api/swap/quote` | POST | None | Get a swap quote (real Jupiter) |
+| `/api/swap/execute` | POST | None | Quote + return payload for client-side signing |
+
+### ClawPump MCP / OAuth
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/api/clawpump/mcp` | GET | None | MCP proxy info + available actions |
+| `/api/clawpump/mcp` | POST | Bearer `cpk_` | JSON-RPC proxy to ClawPump MCP (`mcp.clawpump.tech`) |
+| `/api/clawpump/oauth` | GET | None | Build ClawPump OAuth2 authorize URL (PKCE) |
+| `/api/clawpump/oauth/callback` | GET | OAuth code | Exchange code + save token |
 
 ### Wallet
 | Endpoint | Method | Auth | Description |
@@ -951,6 +984,7 @@ ows sign message
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
 | `/api/auth/[...nextauth]` | GET/POST | Session | NextAuth (Google + Credentials) |
+| `/api/auth/agent-login` | POST | None | Agent login — validate `agentToken`, return user + session |
 
 ---
 
