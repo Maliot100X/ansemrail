@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
   try {
     const action = request.nextUrl.searchParams.get("action");
     const token = await resolvePayboxToken(request);
-    if (!token && action !== "services") {
+    if (!token) {
       return NextResponse.json(
         { error: NEEDS_KEY_MSG },
         { status: 401 }

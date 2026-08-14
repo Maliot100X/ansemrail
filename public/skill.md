@@ -1028,7 +1028,7 @@ curl -X POST https://ansemrail.vercel.app/api/paybox \
 ### PayBox
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
-| `/api/paybox` | GET | Bearer | PayBox info/tools/credentials/portfolio/services/policies/balance (`action=services` is public) |
+| `/api/paybox` | GET | Bearer | PayBox info/tools/credentials/portfolio/services/policies/balance |
 | `/api/paybox` | POST | Bearer | PayBox transfer/swap/sign/buyLink + createAnsemPolicy/createSpendLimit/deletePolicy |
 
 ### Telegram
@@ -1263,8 +1263,9 @@ curl -X POST https://ansemrail.vercel.app/api/paybox \
     "amount": "1000000"
   }'
 
-# Discover x402 services (public — no auth required)
-curl -s "https://ansemrail.vercel.app/api/paybox?action=services"
+# Discover x402 services
+curl -s "https://ansemrail.vercel.app/api/paybox?action=services" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN"
 
 # Browse World prediction markets
 curl -s "https://ansemrail.vercel.app/api/paybox?action=world-markets" \
@@ -1324,7 +1325,7 @@ curl -s https://api.paybox.sh/mcp -X POST \
 | `/api/paybox` | POST | Bearer | PayBox transfer/swap/sign/buyLink/pollRequest |
 | `/api/paybox?action=credentials` | GET | Bearer | List wallet credentials |
 | `/api/paybox?action=portfolio&credentialId=X` | GET | Bearer | Get wallet portfolio |
-| `/api/paybox?action=services` | GET | None | Discover x402 services (public) |
+| `/api/paybox?action=services` | GET | Bearer | Discover x402 services |
 | `/api/paybox?action=world-markets` | GET | Bearer | Browse World prediction markets |
 | `/api/paybox?action=world-positions&address=X` | GET | Bearer | Check World positions |
 
