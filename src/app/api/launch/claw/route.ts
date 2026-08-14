@@ -30,8 +30,25 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
-    if (mode === "self-funded" && !name) {
-      return NextResponse.json({ error: "name is required for self-funded launches" }, { status: 400 });
+    if (mode === "self-funded") {
+      if (!name) {
+        return NextResponse.json(
+          { error: "name is required for self-funded launches" },
+          { status: 400 }
+        );
+      }
+      if (!imageUrl) {
+        return NextResponse.json(
+          { error: "imageUrl is required for self-funded launches" },
+          { status: 400 }
+        );
+      }
+      if ((description || "").trim().length < 20) {
+        return NextResponse.json(
+          { error: "description must be at least 20 characters for self-funded launches" },
+          { status: 400 }
+        );
+      }
     }
 
     const userApiKey = await getUserClawpumpApiKey(user.id);
