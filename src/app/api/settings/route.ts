@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       telegramChatId: row.telegramChatId,
       owsWalletName: row.owsWalletName,
       ansemPreference: row.ansemPreference,
-      hasClawpumpKey: !!encryptedKeys.clawpumpApiKey || !!row.clawpumpApiKey,
+      hasClawpumpKey: !!encryptedKeys.clawpumpApiKey,
       hasPayboxKey: !!encryptedKeys.payboxApiKey,
       payboxPolicies: await getUserPayboxPolicies(row.id),
       clawpumpProfile: encryptedKeys.clawpumpProfile
