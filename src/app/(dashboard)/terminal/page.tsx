@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ArrowRight, Zap, Repeat, TrendingUp, Network as BridgeIcon, Rocket, ExternalLink, Copy, CheckCircle2, Circle, XCircle } from "lucide-react";
+import { Loader2, ArrowRight, Zap, Repeat, TrendingUp, Network as BridgeIcon, Rocket, ExternalLink, Copy, CheckCircle2, Circle, XCircle, Wand2 } from "lucide-react";
+import ClawLaunchTab from "@/components/terminal/claw-launch-tab";
 
 const SOL_MINT = "So11111111111111111111111111111111111111112";
 const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
@@ -360,7 +361,7 @@ export default function TerminalPage() {
       </div>
 
       <Tabs defaultValue="swap">
-        <TabsList className="grid w-full grid-cols-5 max-w-2xl">
+        <TabsList className="grid w-full grid-cols-6 max-w-3xl">
           <TabsTrigger value="swap" className="flex items-center gap-1">
             <Zap className="h-3 w-3" /> Swap
           </TabsTrigger>
@@ -375,6 +376,9 @@ export default function TerminalPage() {
           </TabsTrigger>
           <TabsTrigger value="pons" className="flex items-center gap-1">
             <Rocket className="h-3 w-3" /> Launch
+          </TabsTrigger>
+          <TabsTrigger value="claw" className="flex items-center gap-1">
+            <Wand2 className="h-3 w-3" /> ClawLaunch
           </TabsTrigger>
         </TabsList>
 
@@ -1108,6 +1112,23 @@ export default function TerminalPage() {
                   </div>
                 )}
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* CLAW LAUNCH — real ClawPump token launch (gasless / self-funded), mirrors clawpump.tech/dashboard/launch-token */}
+        <TabsContent value="claw" className="max-w-2xl">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Wand2 className="h-4 w-4 text-amber-500" /> ClawLaunch
+              </CardTitle>
+              <CardDescription>
+                Tokenize one of your ClawPump agents on Solana — gasless (sponsored) or self-funded, via your connected ClawPump key
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ClawLaunchTab />
             </CardContent>
           </Card>
         </TabsContent>
