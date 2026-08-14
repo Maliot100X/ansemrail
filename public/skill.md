@@ -41,6 +41,7 @@ metadata:
 # Swap SOL for $CLAW via AnsemRail
 curl -X POST https://ansemrail.vercel.app/api/swap/quote \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
   -d '{
     "inputMint": "So11111111111111111111111111111111111111112",
     "outputMint": "739dnZEG4yaBWFsY8L8ZwrfhGG6dhtCSercW8Umspump",
@@ -63,6 +64,7 @@ curl -X POST https://ansemrail.vercel.app/api/swap/quote \
 # Swap SOL for $ANSEM via AnsemRail
 curl -X POST https://ansemrail.vercel.app/api/swap/quote \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
   -d '{
     "inputMint": "So11111111111111111111111111111111111111112",
     "outputMint": "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump",
@@ -111,15 +113,16 @@ curl -X POST https://ansemrail.vercel.app/api/register/human \
     "clawpumpApiKey": "cpk_your_key",
     "moonpayEmail": "you@example.com"
   }'
-# Response: { "userId": "uuid", "message": "Human registered successfully" }
+# Response: { "userId": "uuid", "authToken": "hex_token", "message": "Human registered successfully" }
+# SAVE the authToken — it's shown only once and is your Bearer token for all API calls
 
-# 2. Save your userId — you'll need it for settings and agent management
+# 2. Save your userId + authToken (from the registration response)
 
 # 3. Update settings (payout wallet, $ANSEM preference)
 curl -X PUT https://ansemrail.vercel.app/api/settings \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
   -d '{
-    "userId": "YOUR_USER_ID",
     "payoutWallet": "YOUR_SOLANA_WALLET",
     "ansemPreference": true
   }'
@@ -127,6 +130,7 @@ curl -X PUT https://ansemrail.vercel.app/api/settings \
 # 4. Create your first ClawPump agent
 curl -X POST https://ansemrail.vercel.app/api/agents \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
   -d '{
     "name": "My Trading Agent",
     "persona": "A skilled Solana DeFi trading agent",
@@ -137,6 +141,7 @@ curl -X POST https://ansemrail.vercel.app/api/agents \
 # 5. Chat with your agent
 curl -X POST https://ansemrail.vercel.app/api/agents/chat \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
   -d '{
     "agentId": "AGENT_UUID_FROM_STEP_4",
     "message": "What is the current $ANSEM price?"
@@ -145,6 +150,7 @@ curl -X POST https://ansemrail.vercel.app/api/agents/chat \
 # 6. Get a swap quote (real Jupiter)
 curl -X POST https://ansemrail.vercel.app/api/swap/quote \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
   -d '{
     "inputMint": "So11111111111111111111111111111111111111112",
     "outputMint": "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump",
@@ -185,7 +191,8 @@ curl -X POST https://ansemrail.vercel.app/api/register/agent \
   -d '{
     "ed25519PublicKey": "BASE58_PUBLIC_KEY",
     "ed25519Signature": "BASE58_SIGNATURE",
-    "name": "My Autonomous Agent"
+    "name": "My Autonomous Agent",
+    "payload": { "message": "THE_SIGNED_MESSAGE_FROM_STEP_2" }
   }'
 # Response: { "agentId": "uuid", "agentToken": "hex_token", "message": "..." }
 # SAVE THE agentToken — it's shown only once!
@@ -201,11 +208,13 @@ curl -X POST https://ansemrail.vercel.app/api/register/verify \
 # Response: { "valid": true, "publicKey": "...", "message": "..." }
 
 # 5. List all agents on the platform
-curl -s https://ansemrail.vercel.app/api/agents | jq .
+curl -s https://ansemrail.vercel.app/api/agents \
+  -H "Authorization: Bearer YOUR_AGENT_TOKEN" | jq .
 
 # 6. Create a ClawPump agent
 curl -X POST https://ansemrail.vercel.app/api/agents \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AGENT_TOKEN" \
   -d '{
     "name": "Alpha Hunter",
     "persona": "Snipe new token launches and trade with $ANSEM preference",
@@ -216,6 +225,7 @@ curl -X POST https://ansemrail.vercel.app/api/agents \
 # 7. Chat with any agent
 curl -X POST https://ansemrail.vercel.app/api/agents/chat \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AGENT_TOKEN" \
   -d '{"agentId": "AGENT_UUID", "message": "Find me trending tokens on Solana"}'
 ```
 
@@ -284,7 +294,8 @@ For humans who want to manage agents, trade, and earn 65% creator fees on ClawPu
    ```bash
    curl -X PUT https://ansemrail.vercel.app/api/settings \
      -H "Content-Type: application/json" \
-     -d '{"userId":"YOUR_USER_ID","payoutWallet":"YOUR_WALLET","ansemPreference":true}'
+     -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
+     -d '{"payoutWallet":"YOUR_WALLET","ansemPreference":true}'
    ```
 4. **Access dashboard** at https://ansemrail.vercel.app/dashboard
 
@@ -324,6 +335,7 @@ curl -X POST https://ansemrail.vercel.app/api/register/human \
 # Step 2: Create a ClawPump trading agent
 curl -X POST https://ansemrail.vercel.app/api/agents \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
   -d '{
     "name": "Alpha Hunter",
     "persona": "Snipe new token launches and trade with $ANSEM preference. Focus on high-liquidity pairs.",
@@ -335,11 +347,13 @@ curl -X POST https://ansemrail.vercel.app/api/agents \
 # Step 3: Chat with your agent — ask it to find trending tokens
 curl -X POST https://ansemrail.vercel.app/api/agents/chat \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
   -d '{"agentId":"AGENT_UUID","message":"Find me the top 3 trending tokens on Solana right now"}'
 
 # Step 4: Get a real swap quote from Jupiter
 curl -X POST https://ansemrail.vercel.app/api/swap/quote \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
   -d '{
     "inputMint": "So11111111111111111111111111111111111111112",
     "outputMint": "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump",
@@ -349,6 +363,7 @@ curl -X POST https://ansemrail.vercel.app/api/swap/quote \
 # Step 5: Launch a gasless pump.fun token (no SOL needed for gas)
 curl -X POST https://ansemrail.vercel.app/api/agents \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
   -d '{
     "name": "Token Launcher",
     "persona": "Launch and manage pump.fun tokens",
@@ -392,6 +407,7 @@ curl -X POST https://ansemrail.vercel.app/api/register/human \
 # Step 2: Create a Hermes-style agent
 curl -X POST https://ansemrail.vercel.app/api/agents \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
   -d '{
     "name": "Hermes Multi-Chain",
     "persona": "Multi-chain DeFi agent managing swaps, bridges, and DCA across Solana, Ethereum, Base, and Arbitrum",
@@ -525,11 +541,13 @@ Launch, manage, and chat with AI agents on Solana. Each agent gets its own walle
 
 ```bash
 # List all agents
-curl -s https://ansemrail.vercel.app/api/agents | jq .
+curl -s https://ansemrail.vercel.app/api/agents \
+  -H "Authorization: Bearer YOUR_AGENT_TOKEN" | jq .
 
 # Create an agent
 curl -X POST https://ansemrail.vercel.app/api/agents \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AGENT_TOKEN" \
   -d '{
     "name": "My Agent",
     "persona": "DeFi trading agent focused on Solana memecoins",
@@ -540,14 +558,18 @@ curl -X POST https://ansemrail.vercel.app/api/agents \
 # Chat with an agent
 curl -X POST https://ansemrail.vercel.app/api/agents/chat \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AGENT_TOKEN" \
   -d '{"agentId":"AGENT_UUID","message":"What tokens are trending?"}'
 
 # Delete an agent (path-based or legacy query)
-curl -X DELETE "https://ansemrail.vercel.app/api/agents/AGENT_UUID"
-curl -X DELETE "https://ansemrail.vercel.app/api/agents?id=AGENT_UUID"
+curl -X DELETE "https://ansemrail.vercel.app/api/agents/AGENT_UUID" \
+  -H "Authorization: Bearer YOUR_AGENT_TOKEN"
+curl -X DELETE "https://ansemrail.vercel.app/api/agents?id=AGENT_UUID" \
+  -H "Authorization: Bearer YOUR_AGENT_TOKEN"
 
 # Get a single agent
-curl -s https://ansemrail.vercel.app/api/agents/AGENT_UUID | jq .
+curl -s https://ansemrail.vercel.app/api/agents/AGENT_UUID \
+  -H "Authorization: Bearer YOUR_AGENT_TOKEN" | jq .
 
 # Agent login (validate your agentToken from registration)
 curl -X POST https://ansemrail.vercel.app/api/auth/agent-login \
@@ -574,12 +596,13 @@ curl -X POST https://ansemrail.vercel.app/api/auth/agent-login \
 
 ### Swap Quotes (Jupiter)
 
-Get real swap quotes from Jupiter aggregator. No authentication required.
+Get real swap quotes from Jupiter aggregator. Requires your AnsemRail Bearer token — connect your own ClawPump key in Settings → Accounts first.
 
 ```bash
 # SOL → USDC
 curl -X POST https://ansemrail.vercel.app/api/swap/quote \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AGENT_TOKEN" \
   -d '{
     "inputMint": "So11111111111111111111111111111111111111112",
     "outputMint": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
@@ -589,6 +612,7 @@ curl -X POST https://ansemrail.vercel.app/api/swap/quote \
 # SOL → ANSEM
 curl -X POST https://ansemrail.vercel.app/api/swap/quote \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AGENT_TOKEN" \
   -d '{
     "inputMint": "So11111111111111111111111111111111111111112",
     "outputMint": "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump",
@@ -598,6 +622,7 @@ curl -X POST https://ansemrail.vercel.app/api/swap/quote \
 # SOL → CLAW
 curl -X POST https://ansemrail.vercel.app/api/swap/quote \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AGENT_TOKEN" \
   -d '{
     "inputMint": "So11111111111111111111111111111111111111112",
     "outputMint": "739dnZEG4yaBWFsY8L8ZwrfhGG6dhtCSercW8Umspump",
@@ -645,13 +670,14 @@ Store encrypted API keys, payout wallets, Telegram chat ID, OWS wallet name, and
 
 ```bash
 # Get settings
-curl -s "https://ansemrail.vercel.app/api/settings?userId=YOUR_USER_ID" | jq .
+curl -s https://ansemrail.vercel.app/api/settings \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" | jq .
 
 # Update settings
 curl -X PUT https://ansemrail.vercel.app/api/settings \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
   -d '{
-    "userId": "YOUR_USER_ID",
     "clawpumpApiKey": "cpk_new_key",
     "moonpayEmail": "you@example.com",
     "payoutWallet": "NEW_WALLET",
@@ -696,33 +722,41 @@ Non-custodial agent wallet with spending limits, signing, and authentication via
 
 ```bash
 # List PayBox info and available actions
-curl -s https://ansemrail.vercel.app/api/paybox | jq .
+curl -s https://ansemrail.vercel.app/api/paybox \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" | jq .
 
 # List tools (via query param)
-curl -s "https://ansemrail.vercel.app/api/paybox?action=tools" | jq .
+curl -s "https://ansemrail.vercel.app/api/paybox?action=tools" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" | jq .
 
 # List credentials (vaults/wallets)
-curl -s "https://ansemrail.vercel.app/api/paybox?action=credentials" | jq .
+curl -s "https://ansemrail.vercel.app/api/paybox?action=credentials" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" | jq .
 
 # List policies
-curl -s "https://ansemrail.vercel.app/api/paybox?action=policies" | jq .
+curl -s "https://ansemrail.vercel.app/api/paybox?action=policies" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" | jq .
 
 # Get portfolio for a credential
-curl -s "https://ansemrail.vercel.app/api/paybox?action=portfolio&credentialId=CREDENTIAL_ID" | jq .
+curl -s "https://ansemrail.vercel.app/api/paybox?action=portfolio&credentialId=CREDENTIAL_ID" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" | jq .
 
 # Sign a message with a credential
 curl -X POST https://ansemrail.vercel.app/api/paybox \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
   -d '{"action":"sign","credentialId":"CREDENTIAL_ID","message":"hello"}'
 
 # Create Ansem-only policy (restricts to $ANSEM, SOL, USDC on Solana)
 curl -X POST https://ansemrail.vercel.app/api/paybox \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
   -d '{"action":"createAnsemPolicy"}'
 
 # Create spend limit policy
 curl -X POST https://ansemrail.vercel.app/api/paybox \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
   -d '{"action":"createSpendLimit","maxPerTx":10,"maxPerDay":100}'
 ```
 
@@ -732,7 +766,7 @@ curl -X POST https://ansemrail.vercel.app/api/paybox \
 - USDC (`EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`)
 - Max spend: 100 USDC
 
-**Connect your own PayBox key:** Settings → API Keys or Settings → Accounts (dashboard) — save your `pbx_...` key (encrypted at rest) and PayBox actions use it automatically. Without a personal key, the platform key is used.
+**Connect your own PayBox key:** Settings → API Keys or Settings → Accounts (dashboard) — save your `pbx_...` key (encrypted at rest) and PayBox actions use it automatically. Without your own key, PayBox actions return a clear "connect your own key" error — the platform never uses a demo/shared key.
 
 **Policy actions:** `createAnsemPolicy`, `createSpendLimit` (POST) build and save policies to your account; `policies` (GET) lists them; `deletePolicy` removes one. PayBox enforces limits via your credential access grants — see `list_credentials` and `request_account_change` MCP tools.
 
@@ -794,6 +828,7 @@ curl -X POST https://agents.moonpay.com/api/tools/token_retrieve \
 ```bash
 curl -X POST https://ansemrail.vercel.app/api/swap/quote \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
   -d '{
     "inputMint": "So11111111111111111111111111111111111111112",
     "outputMint": "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump",
@@ -816,6 +851,7 @@ curl -X POST https://ansemrail.vercel.app/api/swap/quote \
 ```bash
 curl -X POST https://ansemrail.vercel.app/api/swap/quote \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
   -d '{
     "inputMint": "So11111111111111111111111111111111111111112",
     "outputMint": "739dnZEG4yaBWFsY8L8ZwrfhGG6dhtCSercW8Umspump",
@@ -884,6 +920,7 @@ echo "your-passphrase" | ows key create --name "agent-name" --wallet "wallet-nam
 # Sign a message with a credential
 curl -X POST https://ansemrail.vercel.app/api/paybox \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
   -d '{"action":"sign","credentialId":"CREDENTIAL_ID","message":"hello"}'
 
 **OWS Policy JSON format (all 8 fields required):**
@@ -933,19 +970,19 @@ curl -X POST https://ansemrail.vercel.app/api/paybox \
 ### Agents
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
-| `/api/agents` | GET | None | List all ClawPump agents |
-| `/api/agents` | POST | None | Create a ClawPump agent |
-| `/api/agents/:id` | GET | None | Get a single ClawPump agent |
-| `/api/agents/:id` | DELETE | None | Delete an agent (path-based) |
-| `/api/agents?id=X` | DELETE | None | Delete an agent (legacy query form) |
-| `/api/agents/chat` | POST | None | Chat with an agent (real LLM) |
+| `/api/agents` | GET | Bearer | List all ClawPump agents |
+| `/api/agents` | POST | Bearer | Create a ClawPump agent |
+| `/api/agents/:id` | GET | Bearer | Get a single ClawPump agent |
+| `/api/agents/:id` | DELETE | Bearer | Delete an agent (path-based) |
+| `/api/agents?id=X` | DELETE | Bearer | Delete an agent (legacy query form) |
+| `/api/agents/chat` | POST | Bearer | Chat with an agent (real LLM) |
 | `/api/agents/quota` | GET | Bearer | ClawPump free-tier quota status (used/limit/reset via MCP when available) |
 
 ### Trading
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
 | `/api/swap/quote` | POST | Bearer | Get a swap quote (real Jupiter, needs your own ClawPump key) |
-| `/api/swap/execute` | POST | None | Quote + return payload for client-side signing |
+| `/api/swap/execute` | POST | Bearer | Quote + return payload for client-side signing |
 
 ### ClawPump MCP / OAuth
 | Endpoint | Method | Auth | Description |
@@ -963,8 +1000,8 @@ curl -X POST https://ansemrail.vercel.app/api/paybox \
 ### Settings
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
-| `/api/settings` | GET | userId | Get user settings |
-| `/api/settings` | PUT | userId | Update settings (keys encrypted) |
+| `/api/settings` | GET | Bearer | Get user settings |
+| `/api/settings` | PUT | Bearer | Update settings (keys encrypted) |
 
 ### Skills
 | Endpoint | Method | Auth | Description |
@@ -976,7 +1013,7 @@ curl -X POST https://ansemrail.vercel.app/api/paybox \
 ### PayBox
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
-| `/api/paybox` | GET | None | PayBox info/tools/credentials/portfolio/services/policies/balance |
+| `/api/paybox` | GET | Bearer | PayBox info/tools/credentials/portfolio/services/policies/balance (`action=services` is public) |
 | `/api/paybox` | POST | Bearer | PayBox transfer/swap/sign/buyLink + createAnsemPolicy/createSpendLimit/deletePolicy |
 
 ### Telegram
@@ -1192,14 +1229,17 @@ PayBox is a non-custodial agent wallet with spending limits, signing, and authen
 
 ```bash
 # List PayBox credentials (wallets)
-curl -s "https://ansemrail.vercel.app/api/paybox?action=credentials"
+curl -s "https://ansemrail.vercel.app/api/paybox?action=credentials" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN"
 
 # Get wallet portfolio
-curl -s "https://ansemrail.vercel.app/api/paybox?action=portfolio&credentialId=CRED_ID"
+curl -s "https://ansemrail.vercel.app/api/paybox?action=portfolio&credentialId=CRED_ID" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN"
 
 # Transfer tokens
 curl -X POST https://ansemrail.vercel.app/api/paybox \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
   -d '{
     "action": "transfer",
     "credentialId": "CRED_ID",
@@ -1208,14 +1248,16 @@ curl -X POST https://ansemrail.vercel.app/api/paybox \
     "amount": "1000000"
   }'
 
-# Discover x402 services
+# Discover x402 services (public — no auth required)
 curl -s "https://ansemrail.vercel.app/api/paybox?action=services"
 
 # Browse World prediction markets
-curl -s "https://ansemrail.vercel.app/api/paybox?action=world-markets"
+curl -s "https://ansemrail.vercel.app/api/paybox?action=world-markets" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN"
 
 # Check World positions
-curl -s "https://ansemrail.vercel.app/api/paybox?action=world-positions&address=WALLET"
+curl -s "https://ansemrail.vercel.app/api/paybox?action=world-positions&address=WALLET" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN"
 ```
 
 ### Direct MCP Call Example
@@ -1263,13 +1305,13 @@ curl -s https://api.paybox.sh/mcp -X POST \
 ### PayBox (Updated)
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
-| `/api/paybox` | GET | None | PayBox MCP info/tools/credentials/portfolio/services |
-| `/api/paybox` | POST | None | PayBox transfer/swap/sign/buyLink/pollRequest |
-| `/api/paybox?action=credentials` | GET | None | List wallet credentials |
-| `/api/paybox?action=portfolio&credentialId=X` | GET | None | Get wallet portfolio |
-| `/api/paybox?action=services` | GET | None | Discover x402 services |
-| `/api/paybox?action=world-markets` | GET | None | Browse World prediction markets |
-| `/api/paybox?action=world-positions&address=X` | GET | None | Check World positions |
+| `/api/paybox` | GET | Bearer | PayBox MCP info/tools/credentials/portfolio/services |
+| `/api/paybox` | POST | Bearer | PayBox transfer/swap/sign/buyLink/pollRequest |
+| `/api/paybox?action=credentials` | GET | Bearer | List wallet credentials |
+| `/api/paybox?action=portfolio&credentialId=X` | GET | Bearer | Get wallet portfolio |
+| `/api/paybox?action=services` | GET | None | Discover x402 services (public) |
+| `/api/paybox?action=world-markets` | GET | Bearer | Browse World prediction markets |
+| `/api/paybox?action=world-positions&address=X` | GET | Bearer | Check World positions |
 
 ### Skill.md
 | Endpoint | Method | Auth | Description |
