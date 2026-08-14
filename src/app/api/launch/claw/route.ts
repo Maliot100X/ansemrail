@@ -107,8 +107,21 @@ export async function POST(request: NextRequest) {
         status = 400;
         return NextResponse.json({ error: msg, ...body }, { status });
       }
+      if (body.error === "Payment required" || body.error?.includes?.("Payment")) {
+        status = 400;
+        return NextResponse.json(
+          {
+            ...body,
+            error:
+              "Agent wallet needs SOL to cover the launch (creation + optional dev buy). Fund the agent wallet from an external wallet, then retry.",
+            nextStep: "fund_agent_wallet",
+          },
+          { status }
+        );
+      }
     }
 
+    if (msg.includes("400") || msg.includes("Payment required")) status = 400;
     return NextResponse.json({ error: msg }, { status });
   }
 }
