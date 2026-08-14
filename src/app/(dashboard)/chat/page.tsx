@@ -20,6 +20,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<{ role: string; content: string }[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [quotaMsg, setQuotaMsg] = useState<string | null>(null);
 
   const fetchAgents = useCallback(async () => {
     try {
@@ -34,6 +35,12 @@ export default function ChatPage() {
 
   useEffect(() => {
     fetchAgents();
+    fetch("/api/agents/quota")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.message) setQuotaMsg(data.message);
+      })
+      .catch(() => {});
   }, [fetchAgents]);
 
   async function send(e: React.FormEvent) {
@@ -51,7 +58,7 @@ export default function ChatPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        setMessages((prev) => [...prev, { role: "agent", content: data.response || data.message || "..." }]);
+        setMessages((prev) => [...prev, { role: "agent", content: data.content || data.response || data.message || "..." }]);
       } else {
         setMessages((prev) => [...prev, { role: "agent", content: `Error: ${data.error}` }]);
       }
@@ -69,6 +76,11 @@ export default function ChatPage() {
           <Bot className="h-6 w-6 text-amber-500" /> Agent Chat
         </h1>
         <p className="text-sm text-zinc-400">Chat with your ClawPump agents</p>
+        {quotaMsg && (
+          <p className="text-xs text-zinc-400 rounded-md border border-amber-900/40 bg-amber-950/20 px-3 py-2 mt-3">
+            {quotaMsg}
+          </p>
+        )}
       </div>
 
       <Card>

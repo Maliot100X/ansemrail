@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { shortAddress, timeAgo } from "@/lib/utils";
-import { Plus, Send, Loader2, Bot, Trash2 } from "lucide-react";
+import { Plus, Send, Loader2, Bot, Trash2, Copy, Check } from "lucide-react";
 
 interface Agent {
   id: string;
@@ -51,6 +51,8 @@ export default function AgentsPage() {
   const [chatMessages, setChatMessages] = useState<{ role: string; content: string }[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [chatQuota, setChatQuota] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -111,6 +113,28 @@ export default function AgentsPage() {
     }
   }
 
+  async function copyId(id: string) {
+    navigator.clipboard.writeText(id);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  }
+
+  function openChat(agent: Agent) {
+    setChatAgent(agent);
+    setChatMessages([]);
+    setChatQuota(null);
+    fetch("/api/agents/quota")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.connected) {
+          setChatQuota("Using your own ClawPump key — chat is billed against your key, not the shared free pool.");
+        } else if (data.message) {
+          setChatQuota(data.message);
+        }
+      })
+      .catch(() => setChatQuota(null));
+  }
+
   async function handleChat(e: React.FormEvent) {
     e.preventDefault();
     if (!chatInput.trim() || !chatAgent) return;
@@ -126,7 +150,7 @@ export default function AgentsPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        setChatMessages((prev) => [...prev, { role: "agent", content: data.response || data.message || "..." }]);
+        setChatMessages((prev) => [...prev, { role: "agent", content: data.content || data.response || data.message || "..." }]);
       } else {
         setChatMessages((prev) => [...prev, { role: "agent", content: `Error: ${data.error}` }]);
       }
@@ -247,6 +271,20 @@ export default function AgentsPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
+                  <p className="text-xs text-zinc-500">Agent ID</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs font-mono text-zinc-300 break-all">{agent.id}</p>
+                    <button
+                      type="button"
+                      onClick={() => copyId(agent.id)}
+                      className="text-zinc-500 hover:text-amber-400 transition-colors"
+                      title="Copy agent ID"
+                    >
+                      {copiedId === agent.id ? <Check className="h-3 w-3 text-green-400" /> : <Copy className="h-3 w-3" />}
+                    </button>
+                  </div>
+                </div>
+                <div>
                   <p className="text-xs text-zinc-500">Wallet</p>
                   <p className="text-sm font-mono text-zinc-300">{shortAddress(agent.walletAddress)}</p>
                 </div>
@@ -264,10 +302,7 @@ export default function AgentsPage() {
                     variant="outline"
                     size="sm"
                     className="flex-1"
-                    onClick={() => {
-                      setChatAgent(agent);
-                      setChatMessages([]);
-                    }}
+                    onClick={() => openChat(agent)}
                   >
                     <Send className="h-3 w-3" /> Chat
                   </Button>
@@ -291,6 +326,11 @@ export default function AgentsPage() {
             <DialogTitle>Chat with {chatAgent?.name}</DialogTitle>
             <DialogDescription>{chatAgent?.model}</DialogDescription>
           </DialogHeader>
+          {chatQuota && (
+            <p className="text-xs text-zinc-400 rounded-md border border-amber-900/40 bg-amber-950/20 px-3 py-2">
+              {chatQuota}
+            </p>
+          )}
           <div className="h-80 overflow-y-auto space-y-3 rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
             {chatMessages.length === 0 && (
               <p className="text-sm text-zinc-500 text-center py-8">Send a message to start chatting with your agent</p>
