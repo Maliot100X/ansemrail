@@ -1,18 +1,18 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getUserClawpumpApiKey, getUserPayboxApiKey } from "@/lib/auth-session";
-import { listAgents, getClawpumpTokens } from "@/lib/clawpump";
-import { getAnsemTokenInfo, getClawTokenInfo } from "@/lib/moonpay";
+import { listAgents } from "@/lib/clawpump";
+import { getBalance } from "@/lib/helius";
+import { getTokenDetails } from "@/lib/moonpay";
 import { listPayBoxCredentials, getPayBoxPortfolio } from "@/lib/paybox";
-import { db } from "@/db/client";
-import { agents } from "@/db/schema";
-import { desc } from "drizzle-orm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatUsd, shortAddress } from "@/lib/utils";
-import { Coins, Wallet as WalletIcon, Bot, Shield } from "lucide-react";
+import { Wallet as WalletIcon, Bot, Shield, Coins } from "lucide-react";
 
 export const dynamic = "force-dynamic";
+
+const WSOL_MINT = "So11111111111111111111111111111111111111112";
 
 export default async function PortfolioPage() {
   let userApiKey: string | undefined;
@@ -26,30 +26,33 @@ export default async function PortfolioPage() {
     }
   } catch {}
 
-  const [
-    agentsRes,
-    ansemRes,
-    clawRes,
-    tokensRes,
-    projectAgentsRes,
-    payboxCredsRes,
-  ] = await Promise.allSettled([
+  const [agentsRes, solRes, payboxCredsRes] = await Promise.allSettled([
     listAgents(userApiKey),
-    getAnsemTokenInfo(),
-    getClawTokenInfo(),
-    getClawpumpTokens("hot", 10, 0, userApiKey),
-    db.select().from(agents).orderBy(desc(agents.createdAt)).limit(50),
+    getTokenDetails(WSOL_MINT, "solana"),
     listPayBoxCredentials(userPayboxKey),
   ]);
 
   const clawpumpAgents = agentsRes.status === "fulfilled" ? agentsRes.value : [];
-  const ansem = ansemRes.status === "fulfilled" ? ansemRes.value : null;
-  const claw = clawRes.status === "fulfilled" ? clawRes.value : null;
-  const tokens = tokensRes.status === "fulfilled" ? tokensRes.value : [];
-  const projectAgents = projectAgentsRes.status === "fulfilled" ? projectAgentsRes.value : [];
+  const solPrice = solRes.status === "fulfilled"
+    ? (solRes.value as any)?.marketData?.price
+    : null;
   const creds = payboxCredsRes.status === "fulfilled"
     ? payboxCredsRes.value?.credentials || []
     : [];
+
+  const agentBalances = await Promise.all(
+    clawpumpAgents.map(async (a) => {
+      if (!a.walletAddress) return { agentId: a.id, sol: 0 };
+      try {
+        const lamports = await getBalance(a.walletAddress);
+        return { agentId: a.id, sol: (lamports || 0) / 1e9 };
+      } catch {
+        return { agentId: a.id, sol: 0 };
+      }
+    })
+  );
+  const solByAgent = new Map(agentBalances.map((b) => [b.agentId, b.sol]));
+  const totalSol = agentBalances.reduce((sum, b) => sum + b.sol, 0);
 
   const payboxPortfolios = await Promise.all(
     creds.slice(0, 4).map(async (c: any) => {
@@ -72,29 +75,35 @@ export default async function PortfolioPage() {
       <div>
         <h1 className="text-2xl font-bold text-zinc-50">Portfolio</h1>
         <p className="text-sm text-zinc-400">
-          Project agents, your ClawPump agents, and PayBox wallets with real balances
+          Your ClawPump agents, on-chain balances, and PayBox wallets — all from your own connected keys
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-zinc-400 flex items-center gap-2">
-              <Bot className="h-4 w-4 text-amber-500" /> Project Agents
+              <Bot className="h-4 w-4 text-amber-500" /> ClawPump Agents
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-zinc-50">{projectAgents.length}</div>
+            <div className="text-3xl font-bold text-zinc-50">{clawpumpAgents.length}</div>
+            <p className="text-xs text-zinc-500 mt-1">
+              {userApiKey ? "Connected to your ClawPump key" : "No ClawPump key connected"}
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm text-zinc-400 flex items-center gap-2">
-              <WalletIcon className="h-4 w-4 text-amber-500" /> ClawPump Agents
+              <Coins className="h-4 w-4 text-amber-500" /> On-Chain SOL
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-zinc-50">{clawpumpAgents.length}</div>
+            <div className="text-3xl font-bold text-zinc-50">{totalSol.toFixed(4)} SOL</div>
+            <p className="text-xs text-zinc-500 mt-1">
+              {solPrice ? `${formatUsd(totalSol * solPrice)} across your agents` : "Across your agent wallets"}
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -105,52 +114,53 @@ export default async function PortfolioPage() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-zinc-50">{creds.length}</div>
-            <p className="text-xs text-zinc-500 mt-1">{formatUsd(payboxTotal)} total balance</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-zinc-400 flex items-center gap-2">
-              <Coins className="h-4 w-4 text-amber-500" /> $ANSEM
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-amber-400">
-              {ansem ? formatUsd(ansem.marketData?.marketCap) : "$—"}
-            </div>
             <p className="text-xs text-zinc-500 mt-1">
-              {ansem ? `$${ansem.marketData?.price?.toFixed(6)}` : ""}
+              {creds.length > 0 ? `${formatUsd(payboxTotal)} total balance` : "No PayBox key connected"}
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {projectAgents.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Project Agents (registered in AnsemRail)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
-              {projectAgents.slice(0, 9).map((a) => (
-                <div key={a.id} className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
-                  <div className="flex items-center justify-between">
-                    <p className="font-medium text-zinc-100 truncate">{a.name}</p>
-                    <Badge variant={a.status === "running" ? "success" : "secondary"}>{a.status}</Badge>
+      <Card>
+        <CardHeader>
+          <CardTitle>Your ClawPump Agents</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {clawpumpAgents.length === 0 ? (
+            <p className="text-sm text-zinc-500 py-8 text-center">
+              No ClawPump agents on the connected key. Create one in the Agents tab.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {clawpumpAgents.map((a) => {
+                const sol = solByAgent.get(a.id) || 0;
+                return (
+                  <div key={a.id} className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
+                    <div>
+                      <p className="font-medium text-zinc-100">{a.name}</p>
+                      <p className="text-xs font-mono text-zinc-500">{a.id}</p>
+                      {a.walletAddress ? (
+                        <p className="text-xs font-mono text-zinc-500">{shortAddress(a.walletAddress)}</p>
+                      ) : (
+                        <p className="text-xs text-zinc-600">No wallet</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-zinc-200">{sol.toFixed(4)} SOL</p>
+                        {solPrice ? (
+                          <p className="text-xs text-zinc-500">{formatUsd(sol * solPrice)}</p>
+                        ) : null}
+                      </div>
+                      <Badge variant={a.status === "running" ? "success" : "secondary"}>{a.status}</Badge>
+                    </div>
                   </div>
-                  <p className="text-xs font-mono text-zinc-500 mt-1 break-all">{a.id}</p>
-                  {a.walletAddress && (
-                    <p className="text-xs font-mono text-zinc-600">{shortAddress(a.walletAddress)}</p>
-                  )}
-                  <p className="text-xs text-zinc-600 mt-1">
-                    {a.skills?.length || 0} skills · {a.model || "—"}
-                  </p>
-                </div>
-              ))}
+                );
+              })}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
 
       {creds.length > 0 && (
         <Card>
@@ -187,52 +197,12 @@ export default async function PortfolioPage() {
         </Card>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Your ClawPump Agents</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {clawpumpAgents.length === 0 ? (
-            <p className="text-sm text-zinc-500 py-8 text-center">
-              No ClawPump agents on the connected key. Create one in the Agents tab.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {clawpumpAgents.map((a) => (
-                <div key={a.id} className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
-                  <div>
-                    <p className="font-medium text-zinc-100">{a.name}</p>
-                    <p className="text-xs font-mono text-zinc-500">{a.id}</p>
-                    {a.walletAddress ? (
-                      <p className="text-xs font-mono text-zinc-500">{shortAddress(a.walletAddress)}</p>
-                    ) : (
-                      <p className="text-xs text-zinc-600">No wallet</p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={a.status === "running" ? "success" : "secondary"}>{a.status}</Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {tokens.length > 0 && (
+      {!userApiKey && !userPayboxKey && (
         <Card>
-          <CardHeader>
-            <CardTitle>Market Watch</CardTitle>
-          </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              {tokens.slice(0, 6).map((t) => (
-                <div key={t.mintAddress} className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
-                  <p className="font-medium text-zinc-100">${t.symbol}</p>
-                  <p className="text-xs text-zinc-500">{formatUsd(t.marketCap)} · {formatUsd(t.volume24h)} vol</p>
-                </div>
-              ))}
-            </div>
+            <p className="text-sm text-zinc-500 py-6 text-center">
+              Connect your ClawPump and PayBox keys in Settings to see your real portfolio.
+            </p>
           </CardContent>
         </Card>
       )}
