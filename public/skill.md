@@ -1013,6 +1013,7 @@ curl -X POST https://ansemrail.vercel.app/api/paybox \
 - **Swap quotes are free** — No auth needed for `/api/swap/quote`
 - **Agent chat is real** — `/api/agents/chat` calls real ClawPump LLM inference
 - **Free-tier chat** — ClawPump free tier = 1,000 messages/day shared globally (source: https://clawpump.tech/docs). When exhausted, chat returns `402 free_quota_exceeded`. Connect your own `cpk_` key in Settings for guaranteed chat; check status via `/api/agents/quota`
+- **PONS launch** — `POST /api/launch/pons` requires the agent ID to be owned by your connected `cpk_` key and a sponsored PONS allowance on the agent (contact ClawPump). Upstream 503 = temporarily unavailable, retry later. Gasless pump.fun launch (`POST /api/v1/launch`) is 3 free per user.
 - **Encrypt your keys** — ClawPump API keys are AES-256-GCM encrypted at rest
 - **$ANSEM preference** — Set `ansemPreference: true` in settings to use $ANSEM as preferred payment
 - **Check balances before trading** — Use `/api/wallet/balance` to verify funds

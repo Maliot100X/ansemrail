@@ -110,6 +110,16 @@ export default function SettingsPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to save");
+      if (settings.clawpumpApiKey) {
+        setHasClawpumpKey(true);
+        setClawpumpProfile(data.clawpump || null);
+      }
+      if (settings.payboxApiKey) setHasPayboxKey(true);
+      setSettings((prev) => ({
+        ...prev,
+        clawpumpApiKey: "",
+        payboxApiKey: "",
+      }));
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err: any) {
@@ -341,6 +351,26 @@ export default function SettingsPage() {
                   value={settings.moonpayEmail}
                   onChange={(e) => setSettings({ ...settings, moonpayEmail: e.target.value })}
                 />
+              </div>
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <span className="text-xs text-zinc-500">Status:</span>
+                {hasClawpumpKey ? (
+                  <Badge variant="success">
+                    <CheckCircle className="h-3 w-3 mr-1" /> ClawPump Connected
+                    {clawpumpProfile?.agents
+                      ? ` · ${clawpumpProfile.agents.length} agents on key`
+                      : ""}
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary">ClawPump Not Connected</Badge>
+                )}
+                {hasPayboxKey ? (
+                  <Badge variant="success">
+                    <CheckCircle className="h-3 w-3 mr-1" /> PayBox Connected
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary">PayBox Not Connected</Badge>
+                )}
               </div>
               <Button variant="ansem" onClick={handleSave} disabled={saving}>
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Save className="h-4 w-4" /> Save Keys</>}

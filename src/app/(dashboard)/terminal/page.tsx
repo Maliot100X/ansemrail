@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -103,6 +103,8 @@ export default function TerminalPage() {
   const [ponsError, setPonsError] = useState<string | null>(null);
   const [ponsLaunches, setPonsLaunches] = useState<any[]>([]);
   const [ponsLaunchesLoading, setPonsLaunchesLoading] = useState(false);
+  const [myAgents, setMyAgents] = useState<any[]>([]);
+  const [agentsLoading, setAgentsLoading] = useState(false);
 
   async function handleQuote(e: React.FormEvent) {
     e.preventDefault();
@@ -251,6 +253,26 @@ export default function TerminalPage() {
     } catch {}
     setPonsLaunchesLoading(false);
   }
+
+  async function fetchMyAgents() {
+    setAgentsLoading(true);
+    try {
+      const res = await fetch("/api/agents");
+      if (res.ok) {
+        const data = await res.json();
+        const list = data.agents || [];
+        setMyAgents(list);
+        if (list.length > 0 && !ponsForm.agentId) {
+          setPonsForm((prev) => ({ ...prev, agentId: list[0].id }));
+        }
+      }
+    } catch {}
+    setAgentsLoading(false);
+  }
+
+  useEffect(() => {
+    fetchMyAgents();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -691,23 +713,39 @@ export default function TerminalPage() {
               </CardTitle>
               <CardDescription>
                 Launch a token on Robinhood Chain — ClawPump fronts gas & fees. Creator fees route to your payout wallet.
+                Requires a sponsored PONS allowance on the agent (contact ClawPump). If ClawPump is temporarily
+                unavailable, the API returns 503 and the launch should be retried later.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handlePonsLaunch} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="pons-agent">ClawPump Agent ID</Label>
-                  <Input
-                    id="pons-agent"
-                    placeholder="Agent UUID from your ClawPump dashboard"
-                    value={ponsForm.agentId}
-                    onChange={(e) => {
-                      setPonsForm({ ...ponsForm, agentId: e.target.value });
-                    }}
-                  />
+                  <Label htmlFor="pons-agent">ClawPump Agent</Label>
+                  {agentsLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-zinc-500">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Loading your agents...
+                    </div>
+                  ) : myAgents.length === 0 ? (
+                    <p className="text-xs text-amber-400">
+                      No agents found for your connected key. Create one on the{" "}
+                      <a href="/agents" className="underline">Agents page</a> first, then refresh.
+                    </p>
+                  ) : (
+                    <select
+                      id="pons-agent"
+                      className="flex h-10 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+                      value={ponsForm.agentId}
+                      onChange={(e) => setPonsForm({ ...ponsForm, agentId: e.target.value })}
+                    >
+                      {myAgents.map((a) => (
+                        <option key={a.id} value={a.id}>
+                          {a.name} — {a.id} ({a.status})
+                        </option>
+                      ))}
+                    </select>
+                  )}
                   <p className="text-xs text-zinc-500">
-                    Find your agent ID on the{" "}
-                    <a href="/agents" className="text-amber-500 underline">Agents page</a>
+                    Launches only work with agents owned by your connected ClawPump key
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-4">

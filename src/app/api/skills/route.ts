@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { skills } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import { getRequestUser } from "@/lib/auth-session";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -38,15 +39,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Resolve the real user server-side (Bearer token or session), falling
+    // back to the client-provided userId. This keeps per-user slugs stable.
+    const authed = await getRequestUser(request);
+    const ownerId = authed?.id || userId || null;
+    const finalSlug = ownerId ? `${slug}-${ownerId.slice(0, 8)}` : slug;
+
+    // Idempotent: if this user already installed this skill, return it.
+    if (ownerId) {
+      const [existing] = await db
+        .select()
+        .from(skills)
+        .where(and(eq(skills.slug, finalSlug), eq(skills.userId, ownerId)))
+        .limit(1);
+      if (existing) {
+        return NextResponse.json({
+          skill: existing,
+          message: "Skill already installed",
+        });
+      }
+    }
+
     const [skill] = await db
       .insert(skills)
       .values({
         name,
-        slug: userId ? `${slug}-${userId.slice(0, 8)}` : slug,
+        slug: finalSlug,
         description: description || null,
         skillMdContent: skillMdContent || null,
         tags: tags || [],
-        userId: userId || null,
+        userId: ownerId,
         installed: true,
       })
       .returning();

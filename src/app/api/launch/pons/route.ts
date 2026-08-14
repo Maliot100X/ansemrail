@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { launchPonsToken, getPonsLaunches } from "@/lib/clawpump";
+import { launchPonsToken, getPonsLaunches, listAgents } from "@/lib/clawpump";
 import { getRequestUser, getUserClawpumpApiKey } from "@/lib/auth-session";
 
 export async function POST(request: NextRequest) {
@@ -24,6 +24,26 @@ export async function POST(request: NextRequest) {
 
     const userApiKey = await getUserClawpumpApiKey(user.id);
 
+    // Validate the agent belongs to the connected key before launching
+    if (userApiKey) {
+      try {
+        const owned = await listAgents(userApiKey);
+        const ownedIds = (owned || []).map((a: any) => a.id);
+        if (!ownedIds.includes(agentId)) {
+          return NextResponse.json(
+            {
+              error:
+                "This API key does not own the specified agent. Pick one of your agents from the dropdown (they are loaded from your connected ClawPump key).",
+              ownedAgents: ownedIds,
+            },
+            { status: 403 }
+          );
+        }
+      } catch {
+        // If ownership check fails, let the upstream call decide
+      }
+    }
+
     const result = await launchPonsToken(
       {
         agentId,
@@ -41,8 +61,12 @@ export async function POST(request: NextRequest) {
     const msg = error.message || "Failed to launch PONS token";
     const status = msg.includes("401") || msg.includes("auth")
       ? 401
+      : msg.includes("403")
+      ? 403
       : msg.includes("400")
       ? 400
+      : msg.includes("503") || msg.includes("unavailable")
+      ? 503
       : 500;
     return NextResponse.json({ error: msg }, { status });
   }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { signIn } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -34,6 +34,23 @@ export function SkillsClient({ clawpumpSkills, moonpaySkills, error }: SkillsCli
   const [skillMdContent, setSkillMdContent] = useState<string>("");
   const [agentName, setAgentName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const id = userId;
+    fetch(id ? `/api/skills?userId=${id}` : "/api/skills")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data.skills)) {
+          const slugs = new Set<string>();
+          for (const sk of data.skills) {
+            slugs.add(sk.slug);
+            slugs.add(String(sk.slug).replace(/-[0-9a-f]{8}$/, ""));
+          }
+          setInstalledSlugs(slugs);
+        }
+      })
+      .catch(() => {});
+  }, [userId]);
 
   async function handleInstall(skill: ClawPumpSkill) {
     setInstalling(skill.slug);
