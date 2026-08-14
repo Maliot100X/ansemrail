@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { getUserClawpumpApiKey } from "@/lib/auth-session";
+import { getUserClawpumpApiKey, getUserPayboxApiKey } from "@/lib/auth-session";
 import { listAgents, getClawpumpTokens } from "@/lib/clawpump";
 import { getAnsemTokenInfo, getClawTokenInfo } from "@/lib/moonpay";
 import { listPayBoxCredentials, getPayBoxPortfolio } from "@/lib/paybox";
@@ -16,10 +16,14 @@ export const dynamic = "force-dynamic";
 
 export default async function PortfolioPage() {
   let userApiKey: string | undefined;
+  let userPayboxKey: string | undefined;
   try {
     const session = await getServerSession(authOptions);
     const userId = (session?.user as any)?.id;
-    if (userId) userApiKey = await getUserClawpumpApiKey(userId);
+    if (userId) {
+      userApiKey = await getUserClawpumpApiKey(userId);
+      userPayboxKey = await getUserPayboxApiKey(userId);
+    }
   } catch {}
 
   const [
@@ -35,7 +39,7 @@ export default async function PortfolioPage() {
     getClawTokenInfo(),
     getClawpumpTokens("hot", 10, 0, userApiKey),
     db.select().from(agents).orderBy(desc(agents.createdAt)).limit(50),
-    listPayBoxCredentials(),
+    listPayBoxCredentials(userPayboxKey),
   ]);
 
   const clawpumpAgents = agentsRes.status === "fulfilled" ? agentsRes.value : [];
@@ -50,7 +54,7 @@ export default async function PortfolioPage() {
   const payboxPortfolios = await Promise.all(
     creds.slice(0, 4).map(async (c: any) => {
       try {
-        const p = await getPayBoxPortfolio(c.credential_id);
+        const p = await getPayBoxPortfolio(c.credential_id, userPayboxKey);
         return { credential: c, portfolio: p };
       } catch {
         return { credential: c, portfolio: null };
