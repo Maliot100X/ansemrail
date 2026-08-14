@@ -92,15 +92,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result, { status: 201 });
   } catch (error: any) {
     const msg = error.message || "Failed to launch token";
-    const status = msg.includes("401")
+    let status = msg.includes("401")
       ? 401
       : msg.includes("403") || msg.includes("not own")
       ? 403
-      : msg.includes("Payment required") || msg.includes("fund")
-      ? 400
       : msg.includes("404") || msg.includes("not found")
       ? 404
       : 500;
+
+    // ClawPump returns structured funding guidance (402 needs_funding / 400 Payment required)
+    if (error?.body && typeof error.body === "object") {
+      const body = error.body;
+      if (body.selfFunded || body.token_launch || body.code || body.nextStep) {
+        status = 400;
+        return NextResponse.json({ error: msg, ...body }, { status });
+      }
+    }
+
     return NextResponse.json({ error: msg }, { status });
   }
 }

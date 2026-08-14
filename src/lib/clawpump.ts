@@ -180,7 +180,11 @@ export async function launchTokenGasless(params: {
   });
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`ClawPump launchTokenGasless: ${res.status} ${text}`);
+    const err: any = new Error(`ClawPump launchTokenGasless: ${res.status} ${text}`);
+    try {
+      err.body = JSON.parse(text);
+    } catch {}
+    throw err;
   }
   return res.json();
 }
@@ -202,7 +206,11 @@ export async function launchTokenSelfFunded(params: {
   });
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`ClawPump launchTokenSelfFunded: ${res.status} ${text}`);
+    const err: any = new Error(`ClawPump launchTokenSelfFunded: ${res.status} ${text}`);
+    try {
+      err.body = JSON.parse(text);
+    } catch {}
+    throw err;
   }
   return res.json();
 }

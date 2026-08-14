@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Rocket, Flame, Wallet, ExternalLink } from "lucide-react";
+import { Loader2, Rocket, Flame, Wallet, ExternalLink, Copy, CheckCircle2 } from "lucide-react";
 
 function shortAddr(addr?: string | null, len = 6) {
   if (!addr) return "—";
@@ -49,6 +49,8 @@ export default function ClawLaunchTab() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
+  const [funding, setFunding] = useState<any>(null);
+  const [copied, setCopied] = useState(false);
 
   async function fetchMyAgents() {
     setAgentsLoading(true);
@@ -76,6 +78,7 @@ export default function ClawLaunchTab() {
     setLoading(true);
     setError(null);
     setResult(null);
+    setFunding(null);
     try {
       const res = await fetch("/api/launch/claw", {
         method: "POST",
@@ -83,13 +86,28 @@ export default function ClawLaunchTab() {
         body: JSON.stringify({ mode, ...form }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Launch failed");
-      setResult(data);
+      if (!res.ok) {
+        if (data?.selfFunded || data?.token_launch || data?.code || data?.nextStep) {
+          setFunding(data);
+        } else {
+          throw new Error(data.error || "Launch failed");
+        }
+      } else {
+        setResult(data);
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
+  }
+
+  async function copyAddress(addr: string) {
+    try {
+      await navigator.clipboard.writeText(addr);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {}
   }
 
   const selectedAgent = myAgents.find((a) => a.id === form.agentId);
@@ -261,6 +279,56 @@ export default function ClawLaunchTab() {
       {error && (
         <div className="rounded-md border border-red-800 bg-red-950/30 p-3">
           <p className="text-sm text-red-400">{error}</p>
+        </div>
+      )}
+
+      {funding && (
+        <div className="space-y-3 rounded-xl border border-amber-700/50 bg-zinc-950 p-5">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-zinc-200 flex items-center gap-2">
+              <Wallet className="h-4 w-4 text-amber-500" /> Agent Wallet Needs Funding
+            </p>
+            <Badge variant="secondary">needs funding</Badge>
+          </div>
+          <p className="text-sm text-zinc-400">
+            {funding.selfFunded?.requiredSol
+              ? `Fund the agent wallet with ~${funding.selfFunded.requiredSol} SOL, then retry as Self-Funded. ClawPump still mints on your behalf — you keep 65% of creator fees.`
+              : funding.message || funding.error || "The agent wallet needs SOL to cover the launch. Fund it from an external wallet, then retry."}
+          </p>
+          {funding.selfFunded?.fundWallet && (
+            <div className="flex items-center justify-between rounded-md border border-zinc-800 bg-zinc-900/60 p-3">
+              <div className="min-w-0">
+                <p className="text-[11px] uppercase tracking-wide text-zinc-500">Fund wallet</p>
+                <p className="text-sm font-mono text-zinc-200 break-all">{funding.selfFunded.fundWallet}</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => copyAddress(funding.selfFunded.fundWallet)}
+                className="ml-3 shrink-0"
+              >
+                {copied ? <CheckCircle2 className="h-3 w-3 text-green-400" /> : <Copy className="h-3 w-3" />}
+                {copied ? "Copied" : "Copy"}
+              </Button>
+            </div>
+          )}
+          {funding.selfFunded?.requiredSol && (
+            <p className="text-xs text-zinc-500">
+              Required: ~{funding.selfFunded.requiredSol} SOL · {funding.selfFunded.platformMintsOnYourBehalf ? "ClawPump mints on your behalf" : ""}
+            </p>
+          )}
+          <Button
+            type="button"
+            variant="ansem"
+            className="w-full"
+            onClick={() => {
+              setMode("self-funded");
+              setFunding(null);
+            }}
+          >
+            Retry as Self-Funded <Wallet className="h-4 w-4 ml-1" />
+          </Button>
         </div>
       )}
 
