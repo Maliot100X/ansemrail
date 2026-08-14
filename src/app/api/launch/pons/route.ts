@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     // Validate the agent belongs to the connected key before launching
     if (userApiKey) {
       try {
-        const owned = await listAgents(userApiKey);
+        const owned = await listAgents(userApiKey, { fresh: true });
         const ownedIds = (owned || []).map((a: any) => a.id);
         if (!ownedIds.includes(agentId)) {
           return NextResponse.json(

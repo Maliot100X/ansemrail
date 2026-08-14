@@ -104,7 +104,7 @@ export async function PUT(request: NextRequest) {
     if (clawpumpApiKey !== undefined && clawpumpApiKey !== "") {
       // Verify the key against the live ClawPump API before saving
       try {
-        const agents = await listAgents(clawpumpApiKey);
+        const agents = await listAgents(clawpumpApiKey, { fresh: true });
         clawpumpProfile = { agents };
       } catch (verifyErr: any) {
         return NextResponse.json(

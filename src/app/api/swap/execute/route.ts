@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     // Verify the agent belongs to the connected key before executing
     try {
-      const owned = await listAgents(userApiKey);
+      const owned = await listAgents(userApiKey, { fresh: true });
       const ownedIds = (owned || []).map((a: any) => a.id);
       if (!ownedIds.includes(agentId)) {
         return NextResponse.json(

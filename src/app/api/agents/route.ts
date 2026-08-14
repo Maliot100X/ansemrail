@@ -44,12 +44,7 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    const visible = merged.filter((a) => {
-      if (a.isPublic !== false) return true;
-      return user?.id && a.userId === user.id;
-    });
-
-    return NextResponse.json({ agents: visible });
+    return NextResponse.json({ agents: merged });
   } catch (error: any) {
     return NextResponse.json(
       { error: "Failed to list agents", detail: error.message },

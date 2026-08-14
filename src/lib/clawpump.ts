@@ -57,10 +57,15 @@ export interface ClawPumpToken {
   createdAt: string;
 }
 
-export async function listAgents(userApiKey?: string): Promise<ClawPumpAgent[]> {
+export async function listAgents(
+  userApiKey?: string,
+  opts?: { fresh?: boolean }
+): Promise<ClawPumpAgent[]> {
   const res = await fetch(`${CLAWPUMP_BASE}/api/v1/agents`, {
     headers: authHeaders(userApiKey),
-    next: { revalidate: 30 },
+    ...(opts?.fresh
+      ? { cache: "no-store" as const }
+      : { next: { revalidate: 30 } }),
   });
   if (!res.ok) throw new Error(`ClawPump listAgents: ${res.status}`);
   const data = await res.json();
