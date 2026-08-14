@@ -2,6 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { launchTokenGasless, launchTokenSelfFunded, listAgents } from "@/lib/clawpump";
 import { getRequestUser, getUserClawpumpApiKey } from "@/lib/auth-session";
 
+// Serve token images from our own domain so ClawPump's image validation
+// (which blocks abuse-prone hosts like postimg.cc) accepts them.
+function proxyImageUrl(url: string | undefined, origin: string): string | undefined {
+  if (!url) return undefined;
+  if (!/^https?:\/\//i.test(url)) return url; // already a path (ClawPump avatar) — leave as-is
+  const encoded = Buffer.from(url).toString("base64url");
+  return `${origin}/api/image-proxy?u=${encoded}`;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
@@ -76,11 +85,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const proxiedImage = proxyImageUrl(imageUrl, request.nextUrl.origin);
     const common = {
       symbol: symbol.toUpperCase().slice(0, 12),
       description,
-      imageUrl: imageUrl || undefined,
-      image_url: imageUrl || undefined,
+      imageUrl: proxiedImage,
+      image_url: proxiedImage,
       network: "solana",
       initialBuySol: devBuy ? Number(devBuy) : undefined,
       devBuy: devBuy || undefined,
@@ -120,22 +130,47 @@ export async function POST(request: NextRequest) {
       ? 404
       : 500;
 
-    // ClawPump returns structured funding guidance (402 needs_funding / 400 Payment required)
+    // ClawPump returns structured error bodies — classify the real cause
     if (error?.body && typeof error.body === "object") {
       const body = error.body;
-      if (body.selfFunded || body.token_launch || body.code || body.nextStep) {
-        status = 400;
-        return NextResponse.json({ error: msg, ...body }, { status });
-      }
-      if (body.error === "Payment required" || body.error?.includes?.("Payment")) {
+      const text = `${body.error || ""} ${body.token_launch?.error || ""} ${body.token_launch?.details?.message || ""}`.toLowerCase();
+
+      // Image rejection: blocked / abuse-prone / generated image hosts
+      if (
+        text.includes("image") &&
+        (text.includes("blocked") || text.includes("abuse") || text.includes("generated") || text.includes("upload"))
+      ) {
         status = 400;
         return NextResponse.json(
           {
-            ...body,
+            type: "image_rejected",
             error:
-              "Agent wallet needs SOL to cover the launch (creation + optional dev buy). Fund the agent wallet from an external wallet, then retry.",
-            nextStep: "fund_agent_wallet",
+              "ClawPump rejected the token image: " +
+              (body.error || "image host is blocked") +
+              ". Use a real PNG/JPEG/WebP image from a normal host — abuse-prone image hosts are blocked. Our platform proxies images through its own domain automatically.",
           },
+          { status }
+        );
+      }
+
+      // Genuine funding guidance (402 needs_funding / Payment required)
+      const isFunding =
+        !!body.selfFunded ||
+        body.code === "MAX_GASLESS_LAUNCHES_PER_USER_EXCEEDED" ||
+        body.status === "needs_funding" ||
+        body.nextStep === "self_funded" ||
+        body.error === "Payment required" ||
+        body.error?.includes?.("Payment");
+      if (isFunding) {
+        status = 400;
+        return NextResponse.json({ error: msg, ...body }, { status });
+      }
+
+      // Any other structured launch failure — surface the real message
+      if (body.token_launch || body.code || body.nextStep) {
+        status = 400;
+        return NextResponse.json(
+          { type: "launch_failed", error: body.error || body.token_launch?.error || msg },
           { status }
         );
       }

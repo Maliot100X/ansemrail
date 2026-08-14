@@ -87,7 +87,13 @@ export default function ClawLaunchTab() {
       });
       const data = await res.json();
       if (!res.ok) {
-        if (data?.selfFunded || data?.token_launch || data?.code || data?.nextStep) {
+        const isFunding =
+          !!data?.selfFunded ||
+          data?.code === "MAX_GASLESS_LAUNCHES_PER_USER_EXCEEDED" ||
+          data?.status === "needs_funding" ||
+          data?.nextStep === "self_funded" ||
+          data?.nextStep === "fund_agent_wallet";
+        if (isFunding) {
           setFunding(data);
         } else {
           throw new Error(data.error || "Launch failed");
@@ -288,10 +294,15 @@ export default function ClawLaunchTab() {
             <p className="text-sm font-medium text-zinc-200 flex items-center gap-2">
               <Wallet className="h-4 w-4 text-amber-500" /> Agent Wallet Needs Funding
             </p>
-            <Badge variant="secondary">needs funding</Badge>
+            <Badge variant="secondary">
+              {funding.code === "MAX_GASLESS_LAUNCHES_PER_USER_EXCEEDED" ? "gasless limit reached" : "needs funding"}
+            </Badge>
           </div>
           <p className="text-sm text-zinc-400">
-            {funding.selfFunded?.requiredSol
+            {funding.code === "MAX_GASLESS_LAUNCHES_PER_USER_EXCEEDED"
+              ? funding.message ||
+                "You have used your sponsored gasless launches. Fund the agent wallet, then retry as Self-Funded — ClawPump still mints on your behalf and you keep 65% of creator fees."
+              : funding.selfFunded?.requiredSol
               ? `Fund the agent wallet with ~${funding.selfFunded.requiredSol} SOL, then retry as Self-Funded. ClawPump still mints on your behalf — you keep 65% of creator fees.`
               : funding.message || funding.error || "The agent wallet needs SOL to cover the launch. Fund it from an external wallet, then retry."}
           </p>
