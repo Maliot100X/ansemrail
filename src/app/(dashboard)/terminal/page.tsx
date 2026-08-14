@@ -105,6 +105,10 @@ export default function TerminalPage() {
   const [ponsLaunchesLoading, setPonsLaunchesLoading] = useState(false);
   const [myAgents, setMyAgents] = useState<any[]>([]);
   const [agentsLoading, setAgentsLoading] = useState(false);
+  const [executeAgentId, setExecuteAgentId] = useState("");
+  const [executing, setExecuting] = useState(false);
+  const [executeResult, setExecuteResult] = useState<any>(null);
+  const [executeError, setExecuteError] = useState<string | null>(null);
 
   async function handleQuote(e: React.FormEvent) {
     e.preventDefault();
@@ -124,6 +128,37 @@ export default function TerminalPage() {
       setError(err.message);
     } finally {
       setQuoteLoading(false);
+    }
+  }
+
+  async function handleExecute(e: React.FormEvent) {
+    e.preventDefault();
+    if (!executeAgentId) {
+      setExecuteError("Select a ClawPump agent to execute the swap with.");
+      return;
+    }
+    setExecuting(true);
+    setExecuteError(null);
+    setExecuteResult(null);
+    try {
+      const res = await fetch("/api/swap/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agentId: executeAgentId,
+          inputMint: swapForm.inputMint,
+          outputMint: swapForm.outputMint,
+          amount: swapForm.amount,
+          slippageBps: 50,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Swap execution failed");
+      setExecuteResult(data);
+    } catch (err: any) {
+      setExecuteError(err.message);
+    } finally {
+      setExecuting(false);
     }
   }
 
@@ -365,16 +400,65 @@ export default function TerminalPage() {
                     >
                       Copy Quote JSON
                     </Button>
-                    <a
-                      href="https://clawpump.tech/dashboard"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Button variant="ansem" size="sm" className="flex-1">
-                        Execute on ClawPump
-                      </Button>
-                    </a>
                   </div>
+                  <div className="space-y-2 pt-2 border-t border-green-900">
+                    <Label htmlFor="exec-agent">Execute with agent</Label>
+                    {agentsLoading ? (
+                      <div className="flex items-center gap-2 text-sm text-zinc-500">
+                        <Loader2 className="h-4 w-4 animate-spin" /> Loading your agents...
+                      </div>
+                    ) : myAgents.length === 0 ? (
+                      <p className="text-xs text-amber-400">
+                        No agents found for your connected key. Create one on the{" "}
+                        <a href="/agents" className="underline">Agents page</a> first.
+                      </p>
+                    ) : (
+                      <select
+                        id="exec-agent"
+                        className="flex h-10 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+                        value={executeAgentId}
+                        onChange={(e) => setExecuteAgentId(e.target.value)}
+                      >
+                        <option value="">Select an agent...</option>
+                        {myAgents.map((a) => (
+                          <option key={a.id} value={a.id}>
+                            {a.name} — {a.id} ({a.status})
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    <Button
+                      type="button"
+                      variant="ansem"
+                      size="sm"
+                      className="w-full"
+                      disabled={executing || !executeAgentId}
+                      onClick={handleExecute}
+                    >
+                      {executing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                      Execute Swap via Agent Wallet
+                    </Button>
+                    <p className="text-xs text-zinc-500">
+                      Executes through the selected ClawPump agent&apos;s own wallet with your connected key. The agent must own SOL/SPL balance for the swap.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {executeError && (
+                <div className="mt-4 rounded-md border border-red-800 bg-red-950/30 p-3">
+                  <p className="text-sm text-red-400">{executeError}</p>
+                </div>
+              )}
+
+              {executeResult && (
+                <div className="mt-4 space-y-3 rounded-md border border-green-800 bg-green-950/30 p-4">
+                  <p className="text-sm font-medium text-green-400 flex items-center gap-1">
+                    <Zap className="h-4 w-4" /> Swap Executed
+                  </p>
+                  <pre className="text-xs text-zinc-300 overflow-auto max-h-48">
+                    {JSON.stringify(executeResult, null, 2)}
+                  </pre>
                 </div>
               )}
             </CardContent>

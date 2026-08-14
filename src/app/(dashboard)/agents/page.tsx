@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { shortAddress, timeAgo } from "@/lib/utils";
-import { Plus, Send, Loader2, Bot, Trash2, Copy, Check } from "lucide-react";
+import { Plus, Send, Loader2, Bot, Trash2, Copy, Check, Play, Square, History } from "lucide-react";
 
 interface Agent {
   id: string;
@@ -113,6 +113,28 @@ export default function AgentsPage() {
     }
   }
 
+  async function handleStart(agentId: string) {
+    try {
+      const res = await fetch(`/api/agents/${agentId}/start`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to start agent");
+      fetchAgents();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  }
+
+  async function handleStop(agentId: string) {
+    try {
+      const res = await fetch(`/api/agents/${agentId}/stop`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to stop agent");
+      fetchAgents();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  }
+
   async function copyId(id: string) {
     navigator.clipboard.writeText(id);
     setCopiedId(id);
@@ -123,6 +145,16 @@ export default function AgentsPage() {
     setChatAgent(agent);
     setChatMessages([]);
     setChatQuota(null);
+    fetch(`/api/agents/${agent.id}/messages`)
+      .then((r) => r.json())
+      .then((data) => {
+        const msgs = (data.messages || []).map((m: any) => ({
+          role: m.role || "assistant",
+          content: m.content || JSON.stringify(m),
+        }));
+        if (msgs.length) setChatMessages(msgs);
+      })
+      .catch(() => {});
     fetch("/api/agents/quota")
       .then((r) => r.json())
       .then((data) => {
@@ -297,21 +329,43 @@ export default function AgentsPage() {
                   </div>
                 </div>
                 <p className="text-xs text-zinc-500">Created {timeAgo(agent.createdAt)}</p>
-                <div className="flex gap-2 pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                    onClick={() => openChat(agent)}
-                  >
-                    <Send className="h-3 w-3" /> Chat
-                  </Button>
+                <div className="flex flex-col gap-2 pt-2">
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => openChat(agent)}
+                    >
+                      <Send className="h-3 w-3" /> Chat
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => (agent.status === "running" ? handleStop(agent.id) : handleStart(agent.id))}
+                    >
+                      {agent.status === "running" ? (
+                        <><Square className="h-3 w-3 text-red-400" /> Stop</>
+                      ) : (
+                        <><Play className="h-3 w-3 text-green-400" /> Start</>
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(agent.id)}
+                    >
+                      <Trash2 className="h-3 w-3 text-red-400" />
+                    </Button>
+                  </div>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleDelete(agent.id)}
+                    className="w-full"
+                    onClick={() => openChat(agent)}
                   >
-                    <Trash2 className="h-3 w-3 text-red-400" />
+                    <History className="h-3 w-3" /> View chat history
                   </Button>
                 </div>
               </CardContent>

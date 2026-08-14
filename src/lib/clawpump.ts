@@ -309,3 +309,74 @@ export async function getAgentPonsLaunches(agentId: string, userApiKey?: string)
   const data = await getPonsLaunches(agentId, userApiKey);
   return data?.launches || [];
 }
+
+export async function startAgent(
+  agentId: string,
+  userApiKey?: string
+): Promise<ClawPumpAgent> {
+  const res = await fetch(`${CLAWPUMP_BASE}/api/v1/agents/${agentId}/start`, {
+    method: "POST",
+    headers: authHeaders(userApiKey),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`ClawPump startAgent: ${res.status} ${text}`);
+  }
+  return res.json();
+}
+
+export async function stopAgent(
+  agentId: string,
+  userApiKey?: string
+): Promise<ClawPumpAgent> {
+  const res = await fetch(`${CLAWPUMP_BASE}/api/v1/agents/${agentId}/stop`, {
+    method: "POST",
+    headers: authHeaders(userApiKey),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`ClawPump stopAgent: ${res.status} ${text}`);
+  }
+  return res.json();
+}
+
+export async function getAgentMessages(
+  agentId: string,
+  limit = 20,
+  userApiKey?: string
+): Promise<any> {
+  const res = await fetch(
+    `${CLAWPUMP_BASE}/api/v1/agents/${agentId}/messages?limit=${limit}`,
+    { headers: authHeaders(userApiKey), next: { revalidate: 5 } }
+  );
+  if (!res.ok) throw new Error(`ClawPump getAgentMessages: ${res.status}`);
+  return res.json();
+}
+
+export async function swapExecute(
+  params: {
+    inputMint: string;
+    outputMint: string;
+    amount: string;
+    agentId: string;
+    slippageBps?: number;
+  },
+  userApiKey?: string
+): Promise<any> {
+  const res = await fetch(`${CLAWPUMP_BASE}/api/v1/swap/execute`, {
+    method: "POST",
+    headers: authHeaders(userApiKey),
+    body: JSON.stringify({
+      input_mint: params.inputMint,
+      output_mint: params.outputMint,
+      amount: params.amount,
+      agent_id: params.agentId,
+      slippage_bps: params.slippageBps || 50,
+    }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`ClawPump swapExecute: ${res.status} ${text}`);
+  }
+  return res.json();
+}

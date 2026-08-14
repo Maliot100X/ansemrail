@@ -561,6 +561,18 @@ curl -X POST https://ansemrail.vercel.app/api/agents/chat \
   -H "Authorization: Bearer YOUR_AGENT_TOKEN" \
   -d '{"agentId":"AGENT_UUID","message":"What tokens are trending?"}'
 
+# Start an agent (agent starts trading autonomously)
+curl -X POST https://ansemrail.vercel.app/api/agents/AGENT_UUID/start \
+  -H "Authorization: Bearer YOUR_AGENT_TOKEN"
+
+# Stop an agent
+curl -X POST https://ansemrail.vercel.app/api/agents/AGENT_UUID/stop \
+  -H "Authorization: Bearer YOUR_AGENT_TOKEN"
+
+# Read chat history for an agent
+curl -s "https://ansemrail.vercel.app/api/agents/AGENT_UUID/messages?limit=20" \
+  -H "Authorization: Bearer YOUR_AGENT_TOKEN" | jq .
+
 # Delete an agent (path-based or legacy query)
 curl -X DELETE "https://ansemrail.vercel.app/api/agents/AGENT_UUID" \
   -H "Authorization: Bearer YOUR_AGENT_TOKEN"
@@ -976,13 +988,16 @@ curl -X POST https://ansemrail.vercel.app/api/paybox \
 | `/api/agents/:id` | DELETE | Bearer | Delete an agent (path-based) |
 | `/api/agents?id=X` | DELETE | Bearer | Delete an agent (legacy query form) |
 | `/api/agents/chat` | POST | Bearer | Chat with an agent (real LLM) |
+| `/api/agents/:id/start` | POST | Bearer | Start an agent (real ClawPump lifecycle) |
+| `/api/agents/:id/stop` | POST | Bearer | Stop an agent |
+| `/api/agents/:id/messages` | GET | Bearer | Read chat history for an agent |
 | `/api/agents/quota` | GET | Bearer | ClawPump free-tier quota status (used/limit/reset via MCP when available) |
 
 ### Trading
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
 | `/api/swap/quote` | POST | Bearer | Get a swap quote (real Jupiter, needs your own ClawPump key) |
-| `/api/swap/execute` | POST | Bearer | Quote + return payload for client-side signing |
+| `/api/swap/execute` | POST | Bearer | Execute a real swap through the selected ClawPump agent wallet (agent must own the balance; verifies the agent belongs to your key) |
 
 ### ClawPump MCP / OAuth
 | Endpoint | Method | Auth | Description |
