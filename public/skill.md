@@ -696,24 +696,19 @@ curl -s https://ansemrail.vercel.app/api/paybox | jq .
 # List tools (via query param)
 curl -s "https://ansemrail.vercel.app/api/paybox?action=tools" | jq .
 
-# List vaults
-curl -s "https://ansemrail.vercel.app/api/paybox?action=vaults" | jq .
+# List credentials (vaults/wallets)
+curl -s "https://ansemrail.vercel.app/api/paybox?action=credentials" | jq .
 
 # List policies
 curl -s "https://ansemrail.vercel.app/api/paybox?action=policies" | jq .
 
-# Get vault balance
-curl -s "https://ansemrail.vercel.app/api/paybox?action=balance&vaultId=VAULT_ID" | jq .
+# Get portfolio for a credential
+curl -s "https://ansemrail.vercel.app/api/paybox?action=portfolio&credentialId=CREDENTIAL_ID" | jq .
 
-# Create a vault
+# Sign a message with a credential
 curl -X POST https://ansemrail.vercel.app/api/paybox \
   -H "Content-Type: application/json" \
-  -d '{"action":"createVault","name":"my-vault","passphrase":"your_passphrase"}'
-
-# Sign a message
-curl -X POST https://ansemrail.vercel.app/api/paybox \
-  -H "Content-Type: application/json" \
-  -d '{"action":"sign","vaultId":"VAULT_ID","message":"hello","passphrase":"your_passphrase"}'
+  -d '{"action":"sign","credentialId":"CREDENTIAL_ID","message":"hello"}'
 
 # Create Ansem-only policy (restricts to $ANSEM, SOL, USDC on Solana)
 curl -X POST https://ansemrail.vercel.app/api/paybox \
@@ -732,7 +727,9 @@ curl -X POST https://ansemrail.vercel.app/api/paybox \
 - USDC (`EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v`)
 - Max spend: 100 USDC
 
-**Note:** PayBox MCP endpoint at `app.paybox.sh/mcp` may return 404 if the external service is not yet live. The integration code is ready and will work once PayBox is available.
+**Connect your own PayBox key:** Settings → API Keys or Settings → Accounts (dashboard) — save your `pbx_...` key (encrypted at rest) and PayBox actions use it automatically. Without a personal key, the platform key is used.
+
+**Policy actions:** `createAnsemPolicy`, `createSpendLimit` (POST) build and save policies to your account; `policies` (GET) lists them; `deletePolicy` removes one. PayBox enforces limits via your credential access grants — see `list_credentials` and `request_account_change` MCP tools.
 
 ### Telegram Bot
 
@@ -879,9 +876,10 @@ ows policy create --file policy.json
 # Create an API key
 echo "your-passphrase" | ows key create --name "agent-name" --wallet "wallet-name" --policy "policy-id"
 
-# Sign a message
-ows sign message
-```
+# Sign a message with a credential
+curl -X POST https://ansemrail.vercel.app/api/paybox \
+  -H "Content-Type: application/json" \
+  -d '{"action":"sign","credentialId":"CREDENTIAL_ID","message":"hello"}'
 
 **OWS Policy JSON format (all 8 fields required):**
 ```json
@@ -914,6 +912,7 @@ ows sign message
 | Signals | `/signals` | $ANSEM signal + trending feed |
 | Skills | `/skills` | ClawPump + MoonPay skill registry |
 | Settings | `/settings` | API keys, wallets, OWS, Telegram |
+| Leaderboard | `/leaderboard` | Agents registered in the project, live rankings |
 
 ---
 
@@ -971,8 +970,8 @@ ows sign message
 ### PayBox
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
-| `/api/paybox` | GET | None | PayBox MCP info/tools/vaults/policies/balance |
-| `/api/paybox` | POST | None | PayBox create vault/sign/policy |
+| `/api/paybox` | GET | None | PayBox info/tools/credentials/portfolio/services/policies/balance |
+| `/api/paybox` | POST | Bearer | PayBox transfer/swap/sign/buyLink + createAnsemPolicy/createSpendLimit/deletePolicy |
 
 ### Telegram
 | Endpoint | Method | Auth | Description |

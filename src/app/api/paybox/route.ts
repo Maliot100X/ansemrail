@@ -12,12 +12,65 @@ import {
   worldFindMarkets,
   worldPositions,
   verifySolanaBalance,
+  buildAnsemPayBoxPolicy,
+  buildSpendLimitPayBoxPolicy,
 } from "@/lib/paybox";
+import {
+  getRequestUser,
+  getUserPayboxApiKey,
+  getUserPayboxPolicies,
+} from "@/lib/auth-session";
+import { db } from "@/db/client";
+import { users } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { encryptApiKey, decryptApiKey } from "@/lib/crypto";
+
+async function resolvePayboxToken(
+  request: NextRequest,
+  bodyToken?: string
+): Promise<string | undefined> {
+  const urlToken = request.nextUrl.searchParams.get("token") || undefined;
+  if (bodyToken) return bodyToken;
+  if (urlToken) return urlToken;
+  const user = await getRequestUser(request);
+  if (user?.id) {
+    const userKey = await getUserPayboxApiKey(user.id);
+    if (userKey) return userKey;
+  }
+  return undefined;
+}
+
+async function savePolicyForUser(
+  userId: string,
+  policy: any,
+): Promise<void> {
+  const [row] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, userId))
+    .limit(1);
+  const encryptedKeys = (row?.encryptedKeys as Record<string, string>) || {};
+  let policies: any[] = [];
+  if (encryptedKeys.payboxPolicies) {
+    try {
+      policies = JSON.parse(decryptApiKey(encryptedKeys.payboxPolicies));
+    } catch {
+      policies = [];
+    }
+  }
+  policies = (policies || []).filter((p: any) => p?.id !== policy.id);
+  policies.push({ ...policy, createdAt: new Date().toISOString() });
+  encryptedKeys.payboxPolicies = encryptApiKey(JSON.stringify(policies));
+  await db
+    .update(users)
+    .set({ encryptedKeys, updatedAt: new Date() })
+    .where(eq(users.id, userId));
+}
 
 export async function GET(request: NextRequest) {
   try {
     const action = request.nextUrl.searchParams.get("action");
-    const token = request.nextUrl.searchParams.get("token") || undefined;
+    const token = await resolvePayboxToken(request);
 
     switch (action) {
       case "tools": {
@@ -86,6 +139,17 @@ export async function GET(request: NextRequest) {
         const result = await verifySolanaBalance(address, tokenMint, txSig, token);
         return NextResponse.json(result);
       }
+      case "policies": {
+        const user = await getRequestUser(request);
+        if (!user) {
+          return NextResponse.json(
+            { error: "Authentication required" },
+            { status: 401 }
+          );
+        }
+        const policies = await getUserPayboxPolicies(user.id);
+        return NextResponse.json({ policies });
+      }
       default:
         return NextResponse.json({
           status: "PayBox MCP endpoint",
@@ -113,7 +177,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { action, token, ...params } = body;
+    const { action, token: bodyToken, ...params } = body;
+    const token = await resolvePayboxToken(request, bodyToken);
 
     switch (action) {
       case "transfer": {
@@ -168,6 +233,91 @@ export async function POST(request: NextRequest) {
         );
         return NextResponse.json(result);
       }
+      case "createAnsemPolicy": {
+        const user = await getRequestUser(request);
+        if (!user) {
+          return NextResponse.json(
+            { error: "Authentication required" },
+            { status: 401 }
+          );
+        }
+        const policy = buildAnsemPayBoxPolicy();
+        await savePolicyForUser(user.id, policy);
+        let credentials: any[] = [];
+        try {
+          const creds = await listPayBoxCredentials(token);
+          credentials = creds?.credentials || [];
+        } catch {
+          credentials = [];
+        }
+        return NextResponse.json({
+          created: true,
+          policy,
+          credentials,
+          message:
+            "Ansem-Only policy saved to your account. PayBox enforces it via your credential access grants.",
+        });
+      }
+      case "createSpendLimit": {
+        const user = await getRequestUser(request);
+        if (!user) {
+          return NextResponse.json(
+            { error: "Authentication required" },
+            { status: 401 }
+          );
+        }
+        const maxPerTx = Number(params.maxPerTx) || 100;
+        const maxPerDay = Number(params.maxPerDay) || 1000;
+        const policy = buildSpendLimitPayBoxPolicy(maxPerTx, maxPerDay);
+        await savePolicyForUser(user.id, policy);
+        let credentials: any[] = [];
+        try {
+          const creds = await listPayBoxCredentials(token);
+          credentials = creds?.credentials || [];
+        } catch {
+          credentials = [];
+        }
+        return NextResponse.json({
+          created: true,
+          policy,
+          credentials,
+          message:
+            "Spend-limit policy saved to your account. PayBox enforces it via your credential access grants.",
+        });
+      }
+      case "deletePolicy": {
+        const user = await getRequestUser(request);
+        if (!user) {
+          return NextResponse.json(
+            { error: "Authentication required" },
+            { status: 401 }
+          );
+        }
+        const { policyId } = params;
+        if (!policyId) {
+          return NextResponse.json(
+            { error: "policyId is required" },
+            { status: 400 }
+          );
+        }
+        const policies = await getUserPayboxPolicies(user.id);
+        const remaining = policies.filter((p: any) => p?.id !== policyId);
+        const [row] = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, user.id))
+          .limit(1);
+        const encryptedKeys =
+          (row?.encryptedKeys as Record<string, string>) || {};
+        encryptedKeys.payboxPolicies = encryptApiKey(
+          JSON.stringify(remaining)
+        );
+        await db
+          .update(users)
+          .set({ encryptedKeys, updatedAt: new Date() })
+          .where(eq(users.id, user.id));
+        return NextResponse.json({ deleted: true, remaining });
+      }
       default:
         return NextResponse.json(
           {
@@ -179,6 +329,9 @@ export async function POST(request: NextRequest) {
               "buyLink",
               "pollRequest",
               "verifyBalance",
+              "createAnsemPolicy",
+              "createSpendLimit",
+              "deletePolicy",
             ],
           },
           { status: 400 }

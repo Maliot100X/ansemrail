@@ -19,14 +19,21 @@ export default function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [settings, setSettings] = useState({
     clawpumpApiKey: "",
+    payboxApiKey: "",
     moonpayEmail: "",
     payoutWallet: "",
     telegramChatId: "",
     owsWalletName: "",
   });
   const [hasClawpumpKey, setHasClawpumpKey] = useState(false);
+  const [clawpumpProfile, setClawpumpProfile] = useState<any>(null);
   const [connecting, setConnecting] = useState(false);
   const [connectResult, setConnectResult] = useState<string | null>(null);
+  const [hasPayboxKey, setHasPayboxKey] = useState(false);
+  const [payboxConnecting, setPayboxConnecting] = useState(false);
+  const [payboxConnectResult, setPayboxConnectResult] = useState<string | null>(null);
+  const [payboxPolicies, setPayboxPolicies] = useState<any[]>([]);
+  const [deletingPolicy, setDeletingPolicy] = useState<string | null>(null);
 
   // OWS / PayBox state
   const [enabledChains, setEnabledChains] = useState<Set<string>>(new Set(["Solana"]));
@@ -48,6 +55,9 @@ export default function SettingsPage() {
         if (data.owsWalletName) setSettings((prev) => ({ ...prev, owsWalletName: data.owsWalletName }));
         if (data.ansemPreference !== undefined) setAnsemPreference(data.ansemPreference);
         if (data.hasClawpumpKey !== undefined) setHasClawpumpKey(!!data.hasClawpumpKey);
+        if (data.hasPayboxKey !== undefined) setHasPayboxKey(!!data.hasPayboxKey);
+        if (Array.isArray(data.payboxPolicies)) setPayboxPolicies(data.payboxPolicies);
+        if (data.clawpumpProfile) setClawpumpProfile(data.clawpumpProfile);
       })
       .catch(() => {});
   }, []);
@@ -90,6 +100,7 @@ export default function SettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           clawpumpApiKey: settings.clawpumpApiKey || undefined,
+          payboxApiKey: settings.payboxApiKey || undefined,
           moonpayEmail: settings.moonpayEmail || undefined,
           payoutWallet: settings.payoutWallet || undefined,
           telegramChatId: settings.telegramChatId || undefined,
@@ -134,12 +145,74 @@ export default function SettingsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to connect");
       setHasClawpumpKey(true);
-      setConnectResult("ClawPump account connected successfully");
+      setClawpumpProfile(data.clawpump || null);
+      const agentCount = data.clawpump?.agents?.length ?? 0;
+      setConnectResult(
+        `ClawPump connected successfully — ${agentCount} agent${agentCount === 1 ? "" : "s"} on your key`
+      );
       setSettings((prev) => ({ ...prev, clawpumpApiKey: "" }));
     } catch (err: any) {
       setConnectResult(err.message);
     } finally {
       setConnecting(false);
+    }
+  }
+
+  async function handleConnectPaybox() {
+    if (!settings.payboxApiKey) {
+      setPayboxConnectResult("Please enter a PayBox API key first");
+      return;
+    }
+    setPayboxConnecting(true);
+    setPayboxConnectResult(null);
+    setError(null);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payboxApiKey: settings.payboxApiKey }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to connect");
+      const toolsRes = await fetch("/api/paybox?action=tools");
+      const toolsData = await toolsRes.json();
+      if (!toolsRes.ok) throw new Error(toolsData.error || "PayBox unreachable");
+      setHasPayboxKey(true);
+      setPayboxConnectResult(
+        `PayBox connected — ${toolsData.tools?.length ?? 0} tools available`
+      );
+      setSettings((prev) => ({ ...prev, payboxApiKey: "" }));
+    } catch (err: any) {
+      setPayboxConnectResult(err.message);
+    } finally {
+      setPayboxConnecting(false);
+    }
+  }
+
+  async function refreshPolicies() {
+    try {
+      const res = await fetch("/api/paybox?action=policies");
+      const data = await res.json();
+      if (res.ok && Array.isArray(data.policies)) setPayboxPolicies(data.policies);
+    } catch {}
+  }
+
+  async function handleDeletePolicy(policyId: string) {
+    setDeletingPolicy(policyId);
+    try {
+      const res = await fetch("/api/paybox", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "deletePolicy", policyId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete policy");
+      if (Array.isArray(data.remaining)) setPayboxPolicies(data.remaining);
+      else await refreshPolicies();
+    } catch (err: any) {
+      setPayboxError(err.message);
+    } finally {
+      setDeletingPolicy(null);
     }
   }
 
@@ -156,6 +229,7 @@ export default function SettingsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to create policy");
       setPayboxResult({ type: "ansem", data });
+      await refreshPolicies();
     } catch (err: any) {
       setPayboxError(err.message);
     } finally {
@@ -180,6 +254,7 @@ export default function SettingsPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to create spend limit");
       setPayboxResult({ type: "spend", data });
+      await refreshPolicies();
     } catch (err: any) {
       setPayboxError(err.message);
     } finally {
@@ -247,6 +322,17 @@ export default function SettingsPage() {
                 <p className="text-xs text-zinc-500">Get yours at clawpump.tech/dashboard/api</p>
               </div>
               <div className="space-y-2">
+                <Label htmlFor="paybox">PayBox API Key</Label>
+                <Input
+                  id="paybox"
+                  type="password"
+                  placeholder="pbx_..."
+                  value={settings.payboxApiKey}
+                  onChange={(e) => setSettings({ ...settings, payboxApiKey: e.target.value })}
+                />
+                <p className="text-xs text-zinc-500">Get yours at app.paybox.sh — powers OWS policies and signing</p>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="moonpay">MoonPay Email</Label>
                 <Input
                   id="moonpay"
@@ -286,9 +372,17 @@ export default function SettingsPage() {
                   )}
                 </div>
                 {hasClawpumpKey ? (
-                  <p className="text-xs text-zinc-500">
-                    Your ClawPump API key is encrypted at rest. Agent chat will use your key automatically.
-                  </p>
+                  <div className="space-y-1">
+                    <p className="text-xs text-zinc-500">
+                      Your ClawPump API key is encrypted at rest. Agent chat will use your key automatically.
+                    </p>
+                    {clawpumpProfile?.agents && (
+                      <p className="text-xs text-green-400">
+                        Connected to clawpump.tech — {clawpumpProfile.agents.length} agents on your key
+                        ({(clawpumpProfile.agents.filter((a: any) => a.status === "running").length)} running)
+                      </p>
+                    )}
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     <Input
@@ -306,6 +400,45 @@ export default function SettingsPage() {
                 {connectResult && (
                   <p className={`text-xs ${connectResult.includes("success") ? "text-green-400" : "text-red-400"}`}>
                     {connectResult}
+                  </p>
+                )}
+              </div>
+
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-zinc-200">PayBox</p>
+                    <p className="text-xs text-zinc-500">Connect your own PayBox key for OWS policies, signing, and swaps</p>
+                  </div>
+                  {hasPayboxKey ? (
+                    <Badge variant="success">
+                      <CheckCircle className="h-3 w-3 mr-1" /> Connected
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary">Not Connected</Badge>
+                  )}
+                </div>
+                {hasPayboxKey ? (
+                  <p className="text-xs text-zinc-500">
+                    Your PayBox API key is encrypted at rest. OWS policy creation and PayBox actions use it automatically.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    <Input
+                      type="password"
+                      placeholder="pbx_..."
+                      value={settings.payboxApiKey}
+                      onChange={(e) => setSettings({ ...settings, payboxApiKey: e.target.value })}
+                    />
+                    <Button variant="ansem" size="sm" onClick={handleConnectPaybox} disabled={payboxConnecting}>
+                      {payboxConnecting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Link2 className="h-3 w-3" />}
+                      Connect PayBox
+                    </Button>
+                  </div>
+                )}
+                {payboxConnectResult && (
+                  <p className={`text-xs ${payboxConnectResult.includes("connected") ? "text-green-400" : "text-red-400"}`}>
+                    {payboxConnectResult}
                   </p>
                 )}
               </div>
@@ -378,7 +511,9 @@ export default function SettingsPage() {
                   )}
                 </div>
                 {payboxInfo?.available && payboxInfo.tools && (
-                  <p className="text-xs text-zinc-500">{payboxInfo.tools.length} tools available</p>
+                  <p className="text-xs text-zinc-500">
+                    {payboxInfo.tools.length} tools available{hasPayboxKey ? " · using your connected key" : " · using platform key"}
+                  </p>
                 )}
                 {!payboxInfo?.available && (
                   <p className="text-xs text-zinc-500">
@@ -484,6 +619,34 @@ export default function SettingsPage() {
                   Enabled: {Array.from(enabledChains).join(", ") || "None"}
                 </p>
               </div>
+
+              {/* Saved policies */}
+              {payboxPolicies.length > 0 && (
+                <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 space-y-2">
+                  <p className="text-sm font-medium text-zinc-200">Your Saved Policies ({payboxPolicies.length})</p>
+                  {payboxPolicies.map((pol: any) => (
+                    <div
+                      key={pol.id}
+                      className="flex items-center justify-between rounded-md border border-zinc-800 bg-zinc-950/40 px-3 py-2"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium text-zinc-200 truncate">{pol.name}</p>
+                        <p className="text-xs text-zinc-500">
+                          {pol.rules?.length ?? 0} rules · action: {pol.action} · priority: {pol.priority}
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeletePolicy(pol.id)}
+                        disabled={deletingPolicy === pol.id}
+                      >
+                        {deletingPolicy === pol.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Delete"}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* PayBox results */}
               {payboxError && (

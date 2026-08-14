@@ -68,3 +68,48 @@ export async function getUserClawpumpApiKey(
   }
   return undefined;
 }
+
+export async function getUserPayboxApiKey(
+  userId?: string
+): Promise<string | undefined> {
+  if (!userId) return undefined;
+  try {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    const encryptedKeys = (user?.encryptedKeys as Record<string, string>) || {};
+    if (encryptedKeys.payboxApiKey) {
+      return decryptApiKey(encryptedKeys.payboxApiKey);
+    }
+  } catch {
+    // ignore
+  }
+  return undefined;
+}
+
+export async function getUserPayboxPolicies(
+  userId?: string
+): Promise<any[]> {
+  if (!userId) return [];
+  try {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    const encryptedKeys = (user?.encryptedKeys as Record<string, string>) || {};
+    if (encryptedKeys.payboxPolicies) {
+      const raw = decryptApiKey(encryptedKeys.payboxPolicies);
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return [];
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return [];
+}

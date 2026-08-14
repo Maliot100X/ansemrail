@@ -22,6 +22,7 @@ import {
   MessageSquare,
   BarChart3,
   PieChart,
+  Trophy,
 } from "lucide-react";
 
 const navItems = [
@@ -38,6 +39,7 @@ const navItems = [
   { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/portfolio", label: "Portfolio", icon: PieChart },
+  { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
 ];
 
 export default function DashboardLayout({

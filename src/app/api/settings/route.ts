@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { db } from "@/db/client";
 import { users } from "@/db/schema";
-import { encryptApiKey } from "@/lib/crypto";
-import { getRequestUser } from "@/lib/auth-session";
+import { encryptApiKey, decryptApiKey } from "@/lib/crypto";
+import { getRequestUser, getUserPayboxPolicies } from "@/lib/auth-session";
+import { listAgents } from "@/lib/clawpump";
 import { eq } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
@@ -36,6 +37,17 @@ export async function GET(request: NextRequest) {
       owsWalletName: row.owsWalletName,
       ansemPreference: row.ansemPreference,
       hasClawpumpKey: !!encryptedKeys.clawpumpApiKey || !!row.clawpumpApiKey,
+      hasPayboxKey: !!encryptedKeys.payboxApiKey,
+      payboxPolicies: await getUserPayboxPolicies(row.id),
+      clawpumpProfile: encryptedKeys.clawpumpProfile
+        ? (() => {
+            try {
+              return JSON.parse(decryptApiKey(encryptedKeys.clawpumpProfile));
+            } catch {
+              return null;
+            }
+          })()
+        : null,
     });
   } catch (error: any) {
     console.error("Settings GET error:", error.message);
@@ -58,6 +70,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const {
       clawpumpApiKey,
+      payboxApiKey,
       moonpayEmail,
       payoutWallet,
       telegramChatId,
@@ -76,11 +89,36 @@ export async function PUT(request: NextRequest) {
     }
 
     const updateData: Record<string, unknown> = { updatedAt: new Date() };
+    let clawpumpProfile: any = null;
 
-    if (clawpumpApiKey !== undefined) {
+    if (clawpumpApiKey !== undefined && clawpumpApiKey !== "") {
+      // Verify the key against the live ClawPump API before saving
+      try {
+        const agents = await listAgents(clawpumpApiKey);
+        clawpumpProfile = { agents };
+      } catch (verifyErr: any) {
+        return NextResponse.json(
+          {
+            error:
+              "Invalid ClawPump API key — could not connect to clawpump.tech. Check the key and try again.",
+            detail: verifyErr.message,
+          },
+          { status: 400 }
+        );
+      }
       const existingEncryptedKeys =
         (existing.encryptedKeys as Record<string, string>) || {};
       existingEncryptedKeys.clawpumpApiKey = encryptApiKey(clawpumpApiKey);
+      existingEncryptedKeys.clawpumpProfile = encryptApiKey(
+        JSON.stringify(clawpumpProfile)
+      );
+      updateData.encryptedKeys = existingEncryptedKeys;
+    }
+    if (payboxApiKey !== undefined && payboxApiKey !== "") {
+      const existingEncryptedKeys =
+        (updateData.encryptedKeys as Record<string, string>) ||
+        ((existing.encryptedKeys as Record<string, string>) || {});
+      existingEncryptedKeys.payboxApiKey = encryptApiKey(payboxApiKey);
       updateData.encryptedKeys = existingEncryptedKeys;
     }
     if (moonpayEmail !== undefined) updateData.moonpayEmail = moonpayEmail;
@@ -98,6 +136,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({
       userId: updated!.id,
       message: "Settings updated successfully",
+      clawpump: clawpumpProfile,
     });
   } catch (error: any) {
     console.error("Settings PUT error:", error.message);
