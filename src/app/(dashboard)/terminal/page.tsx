@@ -7,12 +7,47 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ArrowRight, Zap, Repeat, TrendingUp, Network as BridgeIcon, Rocket } from "lucide-react";
+import { Loader2, ArrowRight, Zap, Repeat, TrendingUp, Network as BridgeIcon, Rocket, ExternalLink, Copy, CheckCircle2, Circle, XCircle } from "lucide-react";
 
 const SOL_MINT = "So11111111111111111111111111111111111111112";
 const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 const ANSEM_MINT = "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump";
 const CLAW_MINT = "739dnZEG4yaBWFsY8L8ZwrfhGG6dhtCSercW8Umspump";
+
+function shortAddr(addr?: string | null, len = 6) {
+  if (!addr) return "—";
+  return addr.length > len * 2 + 3
+    ? `${addr.slice(0, len)}...${addr.slice(-len)}`
+    : addr;
+}
+
+function weiToEth(wei?: string | number | null): string {
+  if (!wei) return "0";
+  const n = Number(wei);
+  if (!isFinite(n) || n <= 0) return "0";
+  return (n / 1e18).toFixed(6);
+}
+
+function LaunchStatusBadge({ status }: { status: string }) {
+  const map: Record<string, { label: string; cls: string }> = {
+    reserved: { label: "Reserved", cls: "bg-amber-950 text-amber-300 border-amber-700" },
+    submitted: { label: "Submitted", cls: "bg-blue-950 text-blue-300 border-blue-700" },
+    soft_confirmed: { label: "Soft Confirmed", cls: "bg-green-950 text-green-300 border-green-700" },
+    confirmed: { label: "Confirmed", cls: "bg-green-950 text-green-300 border-green-700" },
+    finalized: { label: "Finalized", cls: "bg-green-950 text-green-300 border-green-700" },
+    failed: { label: "Failed", cls: "bg-red-950 text-red-300 border-red-700" },
+    error: { label: "Error", cls: "bg-red-950 text-red-300 border-red-700" },
+  };
+  const s = map[status] || { label: status, cls: "bg-zinc-900 text-zinc-300 border-zinc-700" };
+  return (
+    <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium ${s.cls}`}>
+      {status === "failed" || status === "error" ? <XCircle className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
+      {s.label}
+    </span>
+  );
+}
+
+const LAUNCH_STEPS = ["submitted", "soft_confirmed", "finalized"];
 
 const TOKEN_OPTIONS = [
   { label: "SOL", mint: SOL_MINT },
@@ -308,6 +343,14 @@ export default function TerminalPage() {
   useEffect(() => {
     fetchMyAgents();
   }, []);
+
+  useEffect(() => {
+    if (!ponsForm.agentId) return;
+    fetchPonsLaunches(ponsForm.agentId);
+    const timer = setInterval(() => fetchPonsLaunches(ponsForm.agentId), 8000);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ponsForm.agentId]);
 
   return (
     <div className="space-y-6">
@@ -891,58 +934,180 @@ export default function TerminalPage() {
                 </div>
               )}
 
-              {ponsResult && (
-                <div className="mt-4 space-y-3 rounded-md border border-green-800 bg-green-950/30 p-4">
-                  <p className="text-sm font-medium text-green-400 flex items-center gap-1">
-                    <Rocket className="h-4 w-4" /> Launch Initiated
-                  </p>
-                  <pre className="text-xs text-zinc-300 overflow-auto max-h-48">
-                    {JSON.stringify(ponsResult, null, 2)}
-                  </pre>
-                  {ponsResult.launch?.tokenAddress && (
+              {ponsResult?.launch && (
+                <div className="mt-4 space-y-4 rounded-xl border border-amber-700/50 bg-zinc-950 p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-lg font-bold text-zinc-50">{ponsResult.launch.name || ponsForm.name}</p>
+                      <p className="text-sm text-zinc-400">
+                        {ponsResult.launch.symbol || ponsForm.symbol} · Robinhood Chain (4663)
+                      </p>
+                    </div>
+                    <LaunchStatusBadge status={ponsResult.launch.status} />
+                  </div>
+
+                  <div className="flex items-center gap-2 text-xs text-zinc-400">
+                    {LAUNCH_STEPS.map((step, i) => {
+                      const cur = LAUNCH_STEPS.indexOf(ponsResult.launch.status);
+                      const done = cur >= i;
+                      const isErr = ponsResult.launch.status === "failed" || ponsResult.launch.status === "error";
+                      return (
+                        <div key={step} className="flex items-center gap-2">
+                          {i > 0 && <span className={`h-px w-6 ${done ? "bg-green-600" : "bg-zinc-700"}`} />}
+                          <span className={`flex items-center gap-1 ${isErr ? "text-red-400" : done ? "text-green-400" : "text-zinc-500"}`}>
+                            {isErr ? <XCircle className="h-3 w-3" /> : done ? <CheckCircle2 className="h-3 w-3" /> : <Circle className="h-3 w-3" />}
+                            {step === "soft_confirmed" ? "Soft Confirmed" : step[0].toUpperCase() + step.slice(1)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="space-y-2 rounded-md border border-zinc-800 bg-zinc-900/60 p-3 text-xs">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-zinc-500">Launch ID</span>
+                      <span className="font-mono text-zinc-300">{shortAddr(ponsResult.launch.id, 10)}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-zinc-500">Transaction</span>
+                      <a
+                        href={`https://robinhoodchain.blockscout.com/tx/${ponsResult.launch.txHash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono text-amber-400 underline hover:text-amber-300 flex items-center gap-1"
+                      >
+                        {shortAddr(ponsResult.launch.txHash, 8)} <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-zinc-500">Token Address</span>
+                      {ponsResult.launch.tokenAddress ? (
+                        <span className="flex items-center gap-1">
+                          <a
+                            href={`https://clawpump.tech/tokens/${ponsResult.launch.tokenAddress}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="font-mono text-amber-400 underline hover:text-amber-300"
+                          >
+                            {shortAddr(ponsResult.launch.tokenAddress, 8)}
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => navigator.clipboard.writeText(ponsResult.launch.tokenAddress)}
+                            className="text-zinc-500 hover:text-amber-400"
+                            title="Copy token address"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ) : (
+                        <span className="text-zinc-400 italic">Minting… check back shortly</span>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-zinc-500">Payout Wallet</span>
+                      <span className="font-mono text-zinc-300">{shortAddr(ponsResult.launch.payoutWallet, 8)}</span>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div className="rounded-md border border-zinc-800 bg-zinc-900/60 p-3">
+                      <p className="text-zinc-500">Launch Fee</p>
+                      <p className="text-sm font-medium text-zinc-200">{weiToEth(ponsResult.launch.launchFeeWei)} ETH</p>
+                    </div>
+                    <div className="rounded-md border border-zinc-800 bg-zinc-900/60 p-3">
+                      <p className="text-zinc-500">Sponsorship Cost</p>
+                      <p className="text-sm font-medium text-zinc-200">{weiToEth(ponsResult.launch.sponsorshipCostWei)} ETH</p>
+                    </div>
+                  </div>
+
+                  {ponsResult.launch.splitPolicy && (
+                    <div className="text-xs text-zinc-400">
+                      Fee split:{" "}
+                      <span className="text-green-400">
+                        {((ponsResult.launch.splitPolicy.agentGrossBps ?? 0) / 100).toFixed(0)}% to you
+                      </span>{" "}
+                      · {(ponsResult.launch.splitPolicy.platformGrossBps ?? 0) / 100}% platform ·{" "}
+                      {(ponsResult.launch.splitPolicy.ponsGrossBps ?? 0) / 100}% PONS
+                    </div>
+                  )}
+
+                  {(ponsResult.launch.status === "reserved" || ponsResult.launch.status === "submitted") && (
+                    <p className="rounded-md border border-amber-800 bg-amber-950/40 p-2 text-xs text-amber-300">
+                      Token is being minted on Robinhood Chain — do NOT re-submit or you will mint a second token.
+                      Status updates automatically below.
+                    </p>
+                  )}
+                  {ponsResult.launch.tokenAddress && (
                     <a
                       href={`https://clawpump.tech/tokens/${ponsResult.launch.tokenAddress}`}
                       target="_blank"
                       rel="noopener noreferrer"
                     >
                       <Button variant="ansem" size="sm" className="w-full">
-                        View Token on ClawPump
+                        View Token on ClawPump <ExternalLink className="h-3 w-3 ml-1" />
                       </Button>
                     </a>
-                  )}
-                  {ponsResult.launch?.status === "reserved" && (
-                    <p className="text-xs text-amber-400">
-                      Token is being minted on Robinhood Chain. Check back shortly — do NOT re-submit or you will mint a second token.
-                    </p>
                   )}
                 </div>
               )}
 
-              {ponsLaunches.length > 0 && (
-                <div className="mt-4 space-y-2">
+              <div className="mt-5">
+                <div className="flex items-center justify-between">
                   <p className="text-sm font-medium text-zinc-300">Your PONS Launches</p>
-                  {ponsLaunches.map((launch, i) => (
-                    <div key={i} className="rounded-md border border-zinc-700 bg-zinc-900/50 p-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-zinc-200">{launch.symbol || launch.name}</span>
-                        <Badge variant={launch.status === "confirmed" || launch.status === "soft_confirmed" ? "default" : "secondary"}>
-                          {launch.status}
-                        </Badge>
-                      </div>
-                      {launch.tokenAddress && (
-                        <a
-                          href={`https://clawpump.tech/tokens/${launch.tokenAddress}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-xs text-amber-500 underline"
-                        >
-                          {launch.tokenAddress.slice(0, 12)}...{launch.tokenAddress.slice(-8)}
-                        </a>
-                      )}
-                    </div>
-                  ))}
+                  {ponsLaunchesLoading && <Loader2 className="h-3 w-3 animate-spin text-zinc-500" />}
                 </div>
-              )}
+                {ponsLaunches.length === 0 ? (
+                  <p className="mt-2 text-xs text-zinc-600">
+                    {ponsForm.agentId
+                      ? "No launches yet for this agent. Submit the form above to launch your first token."
+                      : "Select an agent to see its launch history."}
+                  </p>
+                ) : (
+                  <div className="mt-2 space-y-2">
+                    {ponsLaunches.map((launch, i) => (
+                      <div key={launch.id || i} className="rounded-md border border-zinc-800 bg-zinc-900/50 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-zinc-200">
+                              {launch.symbol || launch.name || "Untitled"}
+                              <span className="ml-2 text-xs font-mono text-zinc-500">{shortAddr(launch.id, 8)}</span>
+                            </p>
+                            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                              {launch.txHash && (
+                                <a
+                                  href={`https://robinhoodchain.blockscout.com/tx/${launch.txHash}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-mono text-zinc-400 underline hover:text-amber-400"
+                                >
+                                  tx {shortAddr(launch.txHash, 6)}
+                                </a>
+                              )}
+                              {launch.tokenAddress ? (
+                                <a
+                                  href={`https://clawpump.tech/tokens/${launch.tokenAddress}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-mono text-amber-400 underline hover:text-amber-300"
+                                >
+                                  token {shortAddr(launch.tokenAddress, 6)}
+                                </a>
+                              ) : (
+                                <span className="text-zinc-600">token pending</span>
+                              )}
+                              <span className="text-zinc-600">
+                                {launch.createdAt ? new Date(launch.createdAt).toLocaleString() : ""}
+                              </span>
+                            </div>
+                          </div>
+                          <LaunchStatusBadge status={launch.status} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
