@@ -19,6 +19,15 @@ export async function POST(request: NextRequest) {
     }
 
     const userApiKey = await getUserClawpumpApiKey(user.id);
+    if (!userApiKey) {
+      return NextResponse.json(
+        {
+          error:
+            "Connect your own ClawPump API key in Settings → Accounts first, then execute swaps.",
+        },
+        { status: 400 }
+      );
+    }
 
     // Get a real Jupiter quote through ClawPump
     const quoteRes = await fetch("https://clawpump.tech/api/v1/swap/quote", {

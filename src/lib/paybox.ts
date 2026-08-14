@@ -1,5 +1,4 @@
 const PAYBOX_BASE = process.env.PAYBOX_API_URL || "https://api.paybox.sh";
-const PAYBOX_TOKEN = process.env.PAYBOX_AUTH_TOKEN || "";
 
 export interface PayBoxCredential {
   credential_id: string;
@@ -70,7 +69,7 @@ function getAuthHeaders(token?: string): Record<string, string> {
     "Content-Type": "application/json",
     Accept: "application/json, text/event-stream",
   };
-  const authToken = token || PAYBOX_TOKEN;
+  const authToken = token || "";
   if (authToken) {
     headers["Authorization"] = `Bearer ${authToken}`;
   }
@@ -161,13 +160,13 @@ export async function payboxCall(
     });
   } catch {
     throw new Error(
-      "PayBox MCP endpoint is not reachable. The service may be down. Set PAYBOX_API_URL and PAYBOX_AUTH_TOKEN."
+      "PayBox MCP endpoint is not reachable. Connect your own PayBox API key in Settings → Accounts and try again."
     );
   }
 
   if (res.status === 404) {
     throw new Error(
-      "PayBox MCP endpoint returned 404. Ensure PAYBOX_API_URL points to the live MCP server."
+      "PayBox MCP endpoint returned 404. Connect your own PayBox API key in Settings → Accounts and try again."
     );
   }
   if (res.status === 406) {
@@ -486,7 +485,7 @@ export async function authenticateWithPayBox(
   _agentToken: string
 ): Promise<any> {
   throw new Error(
-    "PayBox authentication uses Bearer token via PAYBOX_AUTH_TOKEN env var, not agent token exchange."
+    "PayBox authentication uses the PayBox API key you connect in Settings → Accounts, not the AnsemRail agent token."
   );
 }
 

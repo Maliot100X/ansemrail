@@ -21,9 +21,10 @@ interface SkillsClientProps {
   clawpumpSkills: ClawPumpSkill[];
   moonpaySkills: readonly string[];
   error: string | null;
+  hasOwnKey: boolean;
 }
 
-export function SkillsClient({ clawpumpSkills, moonpaySkills, error }: SkillsClientProps) {
+export function SkillsClient({ clawpumpSkills, moonpaySkills, error, hasOwnKey }: SkillsClientProps) {
   const { data: session } = useSession();
   const userId = (session?.user as any)?.id || null;
   const [installing, setInstalling] = useState<string | null>(null);
@@ -147,9 +148,14 @@ export function SkillsClient({ clawpumpSkills, moonpaySkills, error }: SkillsCli
       </div>
 
       {error && (
-        <Card className="border-red-800 bg-red-950/30">
+        <Card className={hasOwnKey ? "border-red-800 bg-red-950/30" : "border-amber-900/40 bg-amber-950/20"}>
           <CardContent className="pt-6">
-            <p className="text-sm text-red-400">{error}</p>
+            <p className={`text-sm ${hasOwnKey ? "text-red-400" : "text-amber-300"}`}>{error}</p>
+            {!hasOwnKey && (
+              <a href="/settings" className="text-xs text-amber-400 underline mt-1 inline-block">
+                Open Settings → Accounts
+              </a>
+            )}
           </CardContent>
         </Card>
       )}

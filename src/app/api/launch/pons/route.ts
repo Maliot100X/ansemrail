@@ -23,6 +23,15 @@ export async function POST(request: NextRequest) {
     }
 
     const userApiKey = await getUserClawpumpApiKey(user.id);
+    if (!userApiKey) {
+      return NextResponse.json(
+        {
+          error:
+            "Connect your own ClawPump API key in Settings → Accounts first, then launch tokens.",
+        },
+        { status: 400 }
+      );
+    }
 
     // Validate the agent belongs to the connected key before launching
     if (userApiKey) {

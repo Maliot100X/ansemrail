@@ -16,6 +16,14 @@ export async function GET(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
     const userApiKey = await getUserClawpumpApiKey(user?.id);
+    if (!userApiKey) {
+      return NextResponse.json({
+        agents: [],
+        requiresKey: true,
+        message:
+          "Connect your own ClawPump API key in Settings → Accounts to load your agents.",
+      });
+    }
     const [clawpumpAgents, dbAgents] = await Promise.all([
       listAgents(userApiKey),
       db.select().from(agentsTable),
@@ -59,13 +67,22 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+    const userApiKey = await getUserClawpumpApiKey(user.id);
+    if (!userApiKey) {
+      return NextResponse.json(
+        {
+          error:
+            "Connect your own ClawPump API key in Settings → Accounts first, then create agents.",
+        },
+        { status: 400 }
+      );
+    }
     const body = await request.json();
     const skills =
       Array.isArray(body.skills) && body.skills.length > 0
         ? body.skills
         : DEFAULT_SKILLS;
 
-    const userApiKey = await getUserClawpumpApiKey(user.id);
     const agent = await createAgent(
       { ...body, skills },
       userApiKey

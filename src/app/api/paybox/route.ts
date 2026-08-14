@@ -67,10 +67,19 @@ async function savePolicyForUser(
     .where(eq(users.id, userId));
 }
 
+const NEEDS_KEY_MSG =
+  "Connect your own PayBox API key in Settings → Accounts first, then use PayBox actions.";
+
 export async function GET(request: NextRequest) {
   try {
     const action = request.nextUrl.searchParams.get("action");
     const token = await resolvePayboxToken(request);
+    if (!token && action !== "services") {
+      return NextResponse.json(
+        { error: NEEDS_KEY_MSG },
+        { status: 401 }
+      );
+    }
 
     switch (action) {
       case "tools": {
@@ -179,6 +188,12 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { action, token: bodyToken, ...params } = body;
     const token = await resolvePayboxToken(request, bodyToken);
+    if (!token) {
+      return NextResponse.json(
+        { error: NEEDS_KEY_MSG },
+        { status: 401 }
+      );
+    }
 
     switch (action) {
       case "transfer": {

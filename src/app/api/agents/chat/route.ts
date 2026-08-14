@@ -16,6 +16,15 @@ export async function POST(request: NextRequest) {
     }
     const user = await getRequestUser(request);
     const userApiKey = await getUserClawpumpApiKey(user?.id);
+    if (!userApiKey) {
+      return NextResponse.json(
+        {
+          error:
+            "Connect your own ClawPump API key in Settings → Accounts first, then chat with agents.",
+        },
+        { status: 401 }
+      );
+    }
 
     // Resolve the real ClawPump agent ID: agentId may be a local DB uuid
     // or a ClawPump agent id. Look up the DB record first.

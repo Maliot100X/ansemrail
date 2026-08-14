@@ -5,10 +5,14 @@ function getApiKey(): string {
 }
 
 function authHeaders(userApiKey?: string): HeadersInit {
-  return {
-    Authorization: `Bearer ${userApiKey || getApiKey()}`,
+  const key = userApiKey || getApiKey();
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
+  if (key) {
+    headers.Authorization = `Bearer ${key}`;
+  }
+  return headers;
 }
 
 export interface ClawPumpAgent {

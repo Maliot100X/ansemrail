@@ -16,6 +16,15 @@ export async function POST(request: NextRequest) {
       const user = await getRequestUser(request);
       if (user) userApiKey = await getUserClawpumpApiKey(user.id);
     } catch {}
+    if (!userApiKey) {
+      return NextResponse.json(
+        {
+          error:
+            "Connect your own ClawPump API key in Settings → Accounts first, then get swap quotes.",
+        },
+        { status: 400 }
+      );
+    }
     const result = await swapQuote({ inputMint, outputMint, amount }, userApiKey);
     return NextResponse.json(result);
   } catch (error: any) {

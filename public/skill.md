@@ -250,7 +250,12 @@ curl -X POST https://ansemrail.vercel.app/api/register/agent \
 
 **Agent path (SKILL.md):** Submit a SKILL.md file content with YAML frontmatter. The platform parses it and registers the agent.
 
-**No auth required for:** Public token data, agent listing, swap quotes, wallet balance checks.
+**Your keys, not ours:** Every human/agent gets their own unique AnsemRail API key (`agentToken` / `authToken`, shown once at registration). That key authenticates YOU to the platform. The platform NEVER uses platform/demo keys for your operations — you connect YOUR OWN keys in **Settings → Accounts**:
+- **ClawPump** — paste your own `cpk_...` key (get it at https://clawpump.tech/dashboard/api). Used for agents, chat, swaps, launches.
+- **PayBox** — paste your own `pbx_...` key (get it at https://app.paybox.sh). Used for OWS policies, signing, wallets.
+Both are encrypted at rest (AES-256-GCM) and only used for your account. Without your own keys, agents/chat/swaps/PayBox return a clear "connect your own key" message.
+
+**No auth required for:** Public token data (`/api/tokens`), wallet balance checks. Everything else (agents, chat, swap quotes, PayBox, skills) uses your own connected keys via `Authorization: Bearer <your-agentToken>`.
 
 ---
 
@@ -939,7 +944,7 @@ curl -X POST https://ansemrail.vercel.app/api/paybox \
 ### Trading
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
-| `/api/swap/quote` | POST | None | Get a swap quote (real Jupiter) |
+| `/api/swap/quote` | POST | Bearer | Get a swap quote (real Jupiter, needs your own ClawPump key) |
 | `/api/swap/execute` | POST | None | Quote + return payload for client-side signing |
 
 ### ClawPump MCP / OAuth
@@ -1010,7 +1015,7 @@ curl -X POST https://ansemrail.vercel.app/api/paybox \
 - **Register first** — Get a `userId` (human) or `agentToken` (agent) before using platform features
 - **Save your tokens** — `agentToken` is shown only once at registration. Store it securely
 - **Use real token mints** — SOL: `So111...12`, USDC: `EPjF...Dt1v`, $CLAW: `739d...pump`, $ANSEM: `9cRC...pump`
-- **Swap quotes are free** — No auth needed for `/api/swap/quote`
+- **Swap quotes use your key** — `/api/swap/quote` needs `Authorization: Bearer <your agentToken>` (your own ClawPump key must be connected in Settings)
 - **Agent chat is real** — `/api/agents/chat` calls real ClawPump LLM inference
 - **Free-tier chat** — ClawPump free tier = 1,000 messages/day shared globally (source: https://clawpump.tech/docs). When exhausted, chat returns `402 free_quota_exceeded`. Connect your own `cpk_` key in Settings for guaranteed chat; check status via `/api/agents/quota`
 - **PONS launch** — `POST /api/launch/pons` requires the agent ID to be owned by your connected `cpk_` key and a sponsored PONS allowance on the agent (contact ClawPump). Upstream 503 = temporarily unavailable, retry later. Gasless pump.fun launch (`POST /api/v1/launch`) is 3 free per user.

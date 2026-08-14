@@ -323,7 +323,23 @@ export async function handleTelegramUpdate(update: any): Promise<void> {
   } else if (text === "/agents") {
     const { listAgents } = await import("@/lib/clawpump");
     try {
-      const agents = await listAgents();
+      const { neon } = await import("@neondatabase/serverless");
+      const sql = neon(process.env.DATABASE_URL!);
+      const rows = await sql`SELECT encrypted_keys FROM users WHERE telegram_chat_id = ${String(chatId)} LIMIT 1`;
+      let userKey: string | undefined;
+      if (rows && rows[0]?.encrypted_keys?.clawpumpApiKey) {
+        const { decryptApiKey } = await import("@/lib/crypto");
+        userKey = decryptApiKey(rows[0].encrypted_keys.clawpumpApiKey);
+      }
+      if (!userKey) {
+        await sendMessage(
+          chatId,
+          "🔑 Connect your own ClawPump API key in Settings → Accounts on ansemrail.vercel.app, then use /agents.",
+          mainKeyboard()
+        );
+        return;
+      }
+      const agents = await listAgents(userKey);
       let msg = "🤖 <b>Your ClawPump Agents</b>\n\n";
       for (const a of agents.slice(0, 5)) {
         const status = a.status === "running" ? "🟢" : "🔴";
@@ -334,7 +350,11 @@ export async function handleTelegramUpdate(update: any): Promise<void> {
       }
       await sendMessage(chatId, msg, mainKeyboard());
     } catch {
-      await sendMessage(chatId, "Could not fetch agents. Make sure CLAWPUMP_API_KEY is set.", mainKeyboard());
+      await sendMessage(
+        chatId,
+        "Could not fetch agents. Connect your own ClawPump API key in Settings → Accounts on ansemrail.vercel.app.",
+        mainKeyboard()
+      );
     }
   } else if (text === "/myagents") {
     try {

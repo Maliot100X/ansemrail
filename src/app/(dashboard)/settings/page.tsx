@@ -542,7 +542,7 @@ export default function SettingsPage() {
                 </div>
                 {payboxInfo?.available && payboxInfo.tools && (
                   <p className="text-xs text-zinc-500">
-                    {payboxInfo.tools.length} tools available{hasPayboxKey ? " · using your connected key" : " · using platform key"}
+                    {payboxInfo.tools.length} tools available · using your connected key
                   </p>
                 )}
                 {!payboxInfo?.available && (

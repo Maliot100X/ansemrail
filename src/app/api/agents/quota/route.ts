@@ -50,6 +50,6 @@ export async function GET(request: NextRequest) {
     mcpStatus,
     message: userKey
       ? "Your own ClawPump key is connected — chat is billed against your key, not the shared free pool."
-      : `No ClawPump key connected — using the platform shared key. ClawPump free tier is ${FREE_TIER_LIMIT} messages/day shared globally across all free-tier users (${FREE_TIER_DOCS}). When it is exhausted, chat returns 402 — connect your own key in Settings for guaranteed chat.`,
+      : `No ClawPump key connected. Connect your own cpk_ key in Settings → Accounts to use chat, agents, and swaps. ClawPump free tier is ${FREE_TIER_LIMIT} messages/day shared globally across all free-tier users (${FREE_TIER_DOCS}); when exhausted, chat returns 402.`,
   });
 }
