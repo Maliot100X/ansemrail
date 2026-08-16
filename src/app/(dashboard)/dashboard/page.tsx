@@ -39,12 +39,12 @@ async function getDashboardData() {
 
   // CLAWRENA — our project token (fetched from pump.fun)
   const clawrenaMint = "7pkqvfHe6WREhvZ1ergfXtz3F6MQfXCfcAZiumCt6Ene";
-  let clawrena: any = null;
+  let clawrenaData: any = null;
   try {
     const crRes = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${clawrenaMint}`, { signal: AbortSignal.timeout(8000) });
     if (crRes.ok) {
       const crData = await crRes.json();
-      clawrena = crData.pairs?.[0] || null;
+      clawrenaData = crData.pairs?.[0] || null;
     }
   } catch {}
 
@@ -55,7 +55,7 @@ async function getDashboardData() {
     trending: results[3].status === "fulfilled" ? results[3].value : [],
     clawpumpTokens,
     ponsLaunches: allPonsLaunches,
-    clawrena,
+    clawrena: clawrenaData,
   };
 }
 
