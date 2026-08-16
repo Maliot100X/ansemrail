@@ -19,6 +19,7 @@ export default async function LeaderboardPage() {
         type: users.type,
         email: users.email,
         walletAddress: users.payoutWallet,
+        clawpumpApiKey: users.clawpumpApiKey,
         encryptedKeys: users.encryptedKeys,
         createdAt: users.createdAt,
       })
@@ -40,7 +41,7 @@ export default async function LeaderboardPage() {
     ...u,
     verified: !!(u.encryptedKeys as any)?.twitterVerified,
     twitterHandle: (u.encryptedKeys as any)?.twitterHandle || null,
-    hasClawpumpKey: !!(u.encryptedKeys as any)?.clawpumpApiKey || !!u.clawpumpApiKey,
+    hasClawpumpKey: !!u.clawpumpApiKey || !!(u.encryptedKeys as any)?.clawpumpApiKey,
   }));
   const platformUser = usersWithVerified.find((u) => u.id === PLATFORM_AGENT_ID);
   const otherUsers = usersWithVerified.filter((u) => u.id !== PLATFORM_AGENT_ID);
