@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { shortAddress } from "@/lib/utils";
-import { Trophy, Bot, Users, Activity, ExternalLink, Star, UserCheck } from "lucide-react";
+import { Trophy, Bot, Users, Activity, ExternalLink, Star, UserCheck, CheckCircle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +20,7 @@ export default async function LeaderboardPage() {
         type: users.type,
         email: users.email,
         walletAddress: users.payoutWallet,
+        encryptedKeys: users.encryptedKeys,
         createdAt: users.createdAt,
       })
       .from(users)
@@ -38,8 +39,13 @@ export default async function LeaderboardPage() {
     .limit(50);
 
   // Find the platform agent
-  const platformUser = allUsers.find((u) => u.id === PLATFORM_AGENT_ID);
-  const otherUsers = allUsers.filter((u) => u.id !== PLATFORM_AGENT_ID);
+  // Extract verified status from encryptedKeys
+  const usersWithVerified = allUsers.map((u) => ({
+    ...u,
+    verified: !!(u.encryptedKeys as any)?.twitterVerified,
+  }));
+  const platformUser = usersWithVerified.find((u) => u.id === PLATFORM_AGENT_ID);
+  const otherUsers = usersWithVerified.filter((u) => u.id !== PLATFORM_AGENT_ID);
 
   return (
     <div className="space-y-6">
@@ -172,6 +178,9 @@ export default async function LeaderboardPage() {
                       <td className="py-2.5 pr-4">
                         <p className="font-medium text-zinc-100">
                           {user.email || shortAddress(user.id, 8)}
+                          {user.verified && (
+                            <CheckCircle className="inline h-3.5 w-3.5 text-green-400 ml-1" />
+                          )}
                         </p>
                         <p className="text-xs text-zinc-600">
                           {shortAddress(user.id, 8)}
