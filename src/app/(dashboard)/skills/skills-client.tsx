@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CheckCircle, Sparkles, Zap, Loader2, Upload, FileText } from "lucide-react";
+import { CheckCircle, Sparkles, Zap, Loader2, Upload, FileText, ExternalLink, Shield } from "lucide-react";
 
 interface ClawPumpSkill {
   slug: string;
@@ -17,14 +17,23 @@ interface ClawPumpSkill {
   alwaysOn: boolean;
 }
 
+interface SolanaSkill {
+  name: string;
+  slug: string;
+  description: string;
+  category: string;
+  url: string;
+}
+
 interface SkillsClientProps {
   clawpumpSkills: ClawPumpSkill[];
   moonpaySkills: readonly string[];
+  solanaSkills: SolanaSkill[];
   error: string | null;
   hasOwnKey: boolean;
 }
 
-export function SkillsClient({ clawpumpSkills, moonpaySkills, error, hasOwnKey }: SkillsClientProps) {
+export function SkillsClient({ clawpumpSkills, moonpaySkills, solanaSkills, error, hasOwnKey }: SkillsClientProps) {
   const { data: session } = useSession();
   const userId = (session?.user as any)?.id || null;
   const [installing, setInstalling] = useState<string | null>(null);
@@ -32,7 +41,7 @@ export function SkillsClient({ clawpumpSkills, moonpaySkills, error, hasOwnKey }
   const [uploadLoading, setUploadLoading] = useState(false);
   const [uploadResult, setUploadResult] = useState<{ agentId?: string; agentToken?: string; message?: string } | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [skillMdContent, setSkillMdContent] = useState<string>("");
+  const [skillMdContent, setSkillMdContent] = useState("");
   const [agentName, setAgentName] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -101,6 +110,30 @@ export function SkillsClient({ clawpumpSkills, moonpaySkills, error, hasOwnKey }
     }
   }
 
+  async function handleSolanaInstall(skill: SolanaSkill) {
+    setInstalling(skill.slug);
+    try {
+      const res = await fetch("/api/skills", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: skill.name,
+          slug: skill.slug,
+          description: skill.description,
+          tags: ["solana", skill.category.toLowerCase()],
+          userId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Install failed");
+      setInstalledSlugs((prev) => new Set(prev).add(skill.slug));
+    } catch (err: any) {
+      setUploadError(err.message);
+    } finally {
+      setInstalling(null);
+    }
+  }
+
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -144,90 +177,73 @@ export function SkillsClient({ clawpumpSkills, moonpaySkills, error, hasOwnKey }
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-zinc-50">Skills</h1>
-        <p className="text-sm text-zinc-400">Registry of ClawPump and MoonPay skills — install with one click</p>
+        <p className="text-sm text-zinc-400">Registry of ClawPump, MoonPay, and Solana Foundation skills — install with one click</p>
       </div>
 
       {error && (
-        <Card className={hasOwnKey ? "border-red-800 bg-red-950/30" : "border-amber-900/40 bg-amber-950/20"}>
-          <CardContent className="pt-6">
-            <p className={`text-sm ${hasOwnKey ? "text-red-400" : "text-amber-300"}`}>{error}</p>
-            {!hasOwnKey && (
-              <a href="/settings" className="text-xs text-amber-400 underline mt-1 inline-block">
-                Open Settings → Accounts
-              </a>
-            )}
-          </CardContent>
-        </Card>
+        <div className="rounded-lg border border-amber-800/50 bg-amber-950/20 p-3 text-sm text-amber-300">
+          {error}
+        </div>
       )}
 
       {uploadError && (
-        <Card className="border-red-800 bg-red-950/30">
-          <CardContent className="pt-6">
-            <p className="text-sm text-red-400">{uploadError}</p>
-          </CardContent>
-        </Card>
+        <div className="rounded-lg border border-red-800/50 bg-red-950/20 p-3 text-sm text-red-300">
+          {uploadError}
+        </div>
       )}
 
-      {uploadResult && (
-        <Card className="border-green-800 bg-green-950/30">
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-green-400">
-              <CheckCircle className="h-5 w-5" />
-              <span className="font-medium">{uploadResult.message}</span>
-            </div>
-            {uploadResult.agentId && <p className="mt-2 text-sm text-zinc-400">Agent ID: {uploadResult.agentId}</p>}
-            {uploadResult.agentToken && (
-              <div className="mt-3 rounded-md bg-zinc-900 p-3">
-                <p className="text-xs text-zinc-500 mb-1">Agent Token (save this — shown once):</p>
-                <code className="text-sm text-amber-400 break-all">{uploadResult.agentToken}</code>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
+      {/* ClawPump Skills */}
       <div>
         <h2 className="text-lg font-semibold text-zinc-200 mb-4 flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-amber-500" /> ClawPump Skills ({clawpumpSkills.length})
+          <Zap className="h-5 w-5 text-amber-500" /> ClawPump Skills ({clawpumpSkills.length})
         </h2>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {clawpumpSkills.map((skill) => (
-            <Card key={skill.slug}>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">{skill.name}</CardTitle>
-                  {skill.alwaysOn && <Badge variant="ansem">Always On</Badge>}
-                </div>
-                <CardDescription>{skill.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center justify-between">
-                  <Badge variant="outline" className="text-xs font-mono">{skill.slug}</Badge>
-                  {installedSlugs.has(skill.slug) ? (
-                    <Badge variant="success">
-                      <CheckCircle className="h-3 w-3 mr-1" /> Installed
-                    </Badge>
-                  ) : (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => handleInstall(skill)}
-                      disabled={installing === skill.slug}
-                    >
-                      {installing === skill.slug ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : (
-                        <><Zap className="h-3 w-3" /> Install</>
-                      )}
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {clawpumpSkills.length === 0 ? (
+          <Card>
+            <CardContent className="py-6 text-center text-sm text-zinc-500">
+              {hasOwnKey ? "No ClawPump skills found." : "Connect your ClawPump API key in Settings to see available skills."}
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {clawpumpSkills.map((skill) => (
+              <Card key={skill.slug}>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    {skill.name}
+                    {skill.alwaysOn && <Badge variant="ansem">Always On</Badge>}
+                  </CardTitle>
+                  <CardDescription>{skill.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <Badge variant="outline" className="text-xs font-mono">{skill.slug}</Badge>
+                    {installedSlugs.has(skill.slug) ? (
+                      <Badge variant="success">
+                        <CheckCircle className="h-3 w-3 mr-1" /> Installed
+                      </Badge>
+                    ) : (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleInstall(skill)}
+                        disabled={installing === skill.slug}
+                      >
+                        {installing === skill.slug ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <><Zap className="h-3 w-3" /> Install</>
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
 
+      {/* MoonPay Skills */}
       <div>
         <h2 className="text-lg font-semibold text-zinc-200 mb-4 flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-amber-500" /> MoonPay Skills ({moonpaySkills.length})
@@ -268,6 +284,57 @@ export function SkillsClient({ clawpumpSkills, moonpaySkills, error, hasOwnKey }
         </div>
       </div>
 
+      {/* Solana Foundation Skills */}
+      <div>
+        <h2 className="text-lg font-semibold text-zinc-200 mb-4 flex items-center gap-2">
+          <Shield className="h-5 w-5 text-blue-500" /> Solana Foundation Skills ({solanaSkills.length})
+        </h2>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {solanaSkills.map((skill) => (
+            <Card key={skill.slug} className="border-blue-900/30">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  {skill.name}
+                  <Badge variant="outline" className="text-xs">{skill.category}</Badge>
+                </CardTitle>
+                <CardDescription>{skill.description}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <a
+                    href={skill.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                  >
+                    solana.com/skills <ExternalLink className="h-3 w-3" />
+                  </a>
+                  {installedSlugs.has(skill.slug) ? (
+                    <Badge variant="success">
+                      <CheckCircle className="h-3 w-3 mr-1" /> Installed
+                    </Badge>
+                  ) : (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleSolanaInstall(skill)}
+                      disabled={installing === skill.slug}
+                    >
+                      {installing === skill.slug ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <><Zap className="h-3 w-3" /> Install</>
+                      )}
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Upload Custom SKILL.md */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -314,6 +381,15 @@ export function SkillsClient({ clawpumpSkills, moonpaySkills, error, hasOwnKey }
               {uploadLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <><FileText className="h-4 w-4" /> Register Agent via SKILL.md</>}
             </Button>
           </form>
+
+          {uploadResult && (
+            <div className="mt-4 rounded-lg border border-green-800/50 bg-green-950/20 p-4 space-y-2">
+              <p className="text-sm text-green-300 font-medium">✅ Agent Registered</p>
+              {uploadResult.agentId && <p className="text-xs text-zinc-400">ID: <code className="text-green-400">{uploadResult.agentId}</code></p>}
+              {uploadResult.agentToken && <p className="text-xs text-zinc-400">Token: <code className="text-green-400">{uploadResult.agentToken}</code></p>}
+              {uploadResult.message && <p className="text-xs text-zinc-500">{uploadResult.message}</p>}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
