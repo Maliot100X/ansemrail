@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getUserClawpumpApiKey } from "@/lib/auth-session";
 import { listSkills } from "@/lib/clawpump";
-import { MOONPAY_SKILLS } from "@/lib/moonpay";
+import { MOONPAY_SKILLS, SOLANA_SKILLS } from "@/lib/moonpay";
 import { SkillsClient } from "./skills-client";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +31,7 @@ export default async function SkillsPage() {
     <SkillsClient
       clawpumpSkills={clawpumpSkills}
       moonpaySkills={MOONPAY_SKILLS}
+      solanaSkills={[...SOLANA_SKILLS]}
       error={error}
       hasOwnKey={hasOwnKey}
     />
