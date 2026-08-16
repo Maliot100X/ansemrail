@@ -114,20 +114,24 @@ export async function fetchPostInfo(url: string): Promise<PostInfo> {
 
   // When URL is /i/status/..., extract real author from HTML meta tags
   if (author.toLowerCase() === "i") {
+    // Check canonical URL which contains the real author: https://x.com/HANDLE/status/ID
+    const canonicalMatch = html.match(/content="https?:\/\/x\.com\/([A-Za-z0-9_]+)\/status\/\d+"/i);
+    const ogUrlMatch = html.match(/<meta property="og:url" content="https?:\/\/x\.com\/([A-Za-z0-9_]+)\/status\/\d+"/i);
+    const articleAuthorMatch = html.match(/<meta property="article:author" content="https?:\/\/x\.com\/([A-Za-z0-9_]+)"/i);
     const ogSiteMatch = html.match(/<meta property="og:site_name" content="@([A-Za-z0-9_]+)"/i);
     const twitterSiteMatch = html.match(/<meta name="twitter:site" content="@([A-Za-z0-9_]+)"/i);
-    const authorTagMatch = html.match(/<meta property="article:author" content="https:\/\/x\.com\/([A-Za-z0-9_]+)"/i);
     const bylineMatch = html.match(/Posted by @([A-Za-z0-9_]+)/i) || html.match(/by @([A-Za-z0-9_]+)/i);
-    const metaAuthorMatch = html.match(/<meta name="author" content="@?([A-Za-z0-9_]+)"/i);
-    const realAuthor = ogSiteMatch?.[1] || twitterSiteMatch?.[1] || authorTagMatch?.[1] || bylineMatch?.[1] || metaAuthorMatch?.[1];
-    if (realAuthor && realAuthor.toLowerCase() !== "i" && realAuthor.toLowerCase() !== "twitter") {
-      author = realAuthor;
+
+    const candidates = [
+      canonicalMatch?.[1], ogUrlMatch?.[1], articleAuthorMatch?.[1],
+      ogSiteMatch?.[1], twitterSiteMatch?.[1], bylineMatch?.[1],
+    ].filter((h) => h && h.toLowerCase() !== "i" && h.toLowerCase() !== "twitter");
+
+    if (candidates.length > 0) {
+      author = candidates[0]!;
     } else {
-      // Try to find any @handle mention in the desc that isn't the poster
-      const descHandles = Array.from(text.matchAll(/@([A-Za-z0-9_]+)/g)).map(x => x[1]);
-      if (descHandles.length > 0) {
-        author = descHandles[0];
-      }
+      const descHandles = Array.from(text.matchAll(/@([A-Za-z0-9_]+)/g)).map((x) => x[1]);
+      if (descHandles.length > 0) author = descHandles[0];
     }
   }
 
