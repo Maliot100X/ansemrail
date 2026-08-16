@@ -472,56 +472,27 @@ export async function handleTelegramUpdate(update: any): Promise<void> {
     try {
       const { neon } = await import("@neondatabase/serverless");
       const sql = neon(process.env.DATABASE_URL!);
-      // Check if user is already linked
       const [linked] = await sql`SELECT id, encrypted_keys, telegram_verify_code, telegram_verify_expiry FROM users WHERE telegram_chat_id = ${String(chatId)} LIMIT 1`;
       if (!linked) {
-        await sendMessage(
-          chatId,
-          "🔗 <b>Link Your Account First</b>\n\n" +
-            "Use /link CODE to connect your AnsemRail account before verifying.\n" +
-            "Get a code from Settings → Telegram on the dashboard.",
-          mainKeyboard()
-        );
+        await sendMessage(chatId, "🔗 <b>Link Your Account First</b>\n\nUse /link CODE to connect your AnsemRail account before verifying.", mainKeyboard());
         return;
       }
-      // If arg is provided, treat as API key
       if (arg && arg.length > 10) {
-        const { decryptApiKey } = await import("@/lib/crypto");
-        let userKey: string | undefined;
-        try { userKey = decryptApiKey(linked.encrypted_keys?.clawpumpApiKey); } catch {}
-        if (!userKey) {
-          await sendMessage(chatId, "❌ No ClawPump API key connected. Add one in Settings → Accounts first.", mainKeyboard());
+        const [matchUser] = await sql`SELECT id, email, clawpump_api_key FROM users WHERE clawpump_api_key = ${arg} LIMIT 1`;
+        if (!matchUser) {
+          await sendMessage(chatId, "❌ Invalid API key. Provide your AnsemRail agentToken (from registration).", mainKeyboard());
           return;
         }
-        // Validate key by listing agents
-        const { listAgents } = await import("@/lib/clawpump");
-        const agents = await listAgents(userKey);
-        if (!agents || agents.length === 0) {
-          await sendMessage(chatId, "❌ No agents found on this key. Create an agent first.", mainKeyboard());
-          return;
-        }
-        // Store state: step = "handle", agent list
-        const state = JSON.stringify({ flow: "verify", step: "handle", apiKey: "***", agentId: agents[0].id, agentName: agents[0].name, agents: agents.slice(0, 5).map((a: any) => ({ id: a.id, name: a.name })) });
+        const state = JSON.stringify({ flow: "verify", step: "handle", userId: matchUser.id, userEmail: matchUser.email || "agent" });
         const expiry = new Date(Date.now() + 10 * 60 * 1000);
         await sql`UPDATE users SET telegram_verify_code = ${state}, telegram_verify_expiry = ${expiry} WHERE id = ${linked.id}`;
-        let msg = "✅ <b>API Key Valid!</b>\n\nFound " + agents.length + " agent(s).\n\n";
-        for (const a of agents.slice(0, 5)) {
-          msg += "• " + a.name + " (" + a.status + ")\n";
-        }
-        msg += "\n🐦 What's your Twitter handle?\n(Example: @YourHandle or just YourHandle)\n\nI'll generate a unique verification code for you.";
-        await sendMessage(chatId, msg);
+        await sendMessage(chatId, "✅ <b>API Key Valid!</b>\n\n🐦 What\'s your Twitter handle?\n(Example: @YourHandle or just YourHandle)");
         return;
       }
-      // No arg — ask for API key
-      await sendMessage(
-        chatId,
-        "🔐 <b>Twitter Verification</b>\n\n" +
-          "Please provide your AnsemRail Agent API Key.\n\n" +
-          "🔑 It looks like: <code>a853e716329b...</code>\n" +
-          "You received this when you registered.\n\n" +
-          "Type /skip to skip verification and do it later.",
-        mainKeyboard()
-      );
+      const state = JSON.stringify({ flow: "verify", step: "api_key" });
+      const expiry = new Date(Date.now() + 10 * 60 * 1000);
+      await sql`UPDATE users SET telegram_verify_code = ${state}, telegram_verify_expiry = ${expiry} WHERE id = ${linked.id}`;
+      await sendMessage(chatId, "🔐 <b>Twitter Verification</b>\n\nPlease provide your AnsemRail Agent API Key.\n\n🔑 It looks like: <code>a853e716329b...</code>\nYou received this when you registered.\n\nType /skip to skip.", mainKeyboard());
     } catch (err: any) {
       await sendMessage(chatId, "❌ Verify error: " + err.message, mainKeyboard());
     }
@@ -533,7 +504,6 @@ export async function handleTelegramUpdate(update: any): Promise<void> {
       await sendMessage(chatId, "⏭️ Skipped. You can verify later with /verify.", mainKeyboard());
     } catch {}
   } else {
-    // Check if user is in a /verify conversational flow
     try {
       const { neon } = await import("@neondatabase/serverless");
       const sql = neon(process.env.DATABASE_URL!);
@@ -544,101 +514,77 @@ export async function handleTelegramUpdate(update: any): Promise<void> {
           let state: any;
           try { state = JSON.parse(linked.telegram_verify_code); } catch { state = null; }
           if (state?.flow === "verify") {
-            if (state.step === "handle") {
-              // User provided Twitter handle
-              const handle = text.replace(/^@/, "").trim();
-              if (!handle || handle.length < 2 || handle.length > 30) {
-                await sendMessage(chatId, "❌ Invalid handle. Please enter your Twitter/X handle (e.g. @YourHandle).");
+            if (state.step === "api_key") {
+              const key = text.trim();
+              if (key.length < 10) {
+                await sendMessage(chatId, "❌ That doesn\'t look like an API key. Paste your full AnsemRail agentToken.");
                 return;
               }
-              // Generate verification code
-              const code = "VERIFY-" + Math.random().toString(36).substring(2, 8).toUpperCase();
+              const [matchUser] = await sql`SELECT id, email, clawpump_api_key FROM users WHERE clawpump_api_key = ${key} LIMIT 1`;
+              if (!matchUser) {
+                await sendMessage(chatId, "❌ Invalid API key. Provide your AnsemRail agentToken (from registration).");
+                return;
+              }
+              const newState = JSON.stringify({ flow: "verify", step: "handle", userId: matchUser.id, userEmail: matchUser.email || "agent" });
+              const newExpiry = new Date(Date.now() + 10 * 60 * 1000);
+              await sql`UPDATE users SET telegram_verify_code = ${newState}, telegram_verify_expiry = ${newExpiry} WHERE id = ${linked.id}`;
+              await sendMessage(chatId, "✅ <b>API Key Valid!</b>\n\n🐦 What\'s your Twitter handle?\n(Example: @YourHandle or just YourHandle)");
+              return;
+            }
+            if (state.step === "handle") {
+              const handle = text.replace(/^@/, "").trim();
+              if (!handle || handle.length < 2 || handle.length > 30) {
+                await sendMessage(chatId, "❌ Invalid handle. Enter your Twitter/X handle (e.g. @YourHandle).");
+                return;
+              }
+              const code = "ANSEM-" + Math.random().toString(36).substring(2, 8).toUpperCase();
               const newState = JSON.stringify({ ...state, step: "tweet", handle: "@" + handle, code });
               const newExpiry = new Date(Date.now() + 10 * 60 * 1000);
               await sql`UPDATE users SET telegram_verify_code = ${newState}, telegram_verify_expiry = ${newExpiry} WHERE id = ${linked.id}`;
-              const agentUrl = "https://ansemrail.vercel.app/agents/" + state.agentId;
-              await sendMessage(
-                chatId,
-                "✅ <b>Your Twitter Verification Code</b>\n\n" +
-                  "🔐 Code: <b>" + code + "</b>\n" +
-                  "🐦 Handle: @" + handle + "\n" +
-                  "🤖 Agent: " + state.agentName + "\n\n" +
-                  "Post this exact tweet:\n\n" +
-                  "I just registered my agent on @CLAWRENAi! 🚀\n" +
-                  agentUrl + "\n\n" +
-                  code + "\n\n" +
-                  "1️⃣ Post the tweet ☝️\n" +
-                  "2️⃣ Reply here with the tweet URL\n" +
-                  "3️⃣ I'll verify you INSTANTLY! ⚡\n\n" +
-                  'Or type "skip" to skip.',
-                mainKeyboard()
-              );
+              const profileUrl = "https://ansemrail.vercel.app/agents/" + linked.id;
+              await sendMessage(chatId, "✅ <b>Your Twitter Verification Code</b>\n\n🔐 Code: <b>" + code + "</b>\n🐦 Handle: @" + handle + "\n\nPost this exact tweet:\n\nI just registered my agent on @CLAWRENAi! 🚀\n" + profileUrl + "\n" + code + "\n\n1️⃣ Post the tweet ☝️\n2️⃣ Reply here with the tweet URL\n3️⃣ I\'ll verify you INSTANTLY! ⚡\n\nOr type \"skip\" to skip.", mainKeyboard());
               return;
             }
             if (state.step === "tweet") {
-              // User provided tweet URL or "skip"
               if (text.toLowerCase() === "skip") {
                 await sql`UPDATE users SET telegram_verify_code = NULL, telegram_verify_expiry = NULL WHERE id = ${linked.id}`;
-                await sendMessage(chatId, "⏭️ Verification skipped. You can try again with /verify.", mainKeyboard());
+                await sendMessage(chatId, "⏭️ Verification skipped. Try again with /verify.", mainKeyboard());
                 return;
               }
-              // Validate URL
               const urlMatch = text.match(/https?:\/\/((x\.com|twitter\.com)\/[^\s]+)/i);
               if (!urlMatch) {
                 await sendMessage(chatId, "❌ Please provide a valid X/Twitter post URL (e.g. https://x.com/user/status/123...)");
                 return;
               }
-              const tweetUrl = urlMatch[0];
-              // Fetch tweet and check for verification code
               const { fetchPostInfo } = await import("@/lib/twitter");
-              const post = await fetchPostInfo(tweetUrl);
+              const post = await fetchPostInfo(urlMatch[0]);
               if (!post.ok) {
                 await sendMessage(chatId, "❌ Could not fetch the tweet. Make sure the URL is correct and the tweet is public.\n\nError: " + (post.note || "unknown"));
                 return;
               }
               const tweetText = (post.text || "").toLowerCase();
-              const codeLower = state.code.toLowerCase();
-              if (tweetText.includes(codeLower)) {
-                // Verified! Mark agent as verified in the agents table (if exists locally)
-                try {
-                  await sql`UPDATE agents SET updated_at = NOW() WHERE clawpump_agent_id = ${state.agentId}`;
-                } catch {}
+              if (tweetText.includes(state.code.toLowerCase())) {
+                const [verifyUser] = await sql`SELECT id, encrypted_keys FROM users WHERE id = ${state.userId} LIMIT 1`;
+                if (verifyUser) {
+                  const enc = (verifyUser.encrypted_keys as any) || {};
+                  const newEnc = { ...enc, twitterVerified: true, twitterHandle: state.handle, twitterVerifiedAt: new Date().toISOString(), verifiedTweetUrl: urlMatch[0] };
+                  await sql`UPDATE users SET encrypted_keys = ${newEnc}, updated_at = NOW() WHERE id = ${state.userId}`;
+                }
                 await sql`UPDATE users SET telegram_verify_code = NULL, telegram_verify_expiry = NULL WHERE id = ${linked.id}`;
-                const agentUrl = "https://ansemrail.vercel.app/agents/" + state.agentId;
-                await sendMessage(
-                  chatId,
-                  "✅ <b>TWITTER VERIFICATION SUCCESSFUL!</b>\n\n" +
-                    "🎉 Your agent is now verified!\n\n" +
-                    "👑 Agent: <b>" + state.agentName + "</b>\n" +
-                    "🐦 Handle: @" + state.handle.replace(/^@/, "") + "\n" +
-                    "🏷️ Badge: ✓ Twitter Verified\n\n" +
-                    "View your verified profile:\n" + agentUrl + "\n\n" +
-                    "You're now a verified AnsemRail agent! 🐂✓",
-                  mainKeyboard()
-                );
+                const profileUrl = "https://ansemrail.vercel.app/agents/" + state.userId;
+                await sendMessage(chatId, "✅ <b>TWITTER VERIFICATION SUCCESSFUL!</b>\n\n🎉 Your agent is now verified!\n\n👑 Agent: <b>" + (state.userEmail || "agent") + "</b>\n🐦 Handle: @" + state.handle.replace(/^@/, "") + "\n🏷️ Badge: ✓ Twitter Verified\n\nView your verified profile:\n" + profileUrl + "\n\nYou\'re now a verified AnsemRail agent! 🐂✓", mainKeyboard());
               } else {
-                await sendMessage(
-                  chatId,
-                  "❌ <b>Verification Code Not Found</b>\n\n" +
-                    "The tweet doesn't contain your code: <code>" + state.code + "</code>\n\n" +
-                    "Make sure you posted the EXACT tweet template.\n" +
-                    "Reply with the correct tweet URL, or type /skip.",
-                  mainKeyboard()
-                );
+                await sendMessage(chatId, "❌ <b>Verification Code Not Found</b>\n\nThe tweet doesn\'t contain your code: <code>" + state.code + "</code>\n\nReply with the correct tweet URL, or type /skip.", mainKeyboard());
               }
               return;
             }
           }
         } else {
-          // Expired state — clear it
           await sql`UPDATE users SET telegram_verify_code = NULL, telegram_verify_expiry = NULL WHERE id = ${linked.id}`;
         }
       }
     } catch {}
-    await sendMessage(
-      chatId,
-      "Welcome to AnsemRail Bot! Use /help to see all commands.",
-      mainKeyboard()
-    );
+    await sendMessage(chatId, "Welcome to AnsemRail Bot! Use /help to see all commands.", mainKeyboard());
   }
 }
+
