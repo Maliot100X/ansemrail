@@ -22,8 +22,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const { submissionId, action } = await request.json();
-    if (!submissionId || !["approve", "reject"].includes(action)) {
-      return NextResponse.json({ error: "submissionId and action (approve|reject) are required" }, { status: 400 });
+    if (!submissionId || !["approve", "reject", "delete"].includes(action)) {
+      return NextResponse.json({ error: "submissionId and action (approve|reject|delete) are required" }, { status: 400 });
     }
 
     const [submission] = await db
@@ -42,6 +42,19 @@ export async function POST(request: NextRequest) {
         .where(eq(rewardSubmissions.id, submissionId))
         .returning();
       return NextResponse.json({ submission: updated, message: "Submission rejected." });
+    }
+
+    if (action === "delete") {
+      const [existingPayment] = await db
+        .select()
+        .from(rewardPayments)
+        .where(eq(rewardPayments.submissionId, submissionId))
+        .limit(1);
+      if (existingPayment) {
+        return NextResponse.json({ error: "Cannot delete — this submission was already paid." }, { status: 400 });
+      }
+      await db.delete(rewardSubmissions).where(eq(rewardSubmissions.id, submissionId));
+      return NextResponse.json({ ok: true, message: "Submission removed." });
     }
 
     // Approve → pay from treasury (idempotent)
