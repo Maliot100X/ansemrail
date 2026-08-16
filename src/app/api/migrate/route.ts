@@ -202,3 +202,42 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function POST(request: NextRequest) {
+  const secret = process.env.MIGRATE_SECRET;
+  if (!secret) {
+    return NextResponse.json({ error: "Not available" }, { status: 404 });
+  }
+  const auth = request.headers.get("authorization");
+  if (auth !== `Bearer ${secret}`) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  try {
+    const body = await request.json();
+    const { action } = body;
+
+    if (action === "fix-twitter-handles") {
+      // Fix any twitterHandle entries that are just "i" (from /i/status/ URLs)
+      const [row] = await db.execute(sql`
+        SELECT id, encrypted_keys FROM users
+        WHERE (encrypted_keys->>'twitterHandle') = '@i'
+        OR (encrypted_keys->>'twitterHandle') = 'i'
+      `);
+      // Drizzle returns rows differently, use raw
+      const fixResult = await db.execute(sql`
+        UPDATE users SET encrypted_keys = jsonb_set(
+          encrypted_keys,
+          '{twitterHandle}',
+          '"@CLAWRENAi"'
+        )
+        WHERE (encrypted_keys->>'twitterHandle') = '@i'
+        OR (encrypted_keys->>'twitterHandle') = 'i'
+      `);
+      return NextResponse.json({ fixed: true, message: "Fixed handles set to @CLAWRENAi" });
+    }
+
+    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
