@@ -48,19 +48,13 @@ export default function BountiesPage() {
     }
   }
 
-  async function claimBounty(id: string) {
-    await fetch(`/api/bounties/${id}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "claim" }),
-    });
-    setBounties(bounties.map((b) => b.id === id ? { ...b, status: "in_progress" } : b));
-  }
+
 
   function statusIcon(s: string) {
     if (s === "open") return <Flame className="h-4 w-4 text-green-400" />;
     if (s === "in_progress") return <Clock className="h-4 w-4 text-amber-400" />;
     if (s === "completed") return <CheckCircle className="h-4 w-4 text-emerald-400" />;
+    if (s === "paid") return <CheckCircle className="h-4 w-4 text-blue-400" />;
     return <AlertTriangle className="h-4 w-4 text-red-400" />;
   }
 
@@ -77,7 +71,7 @@ export default function BountiesPage() {
       </div>
 
       <div className="flex gap-2">
-        {["open", "in_progress", "completed", "all"].map((s) => (
+        {["open", "in_progress", "completed", "paid", "all"].map((s) => (
           <Button key={s} variant={filter === s ? "default" : "outline"} size="sm" onClick={() => setFilter(s)}>
             {s.replace("_", " ")}
           </Button>
@@ -133,6 +127,11 @@ export default function BountiesPage() {
                     {b.status === "open" && (
                       <Button size="sm" className="mt-2 bg-amber-600 hover:bg-amber-700" onClick={() => claimBounty(b.id)}>
                         Claim
+                      </Button>
+                    )}
+                    {b.status === "completed" && (
+                      <Button size="sm" className="mt-2 bg-green-600 hover:bg-green-700" onClick={() => payoutBounty(b.id)}>
+                        Pay Bounty
                       </Button>
                     )}
                   </div>
