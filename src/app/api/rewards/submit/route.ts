@@ -64,7 +64,11 @@ export async function POST(request: NextRequest) {
       .from(rewardSubmissions)
       .where(eq(rewardSubmissions.proofHash, hash))
       .limit(1);
-    if (existing) {
+    if (existing && existing.status === "rejected") {
+      // Rejected proofs are NOT completed — allow retry with the same proof.
+      // Remove the old rejected row so the fresh submission becomes the active claim.
+      await db.delete(rewardSubmissions).where(eq(rewardSubmissions.id, existing.id));
+    } else if (existing) {
       return NextResponse.json(
         { error: "This proof was already submitted — no double claims.", submission: existing },
         { status: 409 }
