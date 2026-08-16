@@ -80,6 +80,7 @@ export async function POST(request: NextRequest) {
     let status = "pending";
     let verifiedBy: string | null = null;
     let verifiedAt: Date | null = null;
+    let adminNote: string | null = null;
     let verifyResult: any = null;
 
     if (type === "buy_coin" && proof.mint) {
@@ -132,6 +133,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Clearly-invalid proofs are rejected instantly (retryable). Only
+    // "manual review required" cases stay pending for the admin.
+    if (status === "pending" && verifyResult && verifyResult.ok === false) {
+      const note = String(verifyResult.note || "");
+      if (!note.toLowerCase().includes("manual review")) {
+        status = "rejected";
+        verifiedBy = "ansemrail-auto";
+        verifiedAt = new Date();
+        adminNote = note;
+      }
+    }
+
     const [submission] = await db
       .insert(rewardSubmissions)
       .values({
@@ -143,6 +156,7 @@ export async function POST(request: NextRequest) {
         proofAgentId: user.id,
         proofHash: hash,
         status,
+        adminNote,
         verifiedBy,
         verifiedAt,
       })
@@ -156,7 +170,9 @@ export async function POST(request: NextRequest) {
         message:
           status === "verified"
             ? "Verified instantly on AnsemRail — reward is queued for payout."
-            : "Proof could not be auto-verified — pending review.",
+            : status === "rejected"
+            ? "Proof did not verify — rejected. Submit a correct proof to retry."
+            : "Proof needs manual review — pending.",
       },
       { status: 201 }
     );

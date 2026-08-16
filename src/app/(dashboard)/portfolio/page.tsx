@@ -27,7 +27,7 @@ export default async function PortfolioPage() {
   } catch {}
 
   const [agentsRes, solRes, payboxCredsRes] = await Promise.allSettled([
-    listAgents(userApiKey),
+    userApiKey ? listAgents(userApiKey) : Promise.resolve([]),
     getTokenDetails(WSOL_MINT, "solana"),
     listPayBoxCredentials(userPayboxKey),
   ]);

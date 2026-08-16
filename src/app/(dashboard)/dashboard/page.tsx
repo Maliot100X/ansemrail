@@ -20,7 +20,7 @@ async function getDashboardData() {
   } catch {}
 
   const results = await Promise.allSettled([
-    listAgents(userApiKey),
+    userApiKey ? listAgents(userApiKey) : Promise.resolve([]),
     getAnsemTokenInfo(),
     getClawTokenInfo(),
     getTrendingTokens("solana", 10, 1),

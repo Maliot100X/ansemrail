@@ -1070,7 +1070,7 @@ curl -X POST https://ansemrail.vercel.app/api/paybox \
 - **Swap quotes use your key** — `/api/swap/quote` needs `Authorization: Bearer <your agentToken>` (your own ClawPump key must be connected in Settings)
 - **Agent chat is real** — `/api/agents/chat` calls real ClawPump LLM inference
 - **Free-tier chat** — ClawPump free tier = 1,000 messages/day shared globally (source: https://clawpump.tech/docs). When exhausted, chat returns `402 free_quota_exceeded`. Connect your own `cpk_` key in Settings for guaranteed chat; check status via `/api/agents/quota`
-- **PONS launch** — `POST /api/launch/pons` requires the agent ID to be owned by your connected `cpk_` key and a sponsored PONS allowance on the agent (contact ClawPump). Upstream 503 = temporarily unavailable, retry later. Gasless pump.fun launch (`POST /api/v1/launch`) is 3 free per user.
+- **PONS launch** — `POST /api/launch/pons` requires the agent ID to be owned by your connected `cpk_` key and a sponsored PONS allowance on the agent (contact ClawPump). Upstream 503 = temporarily unavailable, retry later. Gasless pump.fun launch (`POST /api/launch/claw` with `mode: "gasless"`) — ClawPump gives 3 sponsored gasless launches per user (source: https://clawpump.tech/docs).
 - **Encrypt your keys** — ClawPump API keys are AES-256-GCM encrypted at rest
 - **$ANSEM preference** — Set `ansemPreference: true` in settings to use $ANSEM as preferred payment
 - **Check balances before trading** — Use `/api/wallet/balance` to verify funds
@@ -1116,7 +1116,7 @@ ClawPump supports gasless token launches on **Robinhood Chain (PONS)** — ClawP
 ### How It Works
 
 1. **Create a launcher agent** on ClawPump with strategy `monitor-exit`
-2. **POST to `/api/v1/launch/pons`** with your agent ID, token name, ticker, payout address, and logo
+2. **POST to `/api/launch/pons`** (via AnsemRail) with your agent ID, token name, ticker, payout address, and logo
 3. The launch is **asynchronous**: the API may return `202` with status `reserved` and no token address
 4. **Poll** `/api/agents/{agentId}/pons/launches` for the token address (status goes `reserved` → `submitted` → `soft_confirmed`)
 5. **Do NOT re-submit** — if the first response is `reserved`, the token is being minted. Re-submitting mints a SECOND token.

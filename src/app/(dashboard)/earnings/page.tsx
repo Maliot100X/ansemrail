@@ -17,7 +17,7 @@ export default async function EarningsPage() {
     if (userId) userApiKey = await getUserClawpumpApiKey(userId);
   } catch {}
 
-  const agentsRes = await Promise.allSettled([listAgents(userApiKey)]);
+  const agentsRes = await Promise.allSettled([userApiKey ? listAgents(userApiKey) : Promise.resolve([])]);
   const agents = agentsRes[0].status === "fulfilled" ? agentsRes[0].value : [];
 
   const agentDetails = await Promise.all(

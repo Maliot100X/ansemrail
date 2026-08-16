@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Rocket, Flame, Wallet, ExternalLink, Copy, CheckCircle2 } from "lucide-react";
+import { Loader2, Rocket, Flame, Wallet, ExternalLink, Copy, CheckCircle2, Upload } from "lucide-react";
 
 function shortAddr(addr?: string | null, len = 6) {
   if (!addr) return "—";
@@ -48,6 +48,7 @@ export default function ClawLaunchTab() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [funding, setFunding] = useState<any>(null);
   const [copied, setCopied] = useState(false);
@@ -72,6 +73,34 @@ export default function ClawLaunchTab() {
     fetchMyAgents();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error("Could not read file"));
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: dataUrl }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upload failed");
+      setForm((f) => ({ ...f, imageUrl: data.url }));
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -220,12 +249,36 @@ export default function ClawLaunchTab() {
 
         <div className="space-y-2">
           <Label htmlFor="claw-image">Image URL (optional, https)</Label>
-          <Input
-            id="claw-image"
-            placeholder="https://..."
-            value={form.imageUrl}
-            onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-          />
+          <div className="flex gap-2">
+            <Input
+              id="claw-image"
+              placeholder="https://... or upload an image"
+              value={form.imageUrl}
+              onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+            />
+            <input
+              id="claw-image-file"
+              type="file"
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              className="hidden"
+              onChange={handleImageUpload}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => document.getElementById("claw-image-file")?.click()}
+              disabled={uploading}
+              className="shrink-0"
+            >
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              {uploading ? "Uploading" : "Upload"}
+            </Button>
+          </div>
+          {form.imageUrl && (
+            <p className="text-[11px] text-zinc-500 break-all">
+              Image URL: <span className="font-mono">{form.imageUrl}</span>
+            </p>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
