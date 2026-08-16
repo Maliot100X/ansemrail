@@ -201,6 +201,59 @@ export type Signal = typeof signals.$inferSelect;
 export type Skill = typeof skills.$inferSelect;
 export type OwsPolicy = typeof owsPolicies.$inferSelect;
 
+
+// --- x402 Payment Gateway ---
+export const x402Payments = pgTable("x402_payments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").references(() => users.id),
+  payerAddress: text("payer_address").notNull(),
+  payeeAddress: text("payee_address"),
+  amount: text("amount").notNull(), // in lamports or smallest unit
+  token: text("token").notNull().default("SOL"), // SOL | USDC | ANSEM | CLAW
+  endpoint: text("endpoint").notNull(), // e.g. /api/swap/quote
+  txSignature: text("tx_signature"),
+  status: text("status").notNull().default("pending"), // pending | confirmed | failed
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// --- Agent Bounty Board ---
+export const bounties = pgTable("bounties", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  creatorUserId: uuid("creator_user_id").references(() => users.id),
+  creatorAgentId: text("creator_agent_id"),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  rewardToken: text("reward_token").notNull().default("ANSEM"),
+  rewardAmount: text("reward_amount").notNull(),
+  escrowWallet: text("escrow_wallet"), // wallet holding escrowed funds
+  status: text("status").notNull().default("open"), // open | in_progress | completed | disputed | closed
+  assigneeUserId: uuid("assignee_user_id").references(() => users.id),
+  deliverable: text("deliverable"), // what the bounty expects
+  proofUrl: text("proof_url"), // proof of completion
+  deadline: timestamp("deadline"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// --- Agent Reputation (on-chain 8004 style) ---
+export const agentReputation = pgTable("agent_reputation", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  trustTier: text("trust_tier").notNull().default("unrated"), // unrated | bronze | silver | gold | platinum
+  reputationScore: integer("reputation_score").notNull().default(0),
+  totalTrades: integer("total_trades").notNull().default(0),
+  successfulTrades: integer("successful_trades").notNull().default(0),
+  totalLaunches: integer("total_launches").notNull().default(0),
+  totalBounties: integer("total_bounties").notNull().default(0),
+  completedBounties: integer("completed_bounties").notNull().default(0),
+  twitterVerified: boolean("twitter_verified").notNull().default(false),
+  agent8004Id: text("agent_8004_id"), // 8004 registry on-chain ID if registered
+  lastActivityAt: timestamp("last_activity_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // --- Reward system (treasure wallet task rewards) ---
 export const rewardTasks = pgTable("reward_tasks", {
   id: uuid("id").defaultRandom().primaryKey(),
