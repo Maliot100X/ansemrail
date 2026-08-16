@@ -55,6 +55,7 @@ export default function RewardsPage() {
   const [adminData, setAdminData] = useState<any>(null);
   const [adminLoading, setAdminLoading] = useState(false);
   const [adminMsg, setAdminMsg] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState<Record<string, string>>({});
 
   async function load() {
     setLoading(true);
@@ -130,7 +131,7 @@ export default function RewardsPage() {
       const res = await fetch("/api/rewards/admin/decide", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${adminSecret}` },
-        body: JSON.stringify({ submissionId: id, action }),
+        body: JSON.stringify({ submissionId: id, action, reason: rejectReason[id] || "" }),
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error || "Failed");
@@ -423,7 +424,12 @@ export default function RewardsPage() {
                   <p className="text-xs text-amber-400/80 mt-1">Pending review — you will see the payment here once approved.</p>
                 )}
                 {s.status === "rejected" && (
-                  <p className="text-xs text-red-400/80 mt-1">Rejected — go back to the task and Retry with a new, correct proof.</p>
+                  <p className="text-xs text-red-400/80 mt-1">
+                    Rejected — {s.adminNote || "go back to the task and retry with a new, correct proof."}
+                  </p>
+                )}
+                {s.adminNote && s.status !== "rejected" && (
+                  <p className="text-xs text-zinc-500 mt-1">Admin note: {s.adminNote}</p>
                 )}
               </div>
             ))}
@@ -497,10 +503,16 @@ export default function RewardsPage() {
                           {s.proofWallet && <span className="font-mono">Wallet: {shortAddr(s.proofWallet)}</span>}
                           <span className="font-mono">User: {shortAddr(s.userId)}</span>
                         </div>
-                        <div className="mt-2 flex flex-wrap gap-2">
+                        <div className="mt-2 flex flex-wrap items-center gap-2">
                           <Button size="sm" variant="ansem" onClick={() => decide(s.id, "approve")}>
                             Approve & Pay ({s.task?.rewardAmount} {s.task?.rewardToken})
                           </Button>
+                          <Input
+                            className="w-56 h-8 text-xs"
+                            placeholder="Reject reason (sent to user)"
+                            value={rejectReason[s.id] || ""}
+                            onChange={(e) => setRejectReason((r) => ({ ...r, [s.id]: e.target.value }))}
+                          />
                           <Button size="sm" variant="outline" onClick={() => decide(s.id, "reject")}>Reject</Button>
                           <Button size="sm" variant="ghost" className="text-zinc-500" onClick={() => decide(s.id, "delete")}>Delete</Button>
                         </div>

@@ -47,6 +47,7 @@ export async function GET(request: NextRequest) {
     `);
     await db.execute(sql`ALTER TABLE reward_submissions ADD COLUMN IF NOT EXISTS proof_username text`);
     await db.execute(sql`ALTER TABLE reward_submissions ADD COLUMN IF NOT EXISTS proof_agent_id text`);
+    await db.execute(sql`ALTER TABLE reward_submissions ADD COLUMN IF NOT EXISTS admin_note text`);
 
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS reward_payments (

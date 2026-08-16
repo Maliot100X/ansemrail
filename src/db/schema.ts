@@ -228,6 +228,7 @@ export const rewardSubmissions = pgTable("reward_submissions", {
   status: text("status").notNull().default("pending"), // pending | verified | rejected
   verifiedBy: text("verified_by"),
   verifiedAt: timestamp("verified_at"),
+  adminNote: text("admin_note"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

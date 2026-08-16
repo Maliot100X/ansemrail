@@ -3,6 +3,7 @@ import { db } from "@/db/client";
 import { rewardSubmissions, rewardPayments, rewardTasks, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { sendSplReward, ANSEM_MINT, CLAW_MINT, PROJECT_MINT } from "@/lib/rewards";
+import { sendMessage } from "@/lib/telegram";
 
 function authorized(request: NextRequest): boolean {
   const secret = process.env.REWARDS_ADMIN_SECRET;
@@ -16,15 +17,32 @@ const TOKEN_MINT: Record<string, string> = {
   PROJECT: PROJECT_MINT,
 };
 
+async function notifyUser(
+  userId: string | null,
+  text: string
+): Promise<void> {
+  if (!userId) return;
+  try {
+    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (user?.telegramChatId) {
+      await sendMessage(user.telegramChatId, text);
+    }
+  } catch {
+    // Telegram failures never break the admin flow
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     if (!authorized(request)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const { submissionId, action } = await request.json();
+    const body = await request.json();
+    const { submissionId, action, reason } = body;
     if (!submissionId || !["approve", "reject", "delete"].includes(action)) {
       return NextResponse.json({ error: "submissionId and action (approve|reject|delete) are required" }, { status: 400 });
     }
+    const reasonClean = String(reason || "").trim();
 
     const [submission] = await db
       .select()
@@ -35,12 +53,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Submission not found" }, { status: 404 });
     }
 
+    const [task] = submission.taskId
+      ? await db.select().from(rewardTasks).where(eq(rewardTasks.id, submission.taskId)).limit(1)
+      : [];
+
     if (action === "reject") {
       const [updated] = await db
         .update(rewardSubmissions)
-        .set({ status: "rejected", verifiedBy: "admin" })
+        .set({
+          status: "rejected",
+          verifiedBy: "admin",
+          adminNote: reasonClean || "Rejected by admin",
+        })
         .where(eq(rewardSubmissions.id, submissionId))
         .returning();
+      await notifyUser(
+        submission.userId,
+        `❌ <b>AnsemRail Reward — ${task?.title || "Task"} rejected</b>\n\n` +
+          `${reasonClean ? `Reason: ${reasonClean}\n\n` : ""}` +
+          `Go to the Rewards page and retry with a new, correct proof.`
+      );
       return NextResponse.json({ submission: updated, message: "Submission rejected." });
     }
 
@@ -57,7 +89,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true, message: "Submission removed." });
     }
 
-    // Approve → pay from treasury (idempotent)
+    // Approve → pay from treasury (idempotent — never auto-sent, admin clicks only)
     const [existingPayment] = await db
       .select()
       .from(rewardPayments)
@@ -70,11 +102,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const [task] = await db
-      .select()
-      .from(rewardTasks)
-      .where(eq(rewardTasks.id, submission.taskId || ""))
-      .limit(1);
     if (!task) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
@@ -125,9 +152,21 @@ export async function POST(request: NextRequest) {
 
     const [updated] = await db
       .update(rewardSubmissions)
-      .set({ status: "verified", verifiedBy: "admin", verifiedAt: new Date() })
+      .set({
+        status: "verified",
+        verifiedBy: "admin",
+        verifiedAt: new Date(),
+        adminNote: reasonClean || null,
+      })
       .where(eq(rewardSubmissions.id, submissionId))
       .returning();
+
+    await notifyUser(
+      submission.userId,
+      `✅ <b>AnsemRail Reward paid</b>\n\n` +
+        `${task.title}\n${amount} ${task.rewardToken} sent to ${toWallet}\n\n` +
+        `Tx: https://solscan.io/tx/${txSignature}`
+    );
 
     return NextResponse.json({
       message: `Reward paid: ${amount} ${task.rewardToken} → ${toWallet}`,
