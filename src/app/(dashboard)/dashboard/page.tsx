@@ -39,12 +39,12 @@ async function getDashboardData() {
 
   // CLAWRENA — our project token (fetched from pump.fun)
   const clawrenaMint = "7pkqvfHe6WREhvZ1ergfXtz3F6MQfXCfcAZiumCt6Ene";
-  let clawrenaData: any = null;
+  let clawrena: any = null;
   try {
     const crRes = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${clawrenaMint}`, { signal: AbortSignal.timeout(8000) });
     if (crRes.ok) {
       const crData = await crRes.json();
-      clawrenaData = crData.pairs?.[0] || null;
+      clawrena = crData.pairs?.[0] || null;
     }
   } catch {}
 
@@ -55,7 +55,7 @@ async function getDashboardData() {
     trending: results[3].status === "fulfilled" ? results[3].value : [],
     clawpumpTokens,
     ponsLaunches: allPonsLaunches,
-    clawrena: clawrenaData,
+    clawrena,
   };
 }
 
@@ -115,6 +115,23 @@ export default async function DashboardPage() {
           <CardContent>
             <div className="text-3xl font-bold text-zinc-50">${clawPrice.toFixed(6)}</div>
             <p className="text-xs text-zinc-500 mt-1">MCap: {formatUsd(clawMcap)}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-emerald-800/50 bg-gradient-to-r from-emerald-950/20 to-zinc-900/50">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-emerald-400">$CLAWRENA Price</CardTitle>
+            <Coins className="h-4 w-4 text-emerald-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold text-zinc-50">${clawrenaPrice.toFixed(8)}</div>
+            <p className="text-xs text-zinc-500 mt-1">MCap: ${formatUsd(clawrenaMcap)}</p>
+            <p className={`text-xs mt-1 ${clawrenaChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {clawrenaChange >= 0 ? '+' : ''}{clawrenaChange.toFixed(1)}% 24h
+            </p>
+            <a href="https://pump.fun/coin/7pkqvfHe6WREhvZ1ergfXtz3F6MQfXCfcAZiumCt6Ene" target="_blank" rel="noopener noreferrer" className="text-xs text-emerald-400 hover:text-emerald-300 mt-1 inline-block">
+              Buy on pump.fun →
+            </a>
           </CardContent>
         </Card>
 
