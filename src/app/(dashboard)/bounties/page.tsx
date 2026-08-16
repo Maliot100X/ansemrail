@@ -24,7 +24,7 @@ export default function BountiesPage() {
   const [bounties, setBounties] = useState<Bounty[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ title: "", description: "", rewardToken: "ANSEM", rewardAmount: "", deliverable: "" });
+  const [form, setForm] = useState({ title: "", description: "", rewardToken: "CLAWRENA", rewardAmount: "", deliverable: "" });
   const [filter, setFilter] = useState("open");
 
   useEffect(() => {
@@ -95,6 +95,7 @@ export default function BountiesPage() {
               <select className="rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100" value={form.rewardToken} onChange={(e) => setForm({ ...form, rewardToken: e.target.value })}>
                 <option value="ANSEM">ANSEM</option>
                 <option value="CLAW">CLAW</option>
+                <option value="CLAWRENA">CLAWRENA</option>
                 <option value="SOL">SOL</option>
                 <option value="USDC">USDC</option>
               </select>
