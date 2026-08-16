@@ -16,11 +16,12 @@ export async function getBalance(address: string): Promise<number> {
 }
 
 export async function getTokenAccountsByOwner(
-  owner: string
+  owner: string,
+  programId = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
 ): Promise<any[]> {
   const data = await heliusRpc("getTokenAccountsByOwner", [
     owner,
-    { programId: "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" },
+    { programId },
     { encoding: "jsonParsed" },
   ]);
   return data.result?.value || [];

@@ -200,3 +200,43 @@ export type Bid = typeof bids.$inferSelect;
 export type Signal = typeof signals.$inferSelect;
 export type Skill = typeof skills.$inferSelect;
 export type OwsPolicy = typeof owsPolicies.$inferSelect;
+
+// --- Reward system (treasure wallet task rewards) ---
+export const rewardTasks = pgTable("reward_tasks", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  slug: text("slug").notNull().unique(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  type: text("type").notNull(), // twitter_like | twitter_follow | twitter_comment | twitter_post | buy_coin | holding | teach | custom
+  rewardToken: text("reward_token").notNull().default("ANSEM"), // ANSEM | PROJECT | CLAW
+  rewardAmount: text("reward_amount").notNull(), // e.g. "100" (ui amount)
+  proofJson: jsonb("proof_json"), // e.g. { mint, minBalance, minUsd, postText, mention }
+  active: boolean("active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const rewardSubmissions = pgTable("reward_submissions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").references(() => users.id),
+  taskId: uuid("task_id").references(() => rewardTasks.id),
+  proofUrl: text("proof_url"),
+  proofWallet: text("proof_wallet"),
+  proofHash: text("proof_hash").notNull().unique(), // unique => no double claim
+  status: text("status").notNull().default("pending"), // pending | verified | rejected
+  verifiedBy: text("verified_by"),
+  verifiedAt: timestamp("verified_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const rewardPayments = pgTable("reward_payments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  submissionId: uuid("submission_id").references(() => rewardSubmissions.id).notNull().unique(),
+  userId: uuid("user_id").references(() => users.id),
+  taskId: uuid("task_id").references(() => rewardTasks.id),
+  token: text("token").notNull(), // ANSEM | PROJECT | CLAW
+  amount: text("amount").notNull(),
+  txSignature: text("tx_signature"),
+  status: text("status").notNull().default("paid"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});

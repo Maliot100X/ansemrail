@@ -23,6 +23,7 @@ import {
   BarChart3,
   PieChart,
   Trophy,
+  Gift,
 } from "lucide-react";
 
 const navItems = [
@@ -39,6 +40,7 @@ const navItems = [
   { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/portfolio", label: "Portfolio", icon: PieChart },
+  { href: "/rewards", label: "Rewards", icon: Gift },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
 ];
 

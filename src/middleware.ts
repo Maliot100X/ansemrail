@@ -22,5 +22,6 @@ export const config = {
     "/analytics/:path*",
     "/portfolio/:path*",
     "/leaderboard/:path*",
+    "/rewards/:path*",
   ],
 };
