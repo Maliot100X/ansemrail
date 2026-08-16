@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getRequestUser } from "@/lib/auth-session";
 import { db } from "@/db/client";
 import { bounties, users } from "@/db/schema";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +10,6 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const status = request.nextUrl.searchParams.get("status") || "open";
-    const my = request.nextUrl.searchParams.get("my") === "true";
 
     let query = db
       .select({
@@ -21,6 +20,7 @@ export async function GET(request: NextRequest) {
         rewardAmount: bounties.rewardAmount,
         status: bounties.status,
         deliverable: bounties.deliverable,
+        proofUrl: bounties.proofUrl,
         deadline: bounties.deadline,
         creatorUserId: bounties.creatorUserId,
         assigneeUserId: bounties.assigneeUserId,
@@ -52,11 +52,20 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, rewardToken, rewardAmount, deliverable, deadline } = body;
+    const { title, description, rewardToken, rewardAmount, deliverable, deadline, requirements } = body;
 
     if (!title || !description || !rewardAmount) {
       return NextResponse.json(
         { error: "title, description, and rewardAmount are required" },
+        { status: 400 }
+      );
+    }
+
+    const validTokens = ["CLAWRENA", "ANSEM", "CLAW", "SOL", "USDC"];
+    const token = (rewardToken || "CLAWRENA").toUpperCase();
+    if (!validTokens.includes(token)) {
+      return NextResponse.json(
+        { error: `Invalid token. Supported: ${validTokens.join(", ")}` },
         { status: 400 }
       );
     }
@@ -67,7 +76,7 @@ export async function POST(request: NextRequest) {
         creatorUserId: user.id,
         title,
         description,
-        rewardToken: rewardToken || "ANSEM",
+        rewardToken: token,
         rewardAmount: String(rewardAmount),
         deliverable: deliverable || null,
         deadline: deadline ? new Date(deadline) : null,
@@ -77,7 +86,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       bounty,
-      message: "Bounty created. Funds should be escrowed to the bounty wallet.",
+      message: "Bounty created. Use POST /api/bounties/" + bounty.id + " to claim or complete.",
+      curl: {
+        claim: `curl -X POST https://ansemrail.vercel.app/api/bounties/${bounty.id} -H "Content-Type: application/json" -H "Authorization: Bearer YOUR_TOKEN" -d '{\'action\':\'claim\'}'`,
+        complete: `curl -X POST https://ansemrail.vercel.app/api/bounties/${bounty.id} -H "Content-Type: application/json" -H "Authorization: Bearer YOUR_TOKEN" -d '{\'action\':\'complete\',\'proofUrl\':\'YOUR_PROOF_URL\'}'`,
+        payout: `curl -X POST https://ansemrail.vercel.app/api/bounties/${bounty.id}/payout -H "Content-Type: application/json" -H "Authorization: Bearer YOUR_TOKEN"`,
+      },
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
