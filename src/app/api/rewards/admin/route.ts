@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/client";
-import { rewardSubmissions, rewardTasks } from "@/db/schema";
+import { rewardSubmissions, rewardTasks, rewardPayments } from "@/db/schema";
 import { eq, desc, inArray } from "drizzle-orm";
 import {
   ANSEM_MINT,
@@ -24,24 +24,29 @@ export async function GET(request: NextRequest) {
     if (!authorized(request)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    // Queue = every submission that has not been paid yet (pending manual review
+    // or auto-verified on-chain but awaiting payout).
     const subs = await db
       .select()
       .from(rewardSubmissions)
-      .where(eq(rewardSubmissions.status, "pending"))
+      .where(inArray(rewardSubmissions.status, ["pending", "verified"]))
       .orderBy(desc(rewardSubmissions.createdAt))
-      .limit(100);
+      .limit(200);
+    const paid = await db.select().from(rewardPayments);
+    const paidSubmissionIds = new Set(paid.map((p) => p.submissionId));
+    const queue = subs.filter((s) => !paidSubmissionIds.has(s.id));
     const taskIds = [...new Set(subs.map((s) => s.taskId).filter(Boolean))] as string[];
     const tasks = taskIds.length
       ? await db.select().from(rewardTasks).where(inArray(rewardTasks.id, taskIds))
       : [];
     const taskMap = new Map(tasks.map((t) => [t.id, t]));
 
-    const address = treasureWalletAddress();
+    const address = await treasureWalletAddress();
     const [ansem, claw, project, sol] = await Promise.allSettled([
       address ? getWalletHolding(address, ANSEM_MINT) : 0,
       address ? getWalletHolding(address, CLAW_MINT) : 0,
       address ? getWalletHolding(address, PROJECT_MINT) : 0,
-      address ? getTreasurySolBalance() : 0,
+      address ? getTreasurySolBalance(address) : 0,
     ]);
 
     return NextResponse.json({
@@ -54,7 +59,7 @@ export async function GET(request: NextRequest) {
             projectBase: project.status === "fulfilled" ? project.value : 0,
           }
         : null,
-      pending: subs.map((s) => ({ ...s, task: taskMap.get(s.taskId || "") || null })),
+      pending: queue.map((s) => ({ ...s, task: taskMap.get(s.taskId || "") || null })),
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || "Failed to load admin view" }, { status: 500 });

@@ -1,4 +1,8 @@
 import { createHash } from "crypto";
+import { db } from "@/db/client";
+import { platformConfig } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { encryptApiKey, decryptApiKey } from "@/lib/crypto";
 import { Connection, Keypair, PublicKey, LAMPORTS_PER_SOL, Transaction } from "@solana/web3.js";
 import { createTransferInstruction, getAssociatedTokenAddress } from "@solana/spl-token";
 import bs58 from "bs58";
@@ -12,17 +16,90 @@ export const TWITTER_HANDLE = "CLAWRENAi";
 export const TWITTER_URL = "https://x.com/CLAWRENAi";
 export const TOKEN2022_PROGRAM = "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb";
 
-export function treasureWalletAddress(): string | null {
+export interface TreasuryConfig {
+  address: string | null;
+  hasKey: boolean;
+  source: "db" | "env" | "none";
+}
+
+export async function getDbTreasuryConfig(): Promise<{ address: string | null; privateKey: string | null }> {
+  try {
+    const [row] = await db
+      .select()
+      .from(platformConfig)
+      .where(eq(platformConfig.key, "treasury"))
+      .limit(1);
+    const value = (row?.value as any) || {};
+    if (!value.address && !value.encryptedKey) return { address: null, privateKey: null };
+    let privateKey: string | null = null;
+    if (value.encryptedKey) {
+      try {
+        privateKey = decryptApiKey(value.encryptedKey);
+      } catch {
+        privateKey = null;
+      }
+    }
+    return { address: value.address || null, privateKey };
+  } catch {
+    return { address: null, privateKey: null };
+  }
+}
+
+export async function treasureWalletAddress(): Promise<string | null> {
+  const cfg = await getDbTreasuryConfig();
+  if (cfg.address) return cfg.address;
   return process.env.TREASURY_WALLET_ADDRESS || null;
 }
 
-export function getTreasuryKeypair(): Keypair | null {
+export async function getTreasuryKeypair(): Promise<Keypair | null> {
+  // Admin-set treasury (dashboard) takes priority over env.
+  const cfg = await getDbTreasuryConfig();
+  if (cfg.privateKey) {
+    try {
+      return Keypair.fromSecretKey(bs58.decode(cfg.privateKey));
+    } catch {
+      return null;
+    }
+  }
   const pk = process.env.TREASURY_PRIVATE_KEY;
   if (!pk) return null;
   try {
     return Keypair.fromSecretKey(bs58.decode(pk));
   } catch {
     return null;
+  }
+}
+
+export async function treasuryConfigStatus(): Promise<TreasuryConfig> {
+  const cfg = await getDbTreasuryConfig();
+  if (cfg.address && cfg.privateKey) return { address: cfg.address, hasKey: true, source: "db" };
+  if (cfg.address) return { address: cfg.address, hasKey: false, source: "db" };
+  const envAddr = process.env.TREASURY_WALLET_ADDRESS || null;
+  const envKey = process.env.TREASURY_PRIVATE_KEY || null;
+  if (envAddr || envKey) return { address: envAddr, hasKey: !!envKey, source: "env" };
+  return { address: null, hasKey: false, source: "none" };
+}
+
+export async function saveTreasuryConfig(privateKeyBs58: string): Promise<{ address: string }> {
+  let keypair: Keypair;
+  try {
+    keypair = Keypair.fromSecretKey(bs58.decode(privateKeyBs58));
+  } catch (e: any) {
+    throw new Error("Invalid treasury private key — must be base58-encoded secret key.");
+  }
+  const address = keypair.publicKey.toBase58();
+  await db
+    .insert(platformConfig)
+    .values({ key: "treasury", value: { address, encryptedKey: encryptApiKey(privateKeyBs58), updatedAt: new Date().toISOString() } })
+    .onConflictDoUpdate({ target: platformConfig.key, set: { value: { address, encryptedKey: encryptApiKey(privateKeyBs58), updatedAt: new Date().toISOString() } } });
+  return { address };
+}
+
+export async function clearTreasuryConfig(): Promise<void> {
+  try {
+    await db.delete(platformConfig).where(eq(platformConfig.key, "treasury"));
+  } catch {
+    // ignore
   }
 }
 
@@ -105,8 +182,8 @@ export async function sendSplReward(
   toWallet: string,
   uiAmount: number
 ): Promise<string> {
-  const keypair = getTreasuryKeypair();
-  if (!keypair) throw new Error("TREASURY_PRIVATE_KEY is not set on the server");
+  const keypair = await getTreasuryKeypair();
+  if (!keypair) throw new Error("Treasury key is not set — configure the treasury wallet in Rewards admin settings.");
   const conn = getConnection();
   const decimals = await getTokenDecimals(mint);
   const amountBase = BigInt(Math.round(uiAmount * 10 ** decimals));
@@ -128,8 +205,8 @@ export async function sendSplReward(
   return sig;
 }
 
-export async function getTreasurySolBalance(): Promise<number> {
-  const addr = treasureWalletAddress();
+export async function getTreasurySolBalance(address?: string): Promise<number> {
+  const addr = address || (await treasureWalletAddress());
   if (!addr) return 0;
   try {
     const lamports = await getBalance(addr);

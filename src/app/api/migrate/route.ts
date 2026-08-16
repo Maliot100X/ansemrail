@@ -58,6 +58,13 @@ export async function GET(request: NextRequest) {
         created_at timestamp DEFAULT now() NOT NULL
       )
     `);
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS platform_config (
+        key text PRIMARY KEY,
+        value jsonb,
+        updated_at timestamp DEFAULT now() NOT NULL
+      )
+    `);
 
     // Seed tasks (idempotent)
     const tasks = [

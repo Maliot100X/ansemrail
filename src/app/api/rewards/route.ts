@@ -26,13 +26,13 @@ export async function GET() {
       getAnsemTokenInfo(),
       getClawTokenInfo(),
       (async () => {
-        const address = treasureWalletAddress();
+        const address = await treasureWalletAddress();
         if (!address) return null;
         const [ansem, claw, project, sol] = await Promise.allSettled([
           getWalletHolding(address, ANSEM_MINT),
           getWalletHolding(address, CLAW_MINT),
           getWalletHolding(address, PROJECT_MINT),
-          getTreasurySolBalance(),
+          getTreasurySolBalance(address),
         ]);
         return {
           address,

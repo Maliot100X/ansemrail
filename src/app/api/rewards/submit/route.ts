@@ -37,7 +37,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "proofUrl (your X post link) is required" }, { status: 400 });
     }
     if ((type === "buy_coin" || type === "holding" || type === "custom") && !proofWallet) {
-      return NextResponse.json({ error: "proofWallet (the Solana wallet holding the coins) is required" }, { status: 400 });
+      return NextResponse.json({ error: "proofWallet (the Solana wallet for the reward) is required" }, { status: 400 });
+    }
+    if (type === "teach" && !proofUrl) {
+      return NextResponse.json({ error: "proofUrl (proof link for the ClawPump help) is required" }, { status: 400 });
     }
 
     // Unique proof — same (user + task + proof) can never be claimed twice
@@ -61,6 +64,14 @@ export async function POST(request: NextRequest) {
     let verifyResult: any = null;
 
     if (type === "buy_coin" && proof.mint) {
+      const check = await verifyHolding(proofWallet, proof.mint, proof.minBalance || "0");
+      verifyResult = check;
+      if (check.ok) {
+        status = "verified";
+        verifiedBy = "auto-onchain";
+        verifiedAt = new Date();
+      }
+    } else if (type === "custom" && proof.mint && proof.minBalance) {
       const check = await verifyHolding(proofWallet, proof.mint, proof.minBalance || "0");
       verifyResult = check;
       if (check.ok) {

@@ -240,3 +240,12 @@ export const rewardPayments = pgTable("reward_payments", {
   status: text("status").notNull().default("paid"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// --- Platform config (admin-set values, e.g. reward treasury wallet) ---
+export const platformConfig = pgTable("platform_config", {
+  key: text("key").primaryKey(),
+  value: jsonb("value"), // { address, encryptedKey, setBy, updatedAt }
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type PlatformConfig = typeof platformConfig.$inferSelect;
