@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { rewardTasks, rewardSubmissions } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -18,9 +18,9 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const user = await getRequestUser();
+    const user = await getRequestUser(request);
     const [tasksRes, ansemRes, clawRes, treasuryRes] = await Promise.allSettled([
       db.select().from(rewardTasks).where(eq(rewardTasks.active, true)).orderBy(rewardTasks.sortOrder),
       getAnsemTokenInfo(),

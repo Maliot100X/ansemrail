@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { rewardSubmissions, rewardPayments, rewardTasks } from "@/db/schema";
 import { eq, desc, inArray } from "drizzle-orm";
@@ -6,9 +6,9 @@ import { getRequestUser } from "@/lib/auth-session";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const user = await getRequestUser();
+    const user = await getRequestUser(request);
     if (!user) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     }
