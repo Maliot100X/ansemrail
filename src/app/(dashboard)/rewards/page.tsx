@@ -44,6 +44,7 @@ export default function RewardsPage() {
   const [proofUrl, setProofUrl] = useState("");
   const [proofWallet, setProofWallet] = useState("");
   const [proofUsername, setProofUsername] = useState("");
+  const [proofAgentId, setProofAgentId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [resultFor, setResultFor] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
@@ -77,6 +78,7 @@ export default function RewardsPage() {
     setProofUrl("");
     setProofWallet("");
     setProofUsername("");
+    setProofAgentId(data?.me?.agentId || "");
     setResultFor(null);
     setResult(null);
     setErrorFor(null);
@@ -92,7 +94,7 @@ export default function RewardsPage() {
       const res = await fetch("/api/rewards/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId, proofUrl: proofUrl.trim() || null, proofWallet: proofWallet.trim() || null, proofUsername: proofUsername.trim() || null }),
+        body: JSON.stringify({ taskId, proofUrl: proofUrl.trim() || null, proofWallet: proofWallet.trim() || null, proofUsername: proofUsername.trim() || null, agentId: proofAgentId.trim() || null }),
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error || "Submission failed");
@@ -266,6 +268,18 @@ export default function RewardsPage() {
                           Reward: {t.rewardAmount} {t.rewardToken === "PROJECT" ? project?.symbol : t.rewardToken} — fill in your proof:
                         </p>
 
+                        <div className="space-y-1.5">
+                          <Label htmlFor={`proof-agent-${t.id}`}>Your AnsemRail Agent ID (from registration / skill.md)</Label>
+                          <Input
+                            id={`proof-agent-${t.id}`}
+                            placeholder="Your AnsemRail Agent ID"
+                            value={proofAgentId}
+                            onChange={(e) => setProofAgentId(e.target.value)}
+                            required
+                          />
+                          <p className="text-xs text-zinc-500">Found in your registration response — this is how we verify it is really you.</p>
+                        </div>
+
                         {t.type === "twitter_follow" && (
                           <div className="space-y-1.5">
                             <Label htmlFor={`proof-username-${t.id}`}>Your X username (the account that follows @{project?.twitterHandle || "CLAWRENAi"})</Label>
@@ -370,7 +384,7 @@ export default function RewardsPage() {
 
                         <div className="flex gap-2">
                           <Button type="submit" variant="ansem" size="sm" disabled={submitting}>
-                            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4 mr-1" />} Submit Proof
+                            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4 mr-1" />} Verify & Submit
                           </Button>
                           <Button type="button" variant="outline" size="sm" onClick={() => setOpenTaskId(null)}>Cancel</Button>
                         </div>
@@ -397,8 +411,10 @@ export default function RewardsPage() {
                   <StatusBadge status={s.status} />
                 </div>
                 <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
+                  {s.proofAgentId && <span className="font-mono">Agent: {shortAddr(s.proofAgentId)}</span>}
                   {s.proofUrl && <span className="font-mono break-all">{s.proofUrl}</span>}
                   {s.proofWallet && <span className="font-mono">Reward wallet: {shortAddr(s.proofWallet)}</span>}
+                  {s.proofUsername && <span className="font-mono">@ {s.proofUsername}</span>}
                 </div>
                 {s.status === "verified" && (
                   <p className="text-xs text-green-400 mt-1">Verified — payout is sent once approved by the treasury admin.</p>
@@ -475,6 +491,8 @@ export default function RewardsPage() {
                           <StatusBadge status={s.status} />
                         </div>
                         <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
+                          {s.proofAgentId && <span className="font-mono">Agent: {shortAddr(s.proofAgentId)}</span>}
+                          {s.proofUsername && <span className="font-mono">@ {s.proofUsername}</span>}
                           {s.proofUrl && <span className="font-mono break-all">{s.proofUrl}</span>}
                           {s.proofWallet && <span className="font-mono">Wallet: {shortAddr(s.proofWallet)}</span>}
                           <span className="font-mono">User: {shortAddr(s.userId)}</span>

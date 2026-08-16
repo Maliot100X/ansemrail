@@ -223,6 +223,7 @@ export const rewardSubmissions = pgTable("reward_submissions", {
   proofUrl: text("proof_url"),
   proofWallet: text("proof_wallet"),
   proofUsername: text("proof_username"),
+  proofAgentId: text("proof_agent_id"),
   proofHash: text("proof_hash").notNull().unique(), // unique => no double claim
   status: text("status").notNull().default("pending"), // pending | verified | rejected
   verifiedBy: text("verified_by"),

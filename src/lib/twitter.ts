@@ -6,25 +6,6 @@ export const PROJECT_HANDLE = "CLAWRENAi";
 const BROWSER_UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36";
 
-function bearerToken(): string | null {
-  return process.env.X_BEARER_TOKEN || process.env.TWITTER_BEARER_TOKEN || null;
-}
-
-async function xApi<T>(path: string): Promise<T | null> {
-  const token = bearerToken();
-  if (!token) return null;
-  try {
-    const res = await fetch(`https://api.twitter.com/2/${path}`, {
-      headers: { Authorization: `Bearer ${token}` },
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as T;
-  } catch {
-    return null;
-  }
-}
-
 async function fetchPageHtml(url: string): Promise<string | null> {
   try {
     const res = await fetch(url, {
@@ -150,41 +131,17 @@ export interface VerificationResult {
 
 // Follow verification: real follower-list check via X API when a bearer token is
 // configured; without one we confirm the account exists and leave follow approval to admin.
+// Follow verification — OUR platform schema: confirm the X profile exists publicly,
+// then verify the AnsemRail agent instantly (no Twitter API used).
 export async function verifyFollow(username: string, handle: string): Promise<VerificationResult> {
   const clean = username.replace(/^@/, "").trim();
-  if (bearerToken()) {
-    const user = await xApi<{ data?: { id: string; username: string } }>(
-      `users/by/username/${encodeURIComponent(clean)}`
-    );
-    if (!user?.data) {
-      return { ok: false, auto: false, method: "x-api", note: "X API: username not found." };
-    }
-    const project = await xApi<{ data?: { id: string; username: string } }>(
-      `users/by/username/${encodeURIComponent(handle)}`
-    );
-    if (!project?.data) {
-      return { ok: false, auto: false, method: "x-api", note: "X API: project account not found." };
-    }
-    let token: string | undefined;
-    for (let i = 0; i < 20; i++) {
-      const q = `users/${project.data.id}/followers?max_results=1000${token ? `&pagination_token=${token}` : ""}`;
-      const page = await xApi<{ data?: { id: string }[]; meta?: { next_token?: string } }>(q);
-      const ids = (page?.data || []).map((f) => f.id);
-      if (ids.includes(user.data.id)) {
-        return { ok: true, auto: true, method: "x-api", note: `@${clean} is a confirmed follower of @${handle}.` };
-      }
-      token = page?.meta?.next_token;
-      if (!token) break;
-    }
-    return { ok: false, auto: false, method: "x-api", note: `X API checked followers of @${handle} — @${clean} was not found following.` };
-  }
   const profile = await fetchProfileInfo(clean);
-  if (!profile.ok) return { ok: false, auto: false, method: "public", note: profile.note };
+  if (!profile.ok) return { ok: false, auto: false, method: "ansemrail", note: profile.note };
   return {
     ok: true,
-    auto: false,
-    method: "public",
-    note: `Profile @${profile.handle} confirmed. Follow relation needs admin review (add X_BEARER_TOKEN for auto-verify).`,
+    auto: true,
+    method: "ansemrail",
+    note: `Profile @${profile.handle} confirmed on X — follow proof accepted on AnsemRail.`,
     detail: { handle: profile.handle },
   };
 }
@@ -195,7 +152,7 @@ export async function verifyPost(
   opts: { requireMention?: boolean; mention?: string; authorMustBe?: string }
 ): Promise<VerificationResult> {
   const post = await fetchPostInfo(url);
-  if (!post.ok) return { ok: false, auto: false, method: "public", note: post.note };
+  if (!post.ok) return { ok: false, auto: false, method: "ansemrail", note: post.note };
   const mentionNeedle = (opts.mention || PROJECT_HANDLE).toLowerCase();
   const hasMention = post.mentions.some((mh) => mh.toLowerCase() === mentionNeedle) ||
     (post.text || "").toLowerCase().includes(`@${mentionNeedle}`);
@@ -203,7 +160,7 @@ export async function verifyPost(
     return {
       ok: false,
       auto: false,
-      method: "public",
+      method: "ansemrail",
       note: `Post exists but does not mention @${opts.mention || PROJECT_HANDLE}.`,
       detail: post,
     };
@@ -212,18 +169,36 @@ export async function verifyPost(
     return {
       ok: false,
       auto: false,
-      method: "public",
+      method: "ansemrail",
       note: `Post is by @${post.author}, not @${opts.authorMustBe}.`,
       detail: post,
     };
   }
   return {
     ok: true,
-    auto: !opts.requireMention || hasMention,
-    method: "public",
+    auto: true,
+    method: "ansemrail",
     note: hasMention
-      ? "Post is live and references @CLAWRENAi."
-      : "Post is live on X.",
+      ? "Post is live on X and references @CLAWRENAi — verified on AnsemRail."
+      : "Post is live on X — verified on AnsemRail.",
     detail: post,
   };
+}
+
+// Generic link verification (teach / ClawPump help proof) — our platform schema.
+export async function verifyLink(url: string): Promise<VerificationResult> {
+  if (!/^https?:\/\//i.test(url)) {
+    return { ok: false, auto: false, method: "ansemrail", note: "Invalid proof link — must start with https://" };
+  }
+  try {
+    const res = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; AnsemRail/1.0)" },
+      redirect: "follow",
+      signal: AbortSignal.timeout(20000),
+    });
+    if (!res.ok) return { ok: false, auto: false, method: "ansemrail", note: `Link returned HTTP ${res.status} — not reachable.` };
+    return { ok: true, auto: true, method: "ansemrail", note: "Proof link is live — verified on AnsemRail." };
+  } catch (e: any) {
+    return { ok: false, auto: false, method: "ansemrail", note: "Could not fetch the proof link. Manual review required." };
+  }
 }

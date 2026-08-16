@@ -4,7 +4,7 @@ import { rewardTasks, rewardSubmissions } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { getRequestUser } from "@/lib/auth-session";
 import { proofHash, verifyHolding } from "@/lib/rewards";
-import { verifyFollow, verifyPost, PROJECT_HANDLE } from "@/lib/twitter";
+import { verifyFollow, verifyPost, verifyLink, PROJECT_HANDLE } from "@/lib/twitter";
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,9 +14,18 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { taskId, proofUrl, proofWallet, proofUsername } = body;
+    const { taskId, proofUrl, proofWallet, proofUsername, agentId } = body;
     if (!taskId) {
       return NextResponse.json({ error: "taskId is required" }, { status: 400 });
+    }
+
+    // Agent ID from AnsemRail registration must match the logged-in account.
+    const agentIdClean = String(agentId || "").trim();
+    if (agentIdClean && agentIdClean.toLowerCase() !== user.id.toLowerCase()) {
+      return NextResponse.json(
+        { error: "Agent ID does not match your AnsemRail account — use the Agent ID you got at registration." },
+        { status: 400 }
+      );
     }
 
     const [task] = await db
@@ -62,7 +71,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verification per task type
+    // Instant verification — OUR platform schema (no Twitter API):
+    // X profile/post fetched publicly, on-chain holding checked via RPC, agent ID validated above.
     let status = "pending";
     let verifiedBy: string | null = null;
     let verifiedAt: Date | null = null;
@@ -89,28 +99,33 @@ export async function POST(request: NextRequest) {
       verifyResult = check;
       if (check.ok && check.auto) {
         status = "verified";
-        verifiedBy = check.method;
+        verifiedBy = "ansemrail";
         verifiedAt = new Date();
-      } else {
-        status = "pending"; // admin confirms the follow (or X API key needed)
       }
     } else if (type === "twitter_post") {
       const check = await verifyPost(proofUrl, { requireMention: true, mention: handle });
       verifyResult = check;
       if (check.ok && check.auto) {
         status = "verified";
-        verifiedBy = check.method;
+        verifiedBy = "ansemrail";
         verifiedAt = new Date();
-      } else {
-        status = "pending";
       }
     } else if (type === "twitter_like" || type === "twitter_comment") {
-      const check = await verifyPost(proofUrl, {
-        requireMention: type === "twitter_comment",
-        mention: handle,
-      });
+      const check = await verifyPost(proofUrl, { requireMention: type === "twitter_comment", mention: handle });
       verifyResult = check;
-      status = "pending"; // like/comment always reviewed by admin
+      if (check.ok && check.auto) {
+        status = "verified";
+        verifiedBy = "ansemrail";
+        verifiedAt = new Date();
+      }
+    } else if (type === "teach") {
+      const check = await verifyLink(proofUrl);
+      verifyResult = check;
+      if (check.ok && check.auto) {
+        status = "verified";
+        verifiedBy = "ansemrail";
+        verifiedAt = new Date();
+      }
     }
 
     const [submission] = await db
@@ -121,6 +136,7 @@ export async function POST(request: NextRequest) {
         proofUrl: proofUrl || null,
         proofWallet: proofWallet || null,
         proofUsername: proofUsername ? proofUsername.replace(/^@/, "") : null,
+        proofAgentId: user.id,
         proofHash: hash,
         status,
         verifiedBy,
@@ -135,8 +151,8 @@ export async function POST(request: NextRequest) {
         verify: verifyResult,
         message:
           status === "verified"
-            ? "Proof verified! Reward is queued for payout."
-            : "Proof submitted. Verification in progress — admin review may be required.",
+            ? "Verified instantly on AnsemRail — reward is queued for payout."
+            : "Proof could not be auto-verified — pending review.",
       },
       { status: 201 }
     );

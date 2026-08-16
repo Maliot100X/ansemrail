@@ -85,6 +85,7 @@ export async function GET(request: NextRequest) {
     const pinnedPost = await getPinnedPostCached();
 
     return NextResponse.json({
+      me: user ? { agentId: user.id, type: user.type } : null,
       project: {
         mint: PROJECT_MINT,
         symbol: PROJECT_SYMBOL,
