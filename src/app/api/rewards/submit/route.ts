@@ -3,7 +3,8 @@ import { db } from "@/db/client";
 import { rewardTasks, rewardSubmissions } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { getRequestUser } from "@/lib/auth-session";
-import { proofHash, verifyHolding, verifyTwitterPost } from "@/lib/rewards";
+import { proofHash, verifyHolding } from "@/lib/rewards";
+import { verifyFollow, verifyPost, PROJECT_HANDLE } from "@/lib/twitter";
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { taskId, proofUrl, proofWallet } = body;
+    const { taskId, proofUrl, proofWallet, proofUsername } = body;
     if (!taskId) {
       return NextResponse.json({ error: "taskId is required" }, { status: 400 });
     }
@@ -32,9 +33,13 @@ export async function POST(request: NextRequest) {
 
     const proof = (task.proofJson as any) || {};
     const type = task.type;
+    const handle = proof.handle || PROJECT_HANDLE;
 
-    if ((type === "twitter_follow" || type === "twitter_like" || type === "twitter_comment" || type === "twitter_post") && !proofUrl) {
-      return NextResponse.json({ error: "proofUrl (your X post link) is required" }, { status: 400 });
+    if (type === "twitter_follow" && !proofUsername) {
+      return NextResponse.json({ error: "Your X username is required — enter the username that follows @" + handle }, { status: 400 });
+    }
+    if ((type === "twitter_like" || type === "twitter_comment" || type === "twitter_post") && !proofUrl) {
+      return NextResponse.json({ error: "Your X post link is required" }, { status: 400 });
     }
     if ((type === "buy_coin" || type === "holding" || type === "custom") && !proofWallet) {
       return NextResponse.json({ error: "proofWallet (the Solana wallet for the reward) is required" }, { status: 400 });
@@ -44,7 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Unique proof — same (user + task + proof) can never be claimed twice
-    const hash = proofHash([user.id, taskId, proofUrl || "", proofWallet || ""]);
+    const hash = proofHash([user.id, taskId, proofUrl || "", proofWallet || "", (proofUsername || "").replace(/^@/, "").toLowerCase()]);
     const [existing] = await db
       .select()
       .from(rewardSubmissions)
@@ -57,7 +62,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Automatic on-chain verification for buy/holding tasks
+    // Verification per task type
     let status = "pending";
     let verifiedBy: string | null = null;
     let verifiedAt: Date | null = null;
@@ -79,11 +84,33 @@ export async function POST(request: NextRequest) {
         verifiedBy = "auto-onchain";
         verifiedAt = new Date();
       }
-    } else if (type === "twitter_follow" || type === "twitter_like" || type === "twitter_comment" || type === "twitter_post") {
-      const check = await verifyTwitterPost(proofUrl, proof.handle || "CLAWRENAi");
+    } else if (type === "twitter_follow") {
+      const check = await verifyFollow(proofUsername, handle);
       verifyResult = check;
-      // Do not auto-pay Twitter tasks — admin reviews likes/follows/comments.
-      status = check.reachable ? "pending" : "pending";
+      if (check.ok && check.auto) {
+        status = "verified";
+        verifiedBy = check.method;
+        verifiedAt = new Date();
+      } else {
+        status = "pending"; // admin confirms the follow (or X API key needed)
+      }
+    } else if (type === "twitter_post") {
+      const check = await verifyPost(proofUrl, { requireMention: true, mention: handle });
+      verifyResult = check;
+      if (check.ok && check.auto) {
+        status = "verified";
+        verifiedBy = check.method;
+        verifiedAt = new Date();
+      } else {
+        status = "pending";
+      }
+    } else if (type === "twitter_like" || type === "twitter_comment") {
+      const check = await verifyPost(proofUrl, {
+        requireMention: type === "twitter_comment",
+        mention: handle,
+      });
+      verifyResult = check;
+      status = "pending"; // like/comment always reviewed by admin
     }
 
     const [submission] = await db
@@ -93,6 +120,7 @@ export async function POST(request: NextRequest) {
         taskId,
         proofUrl: proofUrl || null,
         proofWallet: proofWallet || null,
+        proofUsername: proofUsername ? proofUsername.replace(/^@/, "") : null,
         proofHash: hash,
         status,
         verifiedBy,
@@ -107,8 +135,8 @@ export async function POST(request: NextRequest) {
         verify: verifyResult,
         message:
           status === "verified"
-            ? "Holding verified on-chain! Reward is queued for payout."
-            : "Proof submitted. Verification in progress — admin review may be required for X tasks.",
+            ? "Proof verified! Reward is queued for payout."
+            : "Proof submitted. Verification in progress — admin review may be required.",
       },
       { status: 201 }
     );

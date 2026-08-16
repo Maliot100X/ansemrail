@@ -45,6 +45,8 @@ export async function GET(request: NextRequest) {
         created_at timestamp DEFAULT now() NOT NULL
       )
     `);
+    await db.execute(sql`ALTER TABLE reward_submissions ADD COLUMN IF NOT EXISTS proof_username text`);
+
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS reward_payments (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),

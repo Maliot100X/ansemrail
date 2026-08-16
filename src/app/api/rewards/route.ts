@@ -15,6 +15,7 @@ import {
   getTreasurySolBalance,
   getWalletHolding,
 } from "@/lib/rewards";
+import { getPinnedPostCached } from "@/lib/twitter";
 
 export const dynamic = "force-dynamic";
 
@@ -81,6 +82,8 @@ export async function GET(request: NextRequest) {
       };
     });
 
+    const pinnedPost = await getPinnedPostCached();
+
     return NextResponse.json({
       project: {
         mint: PROJECT_MINT,
@@ -88,6 +91,7 @@ export async function GET(request: NextRequest) {
         twitterHandle: TWITTER_HANDLE,
         twitterUrl: TWITTER_URL,
         buyLink: `https://pump.fun/coin/${PROJECT_MINT}`,
+        pinnedPost,
       },
       treasury,
       tokens: {

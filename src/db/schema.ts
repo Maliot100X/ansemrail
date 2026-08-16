@@ -222,6 +222,7 @@ export const rewardSubmissions = pgTable("reward_submissions", {
   taskId: uuid("task_id").references(() => rewardTasks.id),
   proofUrl: text("proof_url"),
   proofWallet: text("proof_wallet"),
+  proofUsername: text("proof_username"),
   proofHash: text("proof_hash").notNull().unique(), // unique => no double claim
   status: text("status").notNull().default("pending"), // pending | verified | rejected
   verifiedBy: text("verified_by"),

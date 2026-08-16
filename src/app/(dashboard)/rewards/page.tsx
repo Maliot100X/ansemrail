@@ -29,7 +29,7 @@ function proofKind(type: string): "twitter" | "buy" | "teach" | "custom" | "gene
 
 function proofLabel(type: string): string {
   const k = proofKind(type);
-  if (k === "twitter") return "X post link";
+  if (k === "twitter") return type === "twitter_follow" ? "X username" : "X post link";
   if (k === "buy") return "wallet";
   if (k === "teach") return "proof link";
   if (k === "custom") return "link + wallet";
@@ -43,6 +43,7 @@ export default function RewardsPage() {
   const [openTaskId, setOpenTaskId] = useState<string | null>(null);
   const [proofUrl, setProofUrl] = useState("");
   const [proofWallet, setProofWallet] = useState("");
+  const [proofUsername, setProofUsername] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [resultFor, setResultFor] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
@@ -75,6 +76,7 @@ export default function RewardsPage() {
     setOpenTaskId(task.id);
     setProofUrl("");
     setProofWallet("");
+    setProofUsername("");
     setResultFor(null);
     setResult(null);
     setErrorFor(null);
@@ -90,7 +92,7 @@ export default function RewardsPage() {
       const res = await fetch("/api/rewards/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskId, proofUrl: proofUrl.trim() || null, proofWallet: proofWallet.trim() || null }),
+        body: JSON.stringify({ taskId, proofUrl: proofUrl.trim() || null, proofWallet: proofWallet.trim() || null, proofUsername: proofUsername.trim() || null }),
       });
       const d = await res.json();
       if (!res.ok) throw new Error(d.error || "Submission failed");
@@ -240,6 +242,7 @@ export default function RewardsPage() {
                         <span className="font-mono">{t.type}</span>
                         {t.proof?.minUsd ? <span>· ${t.proof.minUsd}+ buy</span> : null}
                         <span>· proof: {proofLabel(t.type)}</span>
+                        {(t.type === "twitter_like" || t.type === "twitter_comment") && project?.pinnedPost && <span>· <a href={project.pinnedPost.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-zinc-300">pinned post</a></span>}
                       </div>
                       {my ? (
                         <div className="flex items-center gap-2">
@@ -263,19 +266,58 @@ export default function RewardsPage() {
                           Reward: {t.rewardAmount} {t.rewardToken === "PROJECT" ? project?.symbol : t.rewardToken} — fill in your proof:
                         </p>
 
-                        {(kind === "twitter" || kind === "teach" || kind === "custom") && (
+                        {t.type === "twitter_follow" && (
+                          <div className="space-y-1.5">
+                            <Label htmlFor={`proof-username-${t.id}`}>Your X username (the account that follows @{project?.twitterHandle || "CLAWRENAi"})</Label>
+                            <Input
+                              id={`proof-username-${t.id}`}
+                              placeholder="@yourusername"
+                              value={proofUsername}
+                              onChange={(e) => setProofUsername(e.target.value)}
+                              required
+                            />
+                            <p className="text-xs text-zinc-500">We check your username against the real followers of @{project?.twitterHandle || "CLAWRENAi"}.</p>
+                          </div>
+                        )}
+
+                        {(t.type === "twitter_like" || t.type === "twitter_comment") && project?.pinnedPost && (
+                          <div className="space-y-1.5 rounded-md border border-sky-800/50 bg-sky-950/20 p-3">
+                            <p className="text-xs font-medium text-sky-300">Pinned post (auto-fetched from X)</p>
+                            <a href={project.pinnedPost.url} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-400 break-all underline hover:text-zinc-200">
+                              {project.pinnedPost.url} <ExternalLink className="h-3 w-3 inline" />
+                            </a>
+                            <p className="text-xs text-zinc-500">{t.type === "twitter_like" ? "Like this exact post, then paste its link below." : "Comment on this exact post (tag @clawpumptech and @blknoiz06), then paste your comment link below."}</p>
+                          </div>
+                        )}
+
+                        {(t.type === "twitter_like" || t.type === "twitter_comment" || t.type === "twitter_post") && (
+                          <div className="space-y-1.5">
+                            <Label htmlFor={`proof-url-${t.id}`}>Your X post link (proof)</Label>
+                            <Input
+                              id={`proof-url-${t.id}`}
+                              placeholder="https://x.com/.../status/123456"
+                              value={proofUrl}
+                              onChange={(e) => setProofUrl(e.target.value)}
+                              required
+                            />
+                            {t.type === "twitter_post" && <p className="text-xs text-zinc-500">Your post must mention or reference @{project?.twitterHandle || "CLAWRENAi"} — verified automatically.</p>}
+                            {t.type === "twitter_comment" && <p className="text-xs text-zinc-500">Paste the link of your comment/reply on the pinned post.</p>}
+                            {t.type === "twitter_like" && <p className="text-xs text-zinc-500">Paste the link of the pinned post you liked.</p>}
+                          </div>
+                        )}
+
+                        {(kind === "teach" || kind === "custom") && (
                           <div className="space-y-1.5">
                             <Label htmlFor={`proof-url-${t.id}`}>
-                              {kind === "twitter" ? "Your X post link (proof)" : kind === "teach" ? "Proof link (e.g. X post / ClawPump link)" : "Proof link (optional — e.g. your post or share)"}
+                              {kind === "teach" ? "Proof link (e.g. X post / ClawPump link)" : "Proof link (optional — e.g. your post or share)"}
                             </Label>
                             <Input
                               id={`proof-url-${t.id}`}
-                              placeholder={kind === "twitter" ? "https://x.com/.../status/123456" : "https://..."}
+                              placeholder="https://..."
                               value={proofUrl}
                               onChange={(e) => setProofUrl(e.target.value)}
                               required={kind !== "custom"}
                             />
-                            {kind === "twitter" && <p className="text-xs text-zinc-500">Paste the link of your X post / reply / like. It must mention or reference @CLAWRENAi.</p>}
                             {kind === "teach" && <p className="text-xs text-zinc-500">Paste the link of the ClawPump help/trade you completed.</p>}
                           </div>
                         )}
@@ -315,9 +357,12 @@ export default function RewardsPage() {
                             {result.message}
                             {result.verify && (
                               <p className="text-xs text-zinc-400 mt-1">
-                                {result.verify.ok
-                                  ? `On-chain balance ${(result.verify.balance / 1e6).toLocaleString()} / required ${(result.verify.min / 1e6).toLocaleString()} — verified.`
-                                  : `On-chain balance ${(result.verify.balance / 1e6).toLocaleString()} / required ${(result.verify.min / 1e6).toLocaleString()} — not enough yet.`}
+                                {result.verify.note && <span>{result.verify.note}<br /></span>}
+                                {typeof result.verify.balance === "number" && (
+                                  result.verify.ok
+                                    ? `On-chain balance ${(result.verify.balance / 1e6).toLocaleString()} / required ${(result.verify.min / 1e6).toLocaleString()} — verified.`
+                                    : `On-chain balance ${(result.verify.balance / 1e6).toLocaleString()} / required ${(result.verify.min / 1e6).toLocaleString()} — not enough yet.`
+                                )}
                               </p>
                             )}
                           </div>

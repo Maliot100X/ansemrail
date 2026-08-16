@@ -149,34 +149,6 @@ export async function verifyHolding(
   return { ok: balance >= min, balance, min };
 }
 
-export async function verifyTwitterPost(
-  url: string,
-  expectedHandle: string
-): Promise<{ ok: boolean; reachable: boolean; note: string }> {
-  if (!/^https?:\/\/(x\.com|twitter\.com)\/[^/]+\/status\/\d+/i.test(url)) {
-    return { ok: false, reachable: false, note: "Invalid X post link — must be a x.com/twitter.com status URL." };
-  }
-  try {
-    const res = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; AnsemRail/1.0)" },
-      redirect: "follow",
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!res.ok) return { ok: false, reachable: false, note: `Post returned HTTP ${res.status} — not reachable.` };
-    const text = (await res.text()).toLowerCase();
-    const handleFound = text.includes(expectedHandle.toLowerCase());
-    return {
-      ok: handleFound,
-      reachable: true,
-      note: handleFound
-        ? "Post is live and references the project handle. Final approval by admin before payout."
-        : "Post is live but the project handle was not found in it.",
-    };
-  } catch (e: any) {
-    return { ok: false, reachable: false, note: "Could not fetch the post (network/X blocking). Manual review required." };
-  }
-}
-
 export async function sendSplReward(
   mint: string,
   toWallet: string,
