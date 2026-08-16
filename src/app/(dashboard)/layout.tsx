@@ -24,6 +24,9 @@ import {
   PieChart,
   Trophy,
   Gift,
+Flame,
+Shield,
+CreditCard,
 } from "lucide-react";
 
 const navItems = [
@@ -42,6 +45,9 @@ const navItems = [
   { href: "/portfolio", label: "Portfolio", icon: PieChart },
   { href: "/rewards", label: "Rewards", icon: Gift },
   { href: "/leaderboard", label: "Leaderboard", icon: Trophy },
+  { href: "/bounties", label: "Bounties", icon: Flame },
+  { href: "/registry", label: "Registry", icon: Shield },
+  { href: "/payments", label: "x402 Pay", icon: CreditCard },
 ];
 
 export default function DashboardLayout({
