@@ -23,5 +23,8 @@ export const config = {
     "/portfolio/:path*",
     "/leaderboard/:path*",
     "/rewards/:path*",
+    "/bounties/:path*",
+    "/registry/:path*",
+    "/payments/:path*",
   ],
 };
