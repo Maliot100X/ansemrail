@@ -6,7 +6,18 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Trophy, Plus, Clock, CheckCircle, AlertTriangle, Flame } from "lucide-react";
+import {
+  Trophy,
+  Plus,
+  Clock,
+  CheckCircle,
+  AlertTriangle,
+  Flame,
+  ExternalLink,
+  X,
+  Wallet,
+  Loader2,
+} from "lucide-react";
 
 interface Bounty {
   id: string;
@@ -16,7 +27,10 @@ interface Bounty {
   rewardAmount: string;
   status: string;
   deliverable: string | null;
+  proofUrl: string | null;
   deadline: string | null;
+  creatorUserId: string | null;
+  assigneeUserId: string | null;
   createdAt: string;
 }
 
@@ -24,44 +38,115 @@ export default function BountiesPage() {
   const [bounties, setBounties] = useState<Bounty[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
-  const [form, setForm] = useState({ title: "", description: "", rewardToken: "CLAWRENA", rewardAmount: "", deliverable: "" });
+  const [form, setForm] = useState({
+    title: "",
+    description: "",
+    rewardToken: "CLAWRENA",
+    rewardAmount: "",
+    deliverable: "",
+  });
   const [filter, setFilter] = useState("open");
+  const [selectedBounty, setSelectedBounty] = useState<Bounty | null>(null);
+  const [proofUrl, setProofUrl] = useState("");
+  const [completing, setCompleting] = useState(false);
+  const [claiming, setClaiming] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`/api/bounties?status=${filter}`)
-      .then((r) => r.json())
-      .then((d) => { setBounties(d.bounties || []); setLoading(false); })
-      .catch(() => setLoading(false));
+    fetchBounties();
   }, [filter]);
 
+  async function fetchBounties() {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/bounties?status=${filter}`);
+      const d = await res.json();
+      setBounties(d.bounties || []);
+    } catch {}
+    setLoading(false);
+  }
+
   async function createBounty() {
-    const res = await fetch("/api/bounties", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    const data = await res.json();
-    if (data.bounty) {
+    if (!form.title || !form.description || !form.rewardAmount) {
+      setError("Title, description, and reward amount are required");
+      return;
+    }
+    setCreating(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/bounties", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Create failed");
       setBounties([data.bounty, ...bounties]);
       setShowCreate(false);
-      setForm({ title: "", description: "", rewardToken: "ANSEM", rewardAmount: "", deliverable: "" });
+      setForm({ title: "", description: "", rewardToken: "CLAWRENA", rewardAmount: "", deliverable: "" });
+    } catch (err: any) {
+      setError(err.message);
     }
+    setCreating(false);
   }
 
   async function claimBounty(id: string) {
-    await fetch(`/api/bounties/${id}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "claim" }),
-    });
-    setBounties(bounties.map((b) => b.id === id ? { ...b, status: "in_progress" } : b));
+    setClaiming(id);
+    try {
+      const res = await fetch(`/api/bounties/${id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "claim" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Claim failed");
+      setBounties(bounties.map((b) => (b.id === id ? { ...b, status: "in_progress", assigneeUserId: "me" } : b)));
+      setSelectedBounty(null);
+    } catch (err: any) {
+      setError(err.message);
+    }
+    setClaiming(null);
+  }
+
+  async function completeBounty(id: string) {
+    if (!proofUrl) {
+      setError("Proof URL is required to complete a bounty");
+      return;
+    }
+    setCompleting(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/bounties/${id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "complete", proofUrl }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Complete failed");
+      setBounties(bounties.map((b) => (b.id === id ? { ...b, status: "completed", proofUrl } : b)));
+      setSelectedBounty(null);
+      setProofUrl("");
+    } catch (err: any) {
+      setError(err.message);
+    }
+    setCompleting(false);
   }
 
   function statusIcon(s: string) {
     if (s === "open") return <Flame className="h-4 w-4 text-green-400" />;
     if (s === "in_progress") return <Clock className="h-4 w-4 text-amber-400" />;
     if (s === "completed") return <CheckCircle className="h-4 w-4 text-emerald-400" />;
+    if (s === "paid") return <CheckCircle className="h-4 w-4 text-blue-400" />;
     return <AlertTriangle className="h-4 w-4 text-red-400" />;
+  }
+
+  function statusColor(s: string) {
+    if (s === "open") return "success";
+    if (s === "in_progress") return "ansem";
+    if (s === "completed") return "secondary";
+    if (s === "paid") return "outline";
+    return "destructive";
   }
 
   return (
@@ -76,6 +161,16 @@ export default function BountiesPage() {
         </Button>
       </div>
 
+      {error && (
+        <div className="rounded-lg border border-red-800/50 bg-red-950/20 p-3 text-sm text-red-300 flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          {error}
+          <button onClick={() => setError(null)} className="ml-auto text-red-400 hover:text-red-200">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       <div className="flex gap-2">
         {["open", "in_progress", "completed", "all"].map((s) => (
           <Button key={s} variant={filter === s ? "default" : "outline"} size="sm" onClick={() => setFilter(s)}>
@@ -84,59 +179,198 @@ export default function BountiesPage() {
         ))}
       </div>
 
+      {/* Create Form */}
       {showCreate && (
         <Card className="border-amber-800/50">
-          <CardHeader><CardTitle className="text-sm">Create a Bounty</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Trophy className="h-4 w-4 text-amber-500" /> Create a Bounty
+            </CardTitle>
+          </CardHeader>
           <CardContent className="space-y-3">
             <Input placeholder="Bounty title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
-            <Input placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+            <Input placeholder="Description — what this bounty is about" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+            <Input placeholder="Deliverable — what you expect from the bounty hunter" value={form.deliverable} onChange={(e) => setForm({ ...form, deliverable: e.target.value })} />
             <div className="grid grid-cols-2 gap-3">
-              <Input placeholder="Reward amount" value={form.rewardAmount} onChange={(e) => setForm({ ...form, rewardAmount: e.target.value })} />
-              <select className="rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100" value={form.rewardToken} onChange={(e) => setForm({ ...form, rewardToken: e.target.value })}>
+              <Input placeholder="Reward amount (e.g. 1)" value={form.rewardAmount} onChange={(e) => setForm({ ...form, rewardAmount: e.target.value })} />
+              <select
+                className="rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100"
+                value={form.rewardToken}
+                onChange={(e) => setForm({ ...form, rewardToken: e.target.value })}
+              >
+                <option value="CLAWRENA">CLAWRENA</option>
                 <option value="ANSEM">ANSEM</option>
                 <option value="CLAW">CLAW</option>
-                <option value="CLAWRENA">CLAWRENA</option>
                 <option value="SOL">SOL</option>
                 <option value="USDC">USDC</option>
               </select>
             </div>
-            <Input placeholder="Deliverable (what you expect)" value={form.deliverable} onChange={(e) => setForm({ ...form, deliverable: e.target.value })} />
-            <Button onClick={createBounty} className="bg-amber-600 hover:bg-amber-700">Create</Button>
+            <p className="text-xs text-zinc-500">
+              Bounty will be paid from the platform treasury when completed and approved.
+            </p>
+            <div className="flex gap-2">
+              <Button onClick={createBounty} className="bg-amber-600 hover:bg-amber-700" disabled={creating}>
+                {creating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Create Bounty
+              </Button>
+              <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
+            </div>
           </CardContent>
         </Card>
       )}
 
+      {/* Bounty List */}
       {loading ? (
         <p className="text-sm text-zinc-500">Loading bounties...</p>
       ) : bounties.length === 0 ? (
-        <Card><CardContent className="py-8 text-center text-sm text-zinc-500">No bounties yet. Create the first one!</CardContent></Card>
+        <Card>
+          <CardContent className="py-8 text-center text-sm text-zinc-500">
+            No bounties yet. Create the first one!
+          </CardContent>
+        </Card>
       ) : (
         <div className="space-y-3">
           {bounties.map((b) => (
-            <Card key={b.id} className="border-zinc-800 bg-zinc-900/50">
+            <Card
+              key={b.id}
+              className={`border-zinc-800 bg-zinc-900/50 cursor-pointer transition-colors hover:border-zinc-700 ${
+                selectedBounty?.id === b.id ? "border-amber-700/50" : ""
+              }`}
+              onClick={() => setSelectedBounty(selectedBounty?.id === b.id ? null : b)}
+            >
               <CardContent className="p-5">
                 <div className="flex items-start justify-between">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       {statusIcon(b.status)}
                       <h3 className="font-semibold text-zinc-100">{b.title}</h3>
-                      <Badge variant={b.status === "open" ? "success" : b.status === "completed" ? "secondary" : "ansem"}>
+                      <Badge variant={statusColor(b.status)}>
                         {b.status.replace("_", " ")}
                       </Badge>
                     </div>
-                    <p className="text-sm text-zinc-400 mb-2">{b.description}</p>
-                    {b.deliverable && <p className="text-xs text-zinc-500">Deliverable: {b.deliverable}</p>}
+                    <p className="text-sm text-zinc-400 mb-1">{b.description}</p>
+                    {b.deliverable && (
+                      <p className="text-xs text-zinc-500">
+                        <span className="text-zinc-400">Deliverable:</span> {b.deliverable}
+                      </p>
+                    )}
                   </div>
                   <div className="text-right shrink-0 ml-4">
                     <p className="text-lg font-bold text-amber-400">{b.rewardAmount}</p>
                     <p className="text-xs text-zinc-500">{b.rewardToken}</p>
-                    {b.status === "open" && (
-                      <Button size="sm" className="mt-2 bg-amber-600 hover:bg-amber-700" onClick={() => claimBounty(b.id)}>
-                        Claim
-                      </Button>
-                    )}
                   </div>
                 </div>
+
+                {/* Expanded Detail View */}
+                {selectedBounty?.id === b.id && (
+                  <div className="mt-4 pt-4 border-t border-zinc-800 space-y-3" onClick={(e) => e.stopPropagation()}>
+                    {/* Bounty Details */}
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <p className="text-xs text-zinc-500 mb-1">Status</p>
+                        <div className="flex items-center gap-2">
+                          {statusIcon(b.status)}
+                          <span className="text-zinc-200 capitalize">{b.status.replace("_", " ")}</span>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-xs text-zinc-500 mb-1">Reward</p>
+                        <p className="text-amber-400 font-bold">{b.rewardAmount} {b.rewardToken}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-zinc-500 mb-1">Bounty ID</p>
+                        <p className="font-mono text-xs text-zinc-400 break-all">{b.id}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-zinc-500 mb-1">Created</p>
+                        <p className="text-zinc-300">{new Date(b.createdAt).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+
+                    {b.deliverable && (
+                      <div className="rounded-lg bg-zinc-800/50 p-3">
+                        <p className="text-xs text-zinc-500 mb-1">What you must deliver</p>
+                        <p className="text-sm text-zinc-200">{b.deliverable}</p>
+                      </div>
+                    )}
+
+                    {b.proofUrl && (
+                      <div className="rounded-lg bg-zinc-800/50 p-3">
+                        <p className="text-xs text-zinc-500 mb-1">Proof of completion</p>
+                        <a href={b.proofUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-amber-400 underline break-all hover:text-amber-300">
+                          {b.proofUrl} <ExternalLink className="inline h-3 w-3" />
+                        </a>
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    <div className="flex flex-wrap gap-2">
+                      {b.status === "open" && (
+                        <Button
+                          size="sm"
+                          className="bg-amber-600 hover:bg-amber-700"
+                          disabled={claiming === b.id}
+                          onClick={() => claimBounty(b.id)}
+                        >
+                          {claiming === b.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                          ) : (
+                            <Trophy className="h-4 w-4 mr-1" />
+                          )}
+                          Claim This Bounty
+                        </Button>
+                      )}
+
+                      {b.status === "in_progress" && (
+                        <div className="w-full space-y-2">
+                          <Label htmlFor={`proof-${b.id}`} className="text-xs text-zinc-400">
+                            Submit proof of completion (URL)
+                          </Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id={`proof-${b.id}`}
+                              placeholder="https://x.com/... or any proof link"
+                              value={proofUrl}
+                              onChange={(e) => setProofUrl(e.target.value)}
+                              className="flex-1"
+                            />
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700"
+                              disabled={completing || !proofUrl}
+                              onClick={() => completeBounty(b.id)}
+                            >
+                              {completing ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                              ) : (
+                                <CheckCircle className="h-4 w-4 mr-1" />
+                              )}
+                              Submit
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {b.status === "completed" && (
+                        <Badge variant="secondary">
+                          <Clock className="h-3 w-3 mr-1" /> Waiting for admin payout
+                        </Badge>
+                      )}
+
+                      {b.status === "paid" && (
+                        <Badge variant="success">
+                          <CheckCircle className="h-3 w-3 mr-1" /> Paid out
+                        </Badge>
+                      )}
+
+                      {b.status === "disputed" && (
+                        <Badge variant="destructive">
+                          <AlertTriangle className="h-3 w-3 mr-1" /> Disputed
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
