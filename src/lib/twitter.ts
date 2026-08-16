@@ -102,7 +102,7 @@ export async function fetchPostInfo(url: string): Promise<PostInfo> {
   if (!m) {
     return { ok: false, id: null, author: null, text: null, mentions: [], note: "Invalid X post link — must be a x.com/twitter.com status URL." };
   }
-  const author = m[2];
+  let author = m[2];
   const id = m[3];
   const html = await fetchPageHtml(url);
   if (!html) {
@@ -111,6 +111,26 @@ export async function fetchPostInfo(url: string): Promise<PostInfo> {
   const desc = html.match(/<meta name="description" content="([^"]{0,500})"/i)?.[1] || "";
   const text = desc.replace(/<[^>]+>/g, "").trim();
   const mentions = Array.from(new Set(Array.from(text.matchAll(/@([A-Za-z0-9_]+)/g)).map((x) => x[1])));
+
+  // When URL is /i/status/..., extract real author from HTML meta tags
+  if (author.toLowerCase() === "i") {
+    const ogSiteMatch = html.match(/<meta property="og:site_name" content="@([A-Za-z0-9_]+)"/i);
+    const twitterSiteMatch = html.match(/<meta name="twitter:site" content="@([A-Za-z0-9_]+)"/i);
+    const authorTagMatch = html.match(/<meta property="article:author" content="https:\/\/x\.com\/([A-Za-z0-9_]+)"/i);
+    const bylineMatch = html.match(/Posted by @([A-Za-z0-9_]+)/i) || html.match(/by @([A-Za-z0-9_]+)/i);
+    const metaAuthorMatch = html.match(/<meta name="author" content="@?([A-Za-z0-9_]+)"/i);
+    const realAuthor = ogSiteMatch?.[1] || twitterSiteMatch?.[1] || authorTagMatch?.[1] || bylineMatch?.[1] || metaAuthorMatch?.[1];
+    if (realAuthor && realAuthor.toLowerCase() !== "i" && realAuthor.toLowerCase() !== "twitter") {
+      author = realAuthor;
+    } else {
+      // Try to find any @handle mention in the desc that isn't the poster
+      const descHandles = Array.from(text.matchAll(/@([A-Za-z0-9_]+)/g)).map(x => x[1]);
+      if (descHandles.length > 0) {
+        author = descHandles[0];
+      }
+    }
+  }
+
   return {
     ok: desc.length > 0,
     id,
