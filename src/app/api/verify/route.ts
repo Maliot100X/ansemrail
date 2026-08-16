@@ -7,6 +7,32 @@ import { fetchPostInfo } from "@/lib/twitter";
 
 export const dynamic = "force-dynamic";
 
+export async function GET(request: NextRequest) {
+  try {
+    const user = await getRequestUser(request);
+    if (!user) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+    const [dbUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, user.id))
+      .limit(1);
+    if (!dbUser) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+    const encKeys = (dbUser.encryptedKeys as any) || {};
+    return NextResponse.json({
+      verified: !!encKeys.twitterVerified,
+      handle: encKeys.twitterHandle || null,
+      verifiedAt: encKeys.twitterVerifiedAt || null,
+      tweetUrl: encKeys.verifiedTweetUrl || null,
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message || "Failed to check status" }, { status: 500 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const user = await getRequestUser(request);
