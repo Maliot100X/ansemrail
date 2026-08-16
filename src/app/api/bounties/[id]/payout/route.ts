@@ -11,9 +11,9 @@ const TOKEN_MINTS: Record<string, string> = {
   CLAW: CLAW_MINT,
   CLAWRENA: PROJECT_MINT,
   PROJECT: PROJECT_MINT,
+  SOL: "So11111111111111111111111111111111111111112",
 };
 
-// Admin-only bounty payout — sends real tokens from treasury wallet
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -30,11 +30,10 @@ export async function POST(
       return NextResponse.json({ error: "Bounty not found" }, { status: 404 });
     }
 
-    if (bounty.status !== "completed") {
-      return NextResponse.json({ error: "Bounty must be completed before payout" }, { status: 400 });
+    if (bounty.status !== "completed" && bounty.status !== "approved") {
+      return NextResponse.json({ error: "Bounty must be completed or approved before payout" }, { status: 400 });
     }
 
-    // Get the assignee's wallet address
     const assigneeId = bounty.assigneeUserId;
     if (!assigneeId) {
       return NextResponse.json({ error: "No assignee for this bounty" }, { status: 400 });
@@ -50,27 +49,22 @@ export async function POST(
       return NextResponse.json({ error: "Assignee has no payout wallet set" }, { status: 400 });
     }
 
-    // Check treasury is configured
     const treasuryKeypair = await getTreasuryKeypair();
     if (!treasuryKeypair) {
       return NextResponse.json({ error: "Treasury wallet not configured" }, { status: 500 });
     }
 
-    const treasuryAddr = await treasureWalletAddress();
-    if (!treasuryAddr) {
-      return NextResponse.json({ error: "Treasury address not found" }, { status: 500 });
+    const token = (bounty.rewardToken || "CLAWRENA").toUpperCase();
+    const mint = TOKEN_MINTS[token];
+    if (!mint) {
+      return NextResponse.json({ error: `Unsupported token: ${token}` }, { status: 400 });
     }
 
-    // Map token to mint
-    const token = (bounty.rewardToken || "CLAWRENA").toUpperCase();
-    const mint = TOKEN_MINTS[token] || TOKEN_MINTS["CLAWRENA"];
     const amount = parseFloat(bounty.rewardAmount);
-
     if (!amount || amount <= 0) {
       return NextResponse.json({ error: "Invalid reward amount" }, { status: 400 });
     }
 
-    // Send real SPL token transfer from treasury
     let txSignature: string;
     try {
       txSignature = await sendSplReward(mint, payoutWallet, amount);
@@ -78,22 +72,16 @@ export async function POST(
       return NextResponse.json({ error: "Payout failed: " + err.message }, { status: 500 });
     }
 
-    // Mark bounty as paid
     await db
       .update(bounties)
       .set({ status: "paid", updatedAt: new Date() })
       .where(eq(bounties.id, id));
 
-    // Notify via Telegram
     try {
       if (assignee.telegramChatId) {
         await sendMessage(
           assignee.telegramChatId,
-          `🎉 <b>Bounty Paid!</b>\n\n` +
-          `Task: ${bounty.title}\n` +
-          `Reward: ${bounty.rewardAmount} ${token}\n` +
-          `Tx: https://solscan.io/tx/${txSignature}\n\n` +
-          `View your dashboard: https://ansemrail.vercel.app/dashboard`
+          "🎉 <b>Bounty Paid!</b>\n\nTask: " + bounty.title + "\nReward: " + bounty.rewardAmount + " " + token + "\nTx: https://solscan.io/tx/" + txSignature
         );
       }
     } catch {}
@@ -104,8 +92,8 @@ export async function POST(
       amount: bounty.rewardAmount,
       token,
       payoutWallet,
-      treasury: treasuryAddr,
-      message: `Paid ${bounty.rewardAmount} ${token} to ${payoutWallet}`,
+      treasury: await treasureWalletAddress(),
+      message: "Paid " + bounty.rewardAmount + " " + token + " to " + payoutWallet,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
