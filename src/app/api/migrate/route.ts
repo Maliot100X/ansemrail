@@ -193,6 +193,64 @@ export async function GET(request: NextRequest) {
       `);
     }
 
+    // Support create-new-tables action via GET for easy migration
+    const action = request.nextUrl.searchParams.get("action");
+    if (action === "create-new-tables") {
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS x402_payments (
+          id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id uuid REFERENCES users(id),
+          payer_address text NOT NULL,
+          payee_address text,
+          amount text NOT NULL,
+          token text NOT NULL DEFAULT 'SOL',
+          endpoint text NOT NULL,
+          tx_signature text,
+          status text NOT NULL DEFAULT 'pending',
+          metadata jsonb,
+          created_at timestamp DEFAULT NOW() NOT NULL
+        )
+      `);
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS bounties (
+          id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+          creator_user_id uuid REFERENCES users(id),
+          creator_agent_id text,
+          title text NOT NULL,
+          description text NOT NULL,
+          reward_token text NOT NULL DEFAULT 'ANSEM',
+          reward_amount text NOT NULL,
+          escrow_wallet text,
+          status text NOT NULL DEFAULT 'open',
+          assignee_user_id uuid REFERENCES users(id),
+          deliverable text,
+          proof_url text,
+          deadline timestamp,
+          created_at timestamp DEFAULT NOW() NOT NULL,
+          updated_at timestamp DEFAULT NOW() NOT NULL
+        )
+      `);
+      await db.execute(sql`
+        CREATE TABLE IF NOT EXISTS agent_reputation (
+          id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+          user_id uuid REFERENCES users(id) NOT NULL,
+          trust_tier text NOT NULL DEFAULT 'unrated',
+          reputation_score integer NOT NULL DEFAULT 0,
+          total_trades integer NOT NULL DEFAULT 0,
+          successful_trades integer NOT NULL DEFAULT 0,
+          total_launches integer NOT NULL DEFAULT 0,
+          total_bounties integer NOT NULL DEFAULT 0,
+          completed_bounties integer NOT NULL DEFAULT 0,
+          twitter_verified boolean NOT NULL DEFAULT false,
+          agent_8004_id text,
+          last_activity_at timestamp,
+          created_at timestamp DEFAULT NOW() NOT NULL,
+          updated_at timestamp DEFAULT NOW() NOT NULL
+        )
+      `);
+      return NextResponse.json({ ok: true, message: "Created x402_payments, bounties, agent_reputation tables" });
+    }
+
     return NextResponse.json({
       ok: true,
       message: "Migration complete — reward tables created and tasks seeded.",
