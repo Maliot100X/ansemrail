@@ -26,6 +26,7 @@ export default function BountiesPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", rewardToken: "CLAWRENA", rewardAmount: "", deliverable: "" });
   const [filter, setFilter] = useState("open");
+  const [selected, setSelected] = useState<Bounty | null>(null);
 
   useEffect(() => {
     fetch(`/api/bounties?status=${filter}`)
@@ -107,7 +108,7 @@ export default function BountiesPage() {
       ) : (
         <div className="space-y-3">
           {bounties.map((b) => (
-            <Card key={b.id} className="border-zinc-800 bg-zinc-900/50">
+            <Card key={b.id} className="border-zinc-800 bg-zinc-900/50 cursor-pointer hover:border-amber-800/50 transition-colors" onClick={() => setSelected(selected?.id === b.id ? null : b)>
               <CardContent className="p-5">
                 <div className="flex items-start justify-between">
                   <div className="min-w-0 flex-1">
@@ -140,6 +141,77 @@ export default function BountiesPage() {
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Bounty Detail View */}
+      {selected && (
+        <Card className="border-amber-800/50 bg-gradient-to-r from-amber-950/20 to-zinc-900/50">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-lg text-zinc-50">{selected.title}</CardTitle>
+              <Badge variant={selected.status === "open" ? "success" : selected.status === "completed" ? "secondary" : "ansem"}>
+                {selected.status.replace("_", " ")}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-zinc-300">{selected.description}</p>
+
+            {selected.deliverable && (
+              <div className="rounded-lg bg-zinc-800/50 p-3">
+                <p className="text-xs text-zinc-500 mb-1">📦 Deliverable</p>
+                <p className="text-sm text-zinc-200">{selected.deliverable}</p>
+              </div>
+            )}
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="rounded-lg bg-zinc-800/50 p-3">
+                <p className="text-xs text-zinc-500">💰 Reward</p>
+                <p className="text-lg font-bold text-amber-400">{selected.rewardAmount} {selected.rewardToken}</p>
+              </div>
+              <div className="rounded-lg bg-zinc-800/50 p-3">
+                <p className="text-xs text-zinc-500">📋 Status</p>
+                <p className="text-sm font-medium text-zinc-200">{selected.status.replace("_", " ")}</p>
+              </div>
+              <div className="rounded-lg bg-zinc-800/50 p-3">
+                <p className="text-xs text-zinc-500">📅 Created</p>
+                <p className="text-sm text-zinc-200">{new Date(selected.createdAt).toLocaleDateString()}</p>
+              </div>
+            </div>
+
+            {selected.proofUrl && (
+              <div className="rounded-lg bg-zinc-800/50 p-3">
+                <p className="text-xs text-zinc-500">✅ Proof</p>
+                <a href={selected.proofUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-amber-400 hover:text-amber-300">
+                  {selected.proofUrl}
+                </a>
+              </div>
+            )}
+
+            <div className="flex gap-2">
+              {selected.status === "open" && (
+                <Button size="sm" className="bg-amber-600 hover:bg-amber-700" onClick={() => { claimBounty(selected.id); setSelected({ ...selected, status: "in_progress" }); }}>
+                  Claim Bounty
+                </Button>
+              )}
+              {selected.status === "in_progress" && (
+                <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => { 
+                  const url = prompt("Enter proof URL:");
+                  if (url) { completeBounty(selected.id, url); setSelected({ ...selected, status: "completed", proofUrl: url }); }
+                }}>
+                  Submit Proof
+                </Button>
+              )}
+              {selected.status === "completed" && (
+                <Button size="sm" className="bg-blue-600 hover:bg-blue-700" onClick={() => { payoutBounty(selected.id); setSelected({ ...selected, status: "paid" }); }}>
+                  Pay Bounty (1 CLAWRENA)
+                </Button>
+              )}
+            </div>
+
+            <p className="text-xs text-zinc-500">Bounty ID: {selected.id}</p>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
