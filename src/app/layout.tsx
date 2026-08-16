@@ -17,6 +17,28 @@ export const metadata: Metadata = {
   title: "AnsemRail — Agentic Control Plane",
   description:
     "The agentic control plane combining ClawPump, MoonPay, and Open Wallet Standard — built for both humans and autonomous agents.",
+  openGraph: {
+    title: "AnsemRail — Agentic Control Plane",
+    description:
+      "The agentic control plane combining ClawPump, MoonPay, and Open Wallet Standard — built for both humans and autonomous agents.",
+    url: "https://ansemrail.vercel.app",
+    type: "website",
+    images: [
+      {
+        url: "https://ansemrail.vercel.app/og-cover.jpg",
+        width: 1200,
+        height: 630,
+        alt: "AnsemRail",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "AnsemRail — Agentic Control Plane",
+    description:
+      "The agentic control plane combining ClawPump, MoonPay, and Open Wallet Standard — built for both humans and autonomous agents.",
+    images: ["https://ansemrail.vercel.app/og-cover.jpg"],
+  },
 };
 
 export default function RootLayout({
