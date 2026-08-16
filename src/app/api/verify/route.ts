@@ -106,8 +106,15 @@ export async function POST(request: NextRequest) {
         }, { status: 400 });
       }
 
-      // Verified! Update user
-      const handleClean = handle ? handle.replace(/^@/, "").trim() : post.author || null;
+      // Verified! Update user — prefer user-submitted handle, fallback to real author from post
+      let handleClean = handle ? handle.replace(/^@/, "").trim() : null;
+      if (!handleClean && post.author && post.author.toLowerCase() !== "i") {
+        handleClean = post.author;
+      }
+      // If still no handle, try to find one from the tweet text mentions
+      if (!handleClean && post.mentions.length > 0) {
+        handleClean = post.mentions[0];
+      }
       const newEncKeys = {
         ...encKeys,
         twitterVerified: true,
