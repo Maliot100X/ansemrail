@@ -1,106 +1,77 @@
 import { db } from "@/db/client";
 import { agents, users, registrations } from "@/db/schema";
-import { desc, count } from "drizzle-orm";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { getUserClawpumpApiKey } from "@/lib/auth-session";
-import { listAgents } from "@/lib/clawpump";
+import { desc, eq, count, sql as drizzleSql } from "drizzle-orm";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { shortAddress } from "@/lib/utils";
-import { Trophy, Bot, Users, Activity, ExternalLink, Wallet } from "lucide-react";
+import { Trophy, Bot, Users, Activity, ExternalLink, Star, UserCheck } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
+const PLATFORM_AGENT_ID = "5c117f16-ed2d-4777-8838-c454b7802c11";
+
 export default async function LeaderboardPage() {
-  // Local DB data
-  const [agentRows, userRows, registrationCount] = await Promise.all([
-    db.select().from(agents).orderBy(desc(agents.createdAt)).limit(100),
-    db.select({ type: users.type, count: count() }).from(users).groupBy(users.type),
+  // All registered users (human + agent)
+  const [allUsers, agentCount, humanCount, registrationCount] = await Promise.all([
+    db
+      .select({
+        id: users.id,
+        type: users.type,
+        email: users.email,
+        walletAddress: users.payoutWallet,
+        createdAt: users.createdAt,
+      })
+      .from(users)
+      .orderBy(desc(users.createdAt))
+      .limit(100),
+    db.select({ count: count() }).from(users).where(eq(users.type, "agent")),
+    db.select({ count: count() }).from(users).where(eq(users.type, "human")),
     db.select({ count: count() }).from(registrations),
   ]);
 
-  // ClawPump agents from connected user key
-  let clawpumpAgents: any[] = [];
-  try {
-    const session = await getServerSession(authOptions);
-    const userId = (session?.user as any)?.id;
-    if (userId) {
-      const userApiKey = await getUserClawpumpApiKey(userId);
-      if (userApiKey) {
-        clawpumpAgents = await listAgents(userApiKey);
-      }
-    }
-  } catch {}
+  // Local agents (created via platform)
+  const localAgents = await db
+    .select()
+    .from(agents)
+    .orderBy(desc(agents.createdAt))
+    .limit(50);
 
-  // Merge: local agents + ClawPump agents (dedup by walletAddress or name)
-  const localAgentIds = new Set(agentRows.map((a) => a.walletAddress).filter(Boolean));
-  const merged = [
-    ...agentRows.map((a) => ({
-      id: a.id,
-      name: a.name,
-      status: a.status,
-      model: a.model || "—",
-      skills: a.skills as string[] | null,
-      walletAddress: a.walletAddress,
-      createdAt: a.createdAt,
-      source: "local" as const,
-    })),
-    ...clawpumpAgents
-      .filter((a) => !localAgentIds.has(a.walletAddress))
-      .map((a) => ({
-        id: a.id,
-        name: a.name,
-        status: a.status,
-        model: a.model || "—",
-        skills: a.skills || [],
-        walletAddress: a.walletAddress,
-        createdAt: a.createdAt,
-        source: "clawpump" as const,
-      })),
-  ];
-
-  const agentsList = merged.sort((a, b) => {
-    if (a.status === "running" && b.status !== "running") return -1;
-    if (b.status === "running" && a.status !== "running") return 1;
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
-
-  const runningCount = agentsList.filter((a) => a.status === "running").length;
-  const agentUsers = userRows.find((u) => u.type === "agent")?.count || 0;
-  const humanUsers = userRows.find((u) => u.type === "human")?.count || 0;
+  // Find the platform agent
+  const platformUser = allUsers.find((u) => u.id === PLATFORM_AGENT_ID);
+  const otherUsers = allUsers.filter((u) => u.id !== PLATFORM_AGENT_ID);
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-zinc-50">Leaderboard</h1>
         <p className="text-sm text-zinc-400">
-          All agents — from ClawPump connected keys and registered locally
+          Registered users and agents on AnsemRail — tracking growth
         </p>
       </div>
 
+      {/* Stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-sm text-zinc-400">
-              <Bot className="h-4 w-4 text-amber-500" /> Total Agents
+              <Users className="h-4 w-4 text-amber-500" /> Total Users
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-zinc-50">{agentsList.length}</p>
-            <p className="text-xs text-zinc-500">{runningCount} running now</p>
+            <p className="text-3xl font-bold text-zinc-50">{allUsers.length}</p>
+            <p className="text-xs text-zinc-500">{agentCount[0]?.count || 0} agents · {humanCount[0]?.count || 0} humans</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-sm text-zinc-400">
-              <Users className="h-4 w-4 text-amber-500" /> Agent Users
+              <Bot className="h-4 w-4 text-amber-500" /> Platform Agents
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-zinc-50">{agentUsers}</p>
-            <p className="text-xs text-zinc-500">{humanUsers} human users</p>
+            <p className="text-3xl font-bold text-zinc-50">{localAgents.length}</p>
+            <p className="text-xs text-zinc-500">created via AnsemRail</p>
           </CardContent>
         </Card>
         <Card>
@@ -113,110 +84,106 @@ export default async function LeaderboardPage() {
             <p className="text-3xl font-bold text-zinc-50">
               {registrationCount[0]?.count ?? 0}
             </p>
-            <p className="text-xs text-zinc-500">via skill.md / Ed25519 / SKILL.md upload</p>
+            <p className="text-xs text-zinc-500">via skill.md / Ed25519</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-sm text-zinc-400">
-              <Trophy className="h-4 w-4 text-amber-500" /> Ranked Agents
+              <Trophy className="h-4 w-4 text-amber-500" /> Ranked
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-zinc-50">{agentsList.length}</p>
-            <p className="text-xs text-zinc-500">running first, newest first</p>
+            <p className="text-3xl font-bold text-zinc-50">{allUsers.length}</p>
+            <p className="text-xs text-zinc-500">newest first</p>
           </CardContent>
         </Card>
       </div>
 
+      {/* Featured Platform Agent */}
+      {platformUser && (
+        <Card className="border-amber-800/50 bg-gradient-to-r from-amber-950/30 to-zinc-900/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm text-amber-400">
+              <Star className="h-4 w-4" /> Official Platform Agent
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <div className="shrink-0 h-14 w-14 rounded-lg bg-amber-900/30 flex items-center justify-center border border-amber-800/50">
+                <Bot className="h-7 w-7 text-amber-400" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <Link href={`/agents/${PLATFORM_AGENT_ID}`} className="group">
+                  <p className="text-lg font-bold text-zinc-50 group-hover:text-amber-400 transition-colors">
+                    ClawrenAi Project Team
+                  </p>
+                </Link>
+                <p className="text-xs text-zinc-500">
+                  Official AnsemRail platform agent · Registered {platformUser.createdAt.toLocaleDateString()}
+                </p>
+                {platformUser.walletAddress && (
+                  <a
+                    href={`https://solscan.io/account/${platformUser.walletAddress}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-zinc-500 hover:text-amber-400 transition-colors"
+                  >
+                    Wallet: {shortAddress(platformUser.walletAddress, 6)} <ExternalLink className="inline h-2.5 w-2.5" />
+                  </a>
+                )}
+              </div>
+              <Badge variant="success" className="shrink-0">active</Badge>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Registered Users */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Trophy className="h-5 w-5 text-amber-500" /> Project Agent Leaderboard
+            <UserCheck className="h-5 w-5 text-amber-500" /> Registered Users
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {agentsList.length === 0 ? (
-            <p className="text-sm text-zinc-500">No agents yet — create one on the Agents page or connect a ClawPump key in Settings.</p>
+          {otherUsers.length === 0 ? (
+            <p className="text-sm text-zinc-500">No users registered yet — be the first!</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-zinc-800 text-left text-xs text-zinc-500">
                     <th className="pb-2 pr-4">#</th>
-                    <th className="pb-2 pr-4">Agent</th>
-                    <th className="pb-2 pr-4">Status</th>
-                    <th className="pb-2 pr-4">Model</th>
-                    <th className="pb-2 pr-4">Skills</th>
-                    <th className="pb-2 pr-4">Wallet</th>
-                    <th className="pb-2 pr-4">Source</th>
+                    <th className="pb-2 pr-4">User</th>
+                    <th className="pb-2 pr-4">Type</th>
+                    <th className="pb-2 pr-4">Registered</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {agentsList.map((agent, i) => (
+                  {otherUsers.map((user, i) => (
                     <tr
-                      key={agent.id}
-                      className="border-b border-zinc-800/60 text-zinc-300 hover:bg-zinc-800/30"
+                      key={user.id}
+                      className="border-b border-zinc-800/60 text-zinc-300"
                     >
                       <td className="py-2.5 pr-4 text-zinc-500">
-                        {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}
+                        {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 4}
                       </td>
                       <td className="py-2.5 pr-4">
-                        <Link href={`/agents/${agent.id}`} className="group">
-                          <p className="font-medium text-zinc-100 group-hover:text-amber-400 transition-colors">
-                            {agent.name}
-                          </p>
-                          <p className="text-xs text-zinc-600 group-hover:text-zinc-400">
-                            {shortAddress(agent.id, 8)}
-                          </p>
-                        </Link>
+                        <p className="font-medium text-zinc-100">
+                          {user.email || shortAddress(user.id, 8)}
+                        </p>
+                        <p className="text-xs text-zinc-600">
+                          {shortAddress(user.id, 8)}
+                        </p>
                       </td>
                       <td className="py-2.5 pr-4">
-                        {agent.status === "running" ? (
-                          <Badge variant="success">running</Badge>
-                        ) : agent.status === "error" ? (
-                          <Badge variant="destructive">error</Badge>
-                        ) : (
-                          <Badge variant="secondary">stopped</Badge>
-                        )}
-                      </td>
-                      <td className="py-2.5 pr-4 text-xs text-zinc-400">
-                        {agent.model || "—"}
-                      </td>
-                      <td className="py-2.5 pr-4">
-                        <div className="flex flex-wrap gap-1">
-                          {(agent.skills || []).slice(0, 3).map((s: string) => (
-                            <Badge key={s} variant="ansem" className="text-[10px]">
-                              {s}
-                            </Badge>
-                          ))}
-                          {(agent.skills || []).length > 3 && (
-                            <Badge variant="outline" className="text-[10px]">
-                              +{(agent.skills || []).length - 3}
-                            </Badge>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-2.5 pr-4">
-                        {agent.walletAddress ? (
-                          <a
-                            href={`https://solscan.io/account/${agent.walletAddress}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-1 font-mono text-xs text-zinc-400 hover:text-amber-400 transition-colors"
-                          >
-                            <Wallet className="h-3 w-3" />
-                            {shortAddress(agent.walletAddress, 5)}
-                            <ExternalLink className="h-2.5 w-2.5" />
-                          </a>
-                        ) : (
-                          <span className="text-xs text-zinc-600">—</span>
-                        )}
-                      </td>
-                      <td className="py-2.5 pr-4">
-                        <Badge variant={agent.source === "clawpump" ? "outline" : "secondary"} className="text-[10px]">
-                          {agent.source}
+                        <Badge variant={user.type === "agent" ? "ansem" : "secondary"}>
+                          {user.type}
                         </Badge>
+                      </td>
+                      <td className="py-2.5 pr-4 text-xs text-zinc-500">
+                        {user.createdAt.toLocaleDateString()}
                       </td>
                     </tr>
                   ))}
