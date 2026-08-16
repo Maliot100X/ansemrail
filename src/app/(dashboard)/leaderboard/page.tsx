@@ -12,7 +12,6 @@ export const dynamic = "force-dynamic";
 const PLATFORM_AGENT_ID = "5c117f16-ed2d-4777-8838-c454b7802c11";
 
 export default async function LeaderboardPage() {
-  // All registered users (human + agent)
   const [allUsers, agentCount, humanCount, registrationCount] = await Promise.all([
     db
       .select({
@@ -31,18 +30,17 @@ export default async function LeaderboardPage() {
     db.select({ count: count() }).from(registrations),
   ]);
 
-  // Local agents (created via platform)
   const localAgents = await db
     .select()
     .from(agents)
     .orderBy(desc(agents.createdAt))
     .limit(50);
 
-  // Find the platform agent
-  // Extract verified status from encryptedKeys
   const usersWithVerified = allUsers.map((u) => ({
     ...u,
     verified: !!(u.encryptedKeys as any)?.twitterVerified,
+    twitterHandle: (u.encryptedKeys as any)?.twitterHandle || null,
+    hasClawpumpKey: !!(u.encryptedKeys as any)?.clawpumpApiKey || !!u.clawpumpApiKey,
   }));
   const platformUser = usersWithVerified.find((u) => u.id === PLATFORM_AGENT_ID);
   const otherUsers = usersWithVerified.filter((u) => u.id !== PLATFORM_AGENT_ID);
@@ -128,6 +126,16 @@ export default async function LeaderboardPage() {
                 <p className="text-xs text-zinc-500">
                   Official AnsemRail platform agent · Registered {platformUser.createdAt.toLocaleDateString()}
                 </p>
+                {platformUser.twitterHandle && (
+                  <a
+                    href={`https://x.com/${platformUser.twitterHandle.replace(/^@/, "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-zinc-400 hover:text-amber-400 transition-colors"
+                  >
+                    {platformUser.twitterHandle} <ExternalLink className="inline h-2.5 w-2.5" />
+                  </a>
+                )}
                 {platformUser.walletAddress && (
                   <a
                     href={`https://solscan.io/account/${platformUser.walletAddress}`}
@@ -163,6 +171,7 @@ export default async function LeaderboardPage() {
                     <th className="pb-2 pr-4">#</th>
                     <th className="pb-2 pr-4">User</th>
                     <th className="pb-2 pr-4">Type</th>
+                    <th className="pb-2 pr-4">Wallet</th>
                     <th className="pb-2 pr-4">Registered</th>
                   </tr>
                 </thead>
@@ -170,26 +179,42 @@ export default async function LeaderboardPage() {
                   {otherUsers.map((user, i) => (
                     <tr
                       key={user.id}
-                      className="border-b border-zinc-800/60 text-zinc-300"
+                      className="border-b border-zinc-800/60 text-zinc-300 hover:bg-zinc-800/30 transition-colors"
                     >
                       <td className="py-2.5 pr-4 text-zinc-500">
                         {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 4}
                       </td>
                       <td className="py-2.5 pr-4">
-                        <p className="font-medium text-zinc-100">
-                          {user.email || shortAddress(user.id, 8)}
-                          {user.verified && (
-                            <CheckCircle className="inline h-3.5 w-3.5 text-green-400 ml-1" />
-                          )}
-                        </p>
-                        <p className="text-xs text-zinc-600">
-                          {shortAddress(user.id, 8)}
-                        </p>
+                        <Link href={`/agents/${user.id}`} className="group">
+                          <p className="font-medium text-zinc-100 group-hover:text-amber-400 transition-colors">
+                            {user.email || "Agent"}
+                            {user.verified && (
+                              <CheckCircle className="inline h-3.5 w-3.5 text-green-400 ml-1" />
+                            )}
+                          </p>
+                          <p className="text-xs text-zinc-600 group-hover:text-zinc-400 transition-colors">
+                            {shortAddress(user.id, 8)}
+                          </p>
+                        </Link>
                       </td>
                       <td className="py-2.5 pr-4">
                         <Badge variant={user.type === "agent" ? "ansem" : "secondary"}>
                           {user.type}
                         </Badge>
+                      </td>
+                      <td className="py-2.5 pr-4">
+                        {user.walletAddress ? (
+                          <a
+                            href={`https://solscan.io/account/${user.walletAddress}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-zinc-500 hover:text-amber-400 transition-colors"
+                          >
+                            {shortAddress(user.walletAddress, 6)} <ExternalLink className="inline h-2.5 w-2.5" />
+                          </a>
+                        ) : (
+                          <span className="text-xs text-zinc-600">—</span>
+                        )}
                       </td>
                       <td className="py-2.5 pr-4 text-xs text-zinc-500">
                         {user.createdAt.toLocaleDateString()}
