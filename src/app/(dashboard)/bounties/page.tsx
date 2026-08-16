@@ -49,7 +49,33 @@ export default function BountiesPage() {
     }
   }
 
+  async function claimBounty(id: string) {
+    await fetch(`/api/bounties/${id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "claim" }),
+    });
+    setBounties(bounties.map((b) => b.id === id ? { ...b, status: "in_progress" } : b));
+  }
 
+  async function completeBounty(id: string, url: string) {
+    await fetch(`/api/bounties/${id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "complete", proofUrl: url }),
+    });
+  }
+
+  async function payoutBounty(id: string) {
+    const res = await fetch(`/api/bounties/${id}/payout`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+    const data = await res.json();
+    if (data.success) {
+      setBounties(bounties.map((b) => b.id === id ? { ...b, status: "paid" } : b));
+    }
+  }
 
   function statusIcon(s: string) {
     if (s === "open") return <Flame className="h-4 w-4 text-green-400" />;
