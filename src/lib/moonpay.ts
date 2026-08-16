@@ -108,3 +108,90 @@ export async function getAnsemTokenInfo(): Promise<MoonPayToken> {
 export async function getClawTokenInfo(): Promise<MoonPayToken> {
   return getTokenDetails(CLAW_TOKEN_MINT, "solana");
 }
+
+export const SOLANA_SKILLS = [
+  {
+    name: "Common Errors & Solutions",
+    slug: "solana-common-errors",
+    description: "Diagnose and fix common errors: GLIBC issues, Anchor version conflicts, RPC errors",
+    category: "Reference",
+    url: "https://solana.com/skills",
+  },
+  {
+    name: "Version Compatibility Matrix",
+    slug: "solana-version-compat",
+    description: "Reference table for Anchor, Solana CLI, Rust, and Node.js version matching",
+    category: "Tooling",
+    url: "https://solana.com/skills",
+  },
+  {
+    name: "Solana Runtime Concepts",
+    slug: "solana-runtime",
+    description: "Rent as deposit, Ed25519 keys, PDAs, entrypoint dispatch, on-chain crypto, transaction wire format",
+    category: "Skill",
+    url: "https://solana.com/skills",
+  },
+  {
+    name: "Confidential Transfers",
+    slug: "solana-confidential-transfers",
+    description: "Private encrypted token balances using Token-2022 confidential transfers extension",
+    category: "Tokens",
+    url: "https://solana.com/skills",
+  },
+  {
+    name: "Frontend with Solana Kit",
+    slug: "solana-frontend-kit",
+    description: "React/Next.js Solana apps with Kit plugin client, Wallet Standard, React hooks",
+    category: "Skill",
+    url: "https://solana.com/skills",
+  },
+  {
+    name: "IDL & Client Code Generation",
+    slug: "solana-idl-codegen",
+    description: "Type-safe program clients from IDLs using Codama — no hand-maintained serializers",
+    category: "Tooling",
+    url: "https://solana.com/skills",
+  },
+  {
+    name: "Kit ↔ web3.js Interop",
+    slug: "solana-kit-web3js",
+    description: "Handle legacy web3.js code — web3.js v3 (Kit internals) migration path",
+    category: "Tooling",
+    url: "https://solana.com/skills",
+  },
+  {
+    name: "Payments & Commerce",
+    slug: "solana-payments",
+    description: "Checkout flows, payment buttons, QR payments via Solana Pay, Kit builders, Kora gasless",
+    category: "Payments",
+    url: "https://solana.com/skills",
+  },
+  {
+    name: "Curated Resources",
+    slug: "solana-resources",
+    description: "Official Solana learning platforms, docs, tooling references, community resources",
+    category: "Reference",
+    url: "https://solana.com/skills",
+  },
+  {
+    name: "RPC Quick Lookups",
+    slug: "solana-rpc-lookups",
+    description: "Fast RPC endpoint lookups and best practices for Solana mainnet/devnet",
+    category: "Skill",
+    url: "https://solana.com/skills",
+  },
+  {
+    name: "Security Checklist",
+    slug: "solana-security",
+    description: "Account validation, signer checks, common attack vectors — review before deploying",
+    category: "Security",
+    url: "https://solana.com/skills",
+  },
+  {
+    name: "Testing Strategy",
+    slug: "solana-testing",
+    description: "LiteSVM + Mollusk unit tests, Surfpool integration tests, mainnet forking, CI patterns",
+    category: "Testing",
+    url: "https://solana.com/skills",
+  },
+] as const;
