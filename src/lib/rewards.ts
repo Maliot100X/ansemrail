@@ -4,7 +4,7 @@ import { platformConfig } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { encryptApiKey, decryptApiKey } from "@/lib/crypto";
 import { Connection, Keypair, PublicKey, LAMPORTS_PER_SOL, Transaction } from "@solana/web3.js";
-import { createTransferInstruction, getAssociatedTokenAddress } from "@solana/spl-token";
+import { createTransferInstruction, createAssociatedTokenAccountInstruction, getAssociatedTokenAddress, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import bs58 from "bs58";
 import { getBalance, getTokenAccountsByOwner } from "@/lib/helius";
 
@@ -161,14 +161,35 @@ export async function sendSplReward(
   const amountBase = BigInt(Math.round(uiAmount * 10 ** decimals));
   const mintPub = new PublicKey(mint);
   const toPub = new PublicKey(toWallet);
-  const fromAta = await getAssociatedTokenAddress(mintPub, keypair.publicKey);
-  const toAta = await getAssociatedTokenAddress(mintPub, toPub);
+
+  // Determine if this is a Token-2022 mint
+  const isToken2022 = mint === PROJECT_MINT;
+  const tokenProgramId = isToken2022 ? TOKEN_2022_PROGRAM_ID : undefined;
+
+  const fromAta = await getAssociatedTokenAddress(mintPub, keypair.publicKey, false, tokenProgramId);
+  const toAta = await getAssociatedTokenAddress(mintPub, toPub, false, tokenProgramId);
 
   const fromInfo = await conn.getAccountInfo(fromAta);
   if (!fromInfo) throw new Error("Treasury has no token account for this mint — fund the treasury first.");
 
   const tx = new Transaction();
-  tx.add(createTransferInstruction(fromAta, toAta, keypair.publicKey, amountBase));
+
+  // Create recipient ATA if it doesn't exist
+  const toInfo = await conn.getAccountInfo(toAta);
+  if (!toInfo) {
+    tx.add(
+      createAssociatedTokenAccountInstruction(
+        keypair.publicKey,
+        toAta,
+        toPub,
+        mintPub,
+        tokenProgramId || undefined,
+        tokenProgramId || undefined,
+      )
+    );
+  }
+
+  tx.add(createTransferInstruction(fromAta, toAta, keypair.publicKey, amountBase, undefined, tokenProgramId));
   tx.feePayer = keypair.publicKey;
   tx.recentBlockhash = (await conn.getLatestBlockhash()).blockhash;
   tx.sign(keypair);
