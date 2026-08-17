@@ -16,6 +16,7 @@ export async function POST(request: NextRequest) {
       name,
       payload,
       clawpumpApiKey,
+      payoutWallet,
     } = body;
 
     if (!ed25519PublicKey && !skillMdContent) {
@@ -78,6 +79,8 @@ export async function POST(request: NextRequest) {
       .insert(users)
       .values({
         type: "agent",
+        email: name || null,
+        payoutWallet: payoutWallet || null,
         clawpumpApiKey: agentToken,
         encryptedKeys: Object.keys(encryptedKeys).length > 0 ? encryptedKeys : null,
       })
