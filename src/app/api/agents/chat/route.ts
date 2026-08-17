@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { chatWithAgent } from "@/lib/clawpump";
 import { getRequestUser, getUserClawpumpApiKey } from "@/lib/auth-session";
 import { db } from "@/db/client";
-import { agents as agentsTable } from "@/db/schema";
+import { agents as agentsTable, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
@@ -15,19 +15,25 @@ export async function POST(request: NextRequest) {
       );
     }
     const user = await getRequestUser(request);
+
+    // Check if target is a platform-registered user
+    const [targetUser] = await db.select().from(users).where(eq(users.id, agentId)).limit(1);
+    if (targetUser) {
+      return NextResponse.json({
+        reply: "This is an AnsemRail platform agent. Chat with ClawPump agents is available when you connect your own ClawPump API key in Settings → Accounts.",
+        source: "ansemrail",
+      });
+    }
+
     const userApiKey = await getUserClawpumpApiKey(user?.id);
     if (!userApiKey) {
       return NextResponse.json(
-        {
-          error:
-            "Connect your own ClawPump API key in Settings → Accounts first, then chat with agents.",
-        },
+        { error: "Connect your own ClawPump API key in Settings → Accounts first, then chat with agents." },
         { status: 401 }
       );
     }
 
-    // Resolve the real ClawPump agent ID: agentId may be a local DB uuid
-    // or a ClawPump agent id. Look up the DB record first.
+    // Resolve the real ClawPump agent ID
     let clawpumpAgentId = agentId;
     try {
       const [dbAgent] = await db
@@ -38,9 +44,7 @@ export async function POST(request: NextRequest) {
       if (dbAgent?.clawpumpAgentId) {
         clawpumpAgentId = dbAgent.clawpumpAgentId;
       }
-    } catch {
-      // Not a valid uuid — assume it's already a ClawPump agent id
-    }
+    } catch {}
 
     const result = await chatWithAgent(clawpumpAgentId, message, userApiKey);
     return NextResponse.json(result);
@@ -48,24 +52,8 @@ export async function POST(request: NextRequest) {
     const msg = error.message || "";
     let status = 500;
     let userMsg = "Failed to chat with agent";
-    if (msg.includes("401") || msg.includes("403")) {
-      status = 401;
-      userMsg = "Authentication failed. Connect your own ClawPump API key in Settings to get unlimited agent chat.";
-    } else if (msg.includes("402") || msg.includes("free_quota") || msg.includes("quota")) {
-      status = 402;
-      userMsg = "ClawPump free-tier quota (1,000 messages/day shared globally) is exhausted right now. Connect your own ClawPump API key in Settings → Connected Accounts for guaranteed chat.";
-    } else if (msg.includes("404")) {
-      status = 404;
-      userMsg = "Agent not found. It may have been deleted.";
-    } else if (msg.includes("429")) {
-      status = 429;
-      userMsg = "Chat rate limit hit on ClawPump's shared free tier (1,000 messages/day globally). Connect your own ClawPump API key in Settings for guaranteed chat.";
-    } else if (msg.includes("500")) {
-      userMsg = "ClawPump chat service error. The agent may need to be initialized, or the shared free tier is overloaded. Try connecting your own ClawPump API key in Settings.";
-    }
-    return NextResponse.json(
-      { error: userMsg, detail: msg },
-      { status }
-    );
+    if (msg.includes("404")) { status = 404; userMsg = "Agent not found on ClawPump"; }
+    else if (msg.includes("401") || msg.includes("403")) { status = 401; userMsg = "Invalid ClawPump API key"; }
+    return NextResponse.json({ error: userMsg, detail: msg }, { status });
   }
 }
