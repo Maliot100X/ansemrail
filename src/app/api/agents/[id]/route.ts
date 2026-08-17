@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAgent, deleteAgent } from "@/lib/clawpump";
 import { getRequestUser, getUserClawpumpApiKey } from "@/lib/auth-session";
 import { db } from "@/db/client";
 import { agents as agentsTable, users, agentReputation } from "@/db/schema";
@@ -12,7 +11,7 @@ export async function GET(
   try {
     const { id } = await params;
 
-    // 1. Try local users table first (platform-registered agents/humans)
+    // 1. Try local users table (platform-registered agents/humans)
     const [localUser] = await db
       .select()
       .from(users)
@@ -24,9 +23,7 @@ export async function GET(
       const twitterVerified = !!encKeys.twitterVerified;
       const twitterHandle = encKeys.twitterHandle || null;
       const hasClawpumpKey = !!localUser.clawpumpApiKey;
-      const profile = encKeys.clawpumpProfile || null;
 
-      // Get reputation if exists
       const [rep] = await db
         .select()
         .from(agentReputation)
@@ -90,11 +87,11 @@ export async function GET(
       });
     }
 
-    // 3. Fall back to ClawPump API
-    const user = await getRequestUser(request);
-    const userApiKey = await getUserClawpumpApiKey(user?.id);
-    const agent = await getAgent(id, userApiKey);
-    return NextResponse.json({ ...agent, source: "clawpump" });
+    // Not found — ClawPump agents are private to their owner
+    return NextResponse.json(
+      { error: "Agent not found" },
+      { status: 404 }
+    );
   } catch (error: any) {
     return NextResponse.json(
       { error: "Agent not found", detail: error.message },
@@ -114,6 +111,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Auth required" }, { status: 401 });
     }
     const userApiKey = await getUserClawpumpApiKey(user.id);
+    const { deleteAgent } = await import("@/lib/clawpump");
     await deleteAgent(id, userApiKey);
     try {
       await db
