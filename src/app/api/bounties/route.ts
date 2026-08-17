@@ -2,15 +2,29 @@ import { NextRequest, NextResponse } from "next/server";
 import { getRequestUser } from "@/lib/auth-session";
 import { db } from "@/db/client";
 import { bounties, users } from "@/db/schema";
-import { eq, desc, and, sql } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
+import { sendSplReward, ANSEM_MINT, CLAW_MINT, PROJECT_MINT, getTreasuryKeypair, treasureWalletAddress } from "@/lib/rewards";
+import { sendMessage } from "@/lib/telegram";
 
 export const dynamic = "force-dynamic";
+
+const TOKEN_MINTS: Record<string, string> = {
+  ANSEM: ANSEM_MINT,
+  CLAW: CLAW_MINT,
+  CLAWRENA: PROJECT_MINT,
+  PROJECT: PROJECT_MINT,
+};
+
+function authorized(request: NextRequest): boolean {
+  const secret = process.env.REWARDS_ADMIN_SECRET;
+  if (!secret) return false;
+  return request.headers.get("authorization") === `Bearer ${secret}`;
+}
 
 // List bounties
 export async function GET(request: NextRequest) {
   try {
     const status = request.nextUrl.searchParams.get("status") || "open";
-    const my = request.nextUrl.searchParams.get("my") === "true";
 
     let query = db
       .select({
@@ -21,6 +35,7 @@ export async function GET(request: NextRequest) {
         rewardAmount: bounties.rewardAmount,
         status: bounties.status,
         deliverable: bounties.deliverable,
+        proofUrl: bounties.proofUrl,
         deadline: bounties.deadline,
         creatorUserId: bounties.creatorUserId,
         assigneeUserId: bounties.assigneeUserId,
@@ -77,8 +92,34 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       bounty,
-      message: "Bounty created. Funds should be escrowed to the bounty wallet.",
+      message: "Bounty created.",
     });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+// Delete bounty (admin only) or close own bounty
+export async function DELETE(request: NextRequest) {
+  try {
+    const user = await getRequestUser(request);
+    const isAdmin = authorized(request);
+    if (!user && !isAdmin) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+
+    const id = request.nextUrl.searchParams.get("id");
+    if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 });
+
+    const [bounty] = await db.select().from(bounties).where(eq(bounties.id, id)).limit(1);
+    if (!bounty) return NextResponse.json({ error: "Bounty not found" }, { status: 404 });
+
+    if (!isAdmin && bounty.creatorUserId !== user?.id) {
+      return NextResponse.json({ error: "Only the creator or admin can delete" }, { status: 403 });
+    }
+
+    await db.delete(bounties).where(eq(bounties.id, id));
+    return NextResponse.json({ ok: true, message: "Bounty deleted" });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
