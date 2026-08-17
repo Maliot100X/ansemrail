@@ -16,6 +16,40 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: err.message }, { status: 500 });
     }
   }
+
+  // Cleanup test users (only platform agent 5c117f16... remains)
+  if (action === "cleanup-test-users") {
+    try {
+      const PLATFORM_AGENT_ID = "5c117f16-ed2d-4777-8838-c454b7802c11";
+      
+      // Delete submissions by test users
+      await db.execute(sql`DELETE FROM reward_submissions WHERE user_id != ${PLATFORM_AGENT_ID}`);
+      await db.execute(sql`DELETE FROM reward_payments WHERE user_id != ${PLATFORM_AGENT_ID}`);
+      
+      // Delete reputation records for test users
+      await db.execute(sql`DELETE FROM agent_reputation WHERE user_id != ${PLATFORM_AGENT_ID}`);
+      
+      // Delete x402 payments by test users
+      await db.execute(sql`DELETE FROM x402_payments WHERE user_id != ${PLATFORM_AGENT_ID}`);
+      
+      // Delete registrations by test users
+      await db.execute(sql`DELETE FROM registrations WHERE user_id != ${PLATFORM_AGENT_ID}`);
+      
+      // Delete agents by test users
+      await db.execute(sql`DELETE FROM agents WHERE user_id != ${PLATFORM_AGENT_ID}`);
+      
+      // Delete skills by test users
+      await db.execute(sql`DELETE FROM skills WHERE user_id != ${PLATFORM_AGENT_ID}`);
+      
+      // Delete test users (keep platform agent)
+      await db.execute(sql`DELETE FROM users WHERE id != ${PLATFORM_AGENT_ID}`);
+      
+      return NextResponse.json({ ok: true, message: "Test users cleaned up. Only platform agent remains." });
+    } catch (err: any) {
+      return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+  }
+
   const secret = process.env.MIGRATE_SECRET;
   if (!secret) {
     return NextResponse.json({ error: "Not available" }, { status: 404 });
@@ -275,6 +309,40 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+
+  // Cleanup test users (only platform agent 5c117f16... remains)
+  if (action === "cleanup-test-users") {
+    try {
+      const PLATFORM_AGENT_ID = "5c117f16-ed2d-4777-8838-c454b7802c11";
+      
+      // Delete submissions by test users
+      await db.execute(sql`DELETE FROM reward_submissions WHERE user_id != ${PLATFORM_AGENT_ID}`);
+      await db.execute(sql`DELETE FROM reward_payments WHERE user_id != ${PLATFORM_AGENT_ID}`);
+      
+      // Delete reputation records for test users
+      await db.execute(sql`DELETE FROM agent_reputation WHERE user_id != ${PLATFORM_AGENT_ID}`);
+      
+      // Delete x402 payments by test users
+      await db.execute(sql`DELETE FROM x402_payments WHERE user_id != ${PLATFORM_AGENT_ID}`);
+      
+      // Delete registrations by test users
+      await db.execute(sql`DELETE FROM registrations WHERE user_id != ${PLATFORM_AGENT_ID}`);
+      
+      // Delete agents by test users
+      await db.execute(sql`DELETE FROM agents WHERE user_id != ${PLATFORM_AGENT_ID}`);
+      
+      // Delete skills by test users
+      await db.execute(sql`DELETE FROM skills WHERE user_id != ${PLATFORM_AGENT_ID}`);
+      
+      // Delete test users (keep platform agent)
+      await db.execute(sql`DELETE FROM users WHERE id != ${PLATFORM_AGENT_ID}`);
+      
+      return NextResponse.json({ ok: true, message: "Test users cleaned up. Only platform agent remains." });
+    } catch (err: any) {
+      return NextResponse.json({ error: err.message }, { status: 500 });
+    }
+  }
+
   const secret = process.env.MIGRATE_SECRET;
   if (!secret) {
     return NextResponse.json({ error: "Not available" }, { status: 404 });
