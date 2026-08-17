@@ -21,7 +21,10 @@ export async function POST(
   try {
     const { id } = await params;
     const user = await getRequestUser(request);
-    if (!user) {
+    const adminSecret = process.env.REWARDS_ADMIN_SECRET;
+    const authHeader = request.headers.get("authorization") || "";
+    const isAdmin = adminSecret && authHeader === `Bearer ${adminSecret}`;
+    if (!user && !isAdmin) {
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     }
 
