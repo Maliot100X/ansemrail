@@ -21,23 +21,28 @@ export async function GET(request: NextRequest) {
   if (action === "cleanup-test-users") {
     try {
       const PLATFORM_AGENT_ID = "5c117f16-ed2d-4777-8838-c454b7802c11";
-      const neon = (await import("@neondatabase/serverless")).neon;
-      const sqlRaw = neon(process.env.DATABASE_URL!);
       
-      // Delete all referencing rows first (raw SQL to bypass FK)
-      await sqlRaw`DELETE FROM reward_submissions WHERE user_id != ${PLATFORM_AGENT_ID}`;
-      await sqlRaw`DELETE FROM reward_payments WHERE user_id != ${PLATFORM_AGENT_ID}`;
-      await sqlRaw`DELETE FROM agent_reputation WHERE user_id != ${PLATFORM_AGENT_ID}`;
-      await sqlRaw`DELETE FROM x402_payments WHERE user_id != ${PLATFORM_AGENT_ID}`;
-      await sqlRaw`DELETE FROM registrations WHERE user_id != ${PLATFORM_AGENT_ID}`;
-      await sqlRaw`DELETE FROM agents WHERE user_id != ${PLATFORM_AGENT_ID}`;
-      await sqlRaw`DELETE FROM skills WHERE user_id != ${PLATFORM_AGENT_ID}`;
-      await sqlRaw`DELETE FROM listings WHERE seller_user_id != ${PLATFORM_AGENT_ID}`;
-      await sqlRaw`DELETE FROM agent_signals WHERE agent_id IN (SELECT id FROM agents WHERE user_id != ${PLATFORM_AGENT_ID})`;
-      await sqlRaw`DELETE FROM bounties WHERE creator_user_id != ${PLATFORM_AGENT_ID}`;
+      // Delete submissions by test users
+      await db.execute(sql`DELETE FROM reward_submissions WHERE user_id != ${PLATFORM_AGENT_ID}`);
+      await db.execute(sql`DELETE FROM reward_payments WHERE user_id != ${PLATFORM_AGENT_ID}`);
       
-      // Now delete the test users
-      await sqlRaw`DELETE FROM users WHERE id != ${PLATFORM_AGENT_ID}`;
+      // Delete reputation records for test users
+      await db.execute(sql`DELETE FROM agent_reputation WHERE user_id != ${PLATFORM_AGENT_ID}`);
+      
+      // Delete x402 payments by test users
+      await db.execute(sql`DELETE FROM x402_payments WHERE user_id != ${PLATFORM_AGENT_ID}`);
+      
+      // Delete registrations by test users
+      await db.execute(sql`DELETE FROM registrations WHERE user_id != ${PLATFORM_AGENT_ID}`);
+      
+      // Delete agents by test users
+      await db.execute(sql`DELETE FROM agents WHERE user_id != ${PLATFORM_AGENT_ID}`);
+      
+      // Delete skills by test users
+      await db.execute(sql`DELETE FROM skills WHERE user_id != ${PLATFORM_AGENT_ID}`);
+      
+      // Delete test users (keep platform agent)
+      await db.execute(sql`DELETE FROM users WHERE id != ${PLATFORM_AGENT_ID}`);
       
       return NextResponse.json({ ok: true, message: "Test users cleaned up. Only platform agent remains." });
     } catch (err: any) {
@@ -303,122 +308,3 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
-  const body = await request.json().catch(() => ({}));
-  const action = body.action;
-
-  // Cleanup test users (only platform agent 5c117f16... remains)
-  if (action === "cleanup-test-users") {
-    try {
-      const PLATFORM_AGENT_ID = "5c117f16-ed2d-4777-8838-c454b7802c11";
-      const neon = (await import("@neondatabase/serverless")).neon;
-      const sqlRaw = neon(process.env.DATABASE_URL!);
-      
-      // Delete all referencing rows first (raw SQL to bypass FK)
-      await sqlRaw`DELETE FROM reward_submissions WHERE user_id != ${PLATFORM_AGENT_ID}`;
-      await sqlRaw`DELETE FROM reward_payments WHERE user_id != ${PLATFORM_AGENT_ID}`;
-      await sqlRaw`DELETE FROM agent_reputation WHERE user_id != ${PLATFORM_AGENT_ID}`;
-      await sqlRaw`DELETE FROM x402_payments WHERE user_id != ${PLATFORM_AGENT_ID}`;
-      await sqlRaw`DELETE FROM registrations WHERE user_id != ${PLATFORM_AGENT_ID}`;
-      await sqlRaw`DELETE FROM agents WHERE user_id != ${PLATFORM_AGENT_ID}`;
-      await sqlRaw`DELETE FROM skills WHERE user_id != ${PLATFORM_AGENT_ID}`;
-      await sqlRaw`DELETE FROM listings WHERE seller_user_id != ${PLATFORM_AGENT_ID}`;
-      await sqlRaw`DELETE FROM agent_signals WHERE agent_id IN (SELECT id FROM agents WHERE user_id != ${PLATFORM_AGENT_ID})`;
-      await sqlRaw`DELETE FROM bounties WHERE creator_user_id != ${PLATFORM_AGENT_ID}`;
-      
-      // Now delete the test users
-      await sqlRaw`DELETE FROM users WHERE id != ${PLATFORM_AGENT_ID}`;
-      
-      return NextResponse.json({ ok: true, message: "Test users cleaned up. Only platform agent remains." });
-    } catch (err: any) {
-      return NextResponse.json({ error: err.message }, { status: 500 });
-    }
-  }
-
-  const secret = process.env.MIGRATE_SECRET;
-  if (!secret) {
-    return NextResponse.json({ error: "Not available" }, { status: 404 });
-  }
-  const auth = request.headers.get("authorization");
-  if (auth !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  try {
-    const body = await request.json();
-    const { action } = body;
-
-    if (action === "fix-twitter-handles") {
-      await db.execute(sql`
-        UPDATE users SET encrypted_keys = jsonb_set(
-          encrypted_keys,
-          '{twitterHandle}',
-          '"@CLAWRENAi"'
-        )
-        WHERE (encrypted_keys->>'twitterHandle') = '@i'
-        OR (encrypted_keys->>'twitterHandle') = 'i'
-      `);
-      return NextResponse.json({ fixed: true, message: "Fixed handles set to @CLAWRENAi" });
-    }
-
-
-    if (action === "create-new-tables") {
-      await db.execute(sql`
-        CREATE TABLE IF NOT EXISTS x402_payments (
-          id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-          user_id uuid REFERENCES users(id),
-          payer_address text NOT NULL,
-          payee_address text,
-          amount text NOT NULL,
-          token text NOT NULL DEFAULT 'SOL',
-          endpoint text NOT NULL,
-          tx_signature text,
-          status text NOT NULL DEFAULT 'pending',
-          metadata jsonb,
-          created_at timestamp DEFAULT NOW() NOT NULL
-        )
-      `);
-      await db.execute(sql`
-        CREATE TABLE IF NOT EXISTS bounties (
-          id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-          creator_user_id uuid REFERENCES users(id),
-          creator_agent_id text,
-          title text NOT NULL,
-          description text NOT NULL,
-          reward_token text NOT NULL DEFAULT 'ANSEM',
-          reward_amount text NOT NULL,
-          escrow_wallet text,
-          status text NOT NULL DEFAULT 'open',
-          assignee_user_id uuid REFERENCES users(id),
-          deliverable text,
-          proof_url text,
-          deadline timestamp,
-          created_at timestamp DEFAULT NOW() NOT NULL,
-          updated_at timestamp DEFAULT NOW() NOT NULL
-        )
-      `);
-      await db.execute(sql`
-        CREATE TABLE IF NOT EXISTS agent_reputation (
-          id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-          user_id uuid REFERENCES users(id) NOT NULL,
-          trust_tier text NOT NULL DEFAULT 'unrated',
-          reputation_score integer NOT NULL DEFAULT 0,
-          total_trades integer NOT NULL DEFAULT 0,
-          successful_trades integer NOT NULL DEFAULT 0,
-          total_launches integer NOT NULL DEFAULT 0,
-          total_bounties integer NOT NULL DEFAULT 0,
-          completed_bounties integer NOT NULL DEFAULT 0,
-          twitter_verified boolean NOT NULL DEFAULT false,
-          agent_8004_id text,
-          last_activity_at timestamp,
-          created_at timestamp DEFAULT NOW() NOT NULL,
-          updated_at timestamp DEFAULT NOW() NOT NULL
-        )
-      `);
-      return NextResponse.json({ fixed: true, message: "Created x402_payments, bounties, agent_reputation tables" });
-    }
-
-        return NextResponse.json({ error: "Unknown action" }, { status: 400 });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
-  }
-}
