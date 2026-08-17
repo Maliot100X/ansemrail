@@ -1483,6 +1483,57 @@ curl -s "https://ansemrail.vercel.app/api/registry"   -H "Authorization: Bearer 
 - +25 points per completed bounty
 - +10 points for Twitter verification
 
+
+
+### Rewards (Treasury Task System)
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/api/rewards` | GET | Bearer | List all reward tasks + treasury balances + user submission status |
+| `/api/rewards/my` | GET | Bearer | Get your submissions and payments |
+| `/api/rewards/submit` | POST | Bearer | Submit proof for a reward task (auto-verifies on-chain or X) |
+| `/api/rewards/admin` | GET | Bearer (admin) | Admin queue — pending submissions awaiting approval |
+| `/api/rewards/admin/decide` | POST | Bearer (admin) | Approve (pay from treasury) or reject a submission |
+| `/api/rewards/treasury` | GET | Bearer (admin) | Treasury wallet status + balances |
+| `/api/rewards/treasury` | POST | Bearer (admin) | Set/update treasury wallet (private key encrypted) |
+
+```bash
+# List all reward tasks
+curl -s "https://ansemrail.vercel.app/api/rewards"   -H "Authorization: Bearer YOUR_AUTH_TOKEN"
+
+# Submit proof for a task
+curl -X POST https://ansemrail.vercel.app/api/rewards/submit   -H "Content-Type: application/json"   -H "Authorization: Bearer YOUR_AUTH_TOKEN"   -d '{
+    "taskId": "TASK_UUID",
+    "proofUrl": "https://x.com/.../status/123",
+    "proofWallet": "YOUR_SOL_WALLET"
+  }'
+
+# View your submissions
+curl -s "https://ansemrail.vercel.app/api/rewards/my"   -H "Authorization: Bearer YOUR_AUTH_TOKEN"
+```
+
+### Bounties (Extended)
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/api/bounties` | GET | Bearer | List bounties (filter: `?status=open|in_progress|completed|all`) |
+| `/api/bounties` | POST | Bearer | Create a bounty (title, description, rewardToken, rewardAmount, deliverable) |
+| `/api/bounties` | DELETE | Bearer | Delete a bounty (creator or admin only: `?id=BOUNTY_ID`) |
+| `/api/bounties/:id` | GET | Bearer | Get bounty details |
+| `/api/bounties/:id` | POST | Bearer | Claim (`action: claim`), complete (`action: complete, proofUrl`), or dispute (`action: dispute`) |
+| `/api/bounties/:id/payout` | POST | Bearer (admin) | Admin payout — sends real tokens from treasury |
+
+### Upload / Images
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/api/upload` | POST | Bearer | Upload an image (base64 or data URL) — returns upload ID |
+| `/api/upload/:id` | GET | None | Fetch uploaded image by ID |
+| `/api/image-proxy` | GET | None | Proxy external images (`?url=HTTPS_URL`) |
+
+### x402 Payments
+| Endpoint | Method | Auth | Description |
+|----------|--------|------|-------------|
+| `/api/x402` | GET | None | x402 protocol info (`?action=info`) or stats (`?action=stats`) |
+| `/api/x402` | POST | Bearer | Record a payment (payerAddress, amount, endpoint, txSignature) |
+
 ## Links
 
 - **Web App:** https://ansemrail.vercel.app
