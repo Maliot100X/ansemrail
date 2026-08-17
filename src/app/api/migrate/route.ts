@@ -21,28 +21,23 @@ export async function GET(request: NextRequest) {
   if (action === "cleanup-test-users") {
     try {
       const PLATFORM_AGENT_ID = "5c117f16-ed2d-4777-8838-c454b7802c11";
+      const neon = (await import("@neondatabase/serverless")).neon;
+      const sqlRaw = neon(process.env.DATABASE_URL!);
       
-      // Delete submissions by test users
-      await db.execute(sql`DELETE FROM reward_submissions WHERE user_id != ${PLATFORM_AGENT_ID}`);
-      await db.execute(sql`DELETE FROM reward_payments WHERE user_id != ${PLATFORM_AGENT_ID}`);
+      // Delete all referencing rows first (raw SQL to bypass FK)
+      await sqlRaw`DELETE FROM reward_submissions WHERE user_id != ${PLATFORM_AGENT_ID}`;
+      await sqlRaw`DELETE FROM reward_payments WHERE user_id != ${PLATFORM_AGENT_ID}`;
+      await sqlRaw`DELETE FROM agent_reputation WHERE user_id != ${PLATFORM_AGENT_ID}`;
+      await sqlRaw`DELETE FROM x402_payments WHERE user_id != ${PLATFORM_AGENT_ID}`;
+      await sqlRaw`DELETE FROM registrations WHERE user_id != ${PLATFORM_AGENT_ID}`;
+      await sqlRaw`DELETE FROM agents WHERE user_id != ${PLATFORM_AGENT_ID}`;
+      await sqlRaw`DELETE FROM skills WHERE user_id != ${PLATFORM_AGENT_ID}`;
+      await sqlRaw`DELETE FROM listings WHERE seller_user_id != ${PLATFORM_AGENT_ID}`;
+      await sqlRaw`DELETE FROM agent_signals WHERE agent_id IN (SELECT id FROM agents WHERE user_id != ${PLATFORM_AGENT_ID})`;
+      await sqlRaw`DELETE FROM bounties WHERE creator_user_id != ${PLATFORM_AGENT_ID}`;
       
-      // Delete reputation records for test users
-      await db.execute(sql`DELETE FROM agent_reputation WHERE user_id != ${PLATFORM_AGENT_ID}`);
-      
-      // Delete x402 payments by test users
-      await db.execute(sql`DELETE FROM x402_payments WHERE user_id != ${PLATFORM_AGENT_ID}`);
-      
-      // Delete registrations by test users
-      await db.execute(sql`DELETE FROM registrations WHERE user_id != ${PLATFORM_AGENT_ID}`);
-      
-      // Delete agents by test users
-      await db.execute(sql`DELETE FROM agents WHERE user_id != ${PLATFORM_AGENT_ID}`);
-      
-      // Delete skills by test users
-      await db.execute(sql`DELETE FROM skills WHERE user_id != ${PLATFORM_AGENT_ID}`);
-      
-      // Delete test users (keep platform agent)
-      await db.execute(sql`DELETE FROM users WHERE id != ${PLATFORM_AGENT_ID}`);
+      // Now delete the test users
+      await sqlRaw`DELETE FROM users WHERE id != ${PLATFORM_AGENT_ID}`;
       
       return NextResponse.json({ ok: true, message: "Test users cleaned up. Only platform agent remains." });
     } catch (err: any) {
@@ -316,28 +311,23 @@ export async function POST(request: NextRequest) {
   if (action === "cleanup-test-users") {
     try {
       const PLATFORM_AGENT_ID = "5c117f16-ed2d-4777-8838-c454b7802c11";
+      const neon = (await import("@neondatabase/serverless")).neon;
+      const sqlRaw = neon(process.env.DATABASE_URL!);
       
-      // Delete submissions by test users
-      await db.execute(sql`DELETE FROM reward_submissions WHERE user_id != ${PLATFORM_AGENT_ID}`);
-      await db.execute(sql`DELETE FROM reward_payments WHERE user_id != ${PLATFORM_AGENT_ID}`);
+      // Delete all referencing rows first (raw SQL to bypass FK)
+      await sqlRaw`DELETE FROM reward_submissions WHERE user_id != ${PLATFORM_AGENT_ID}`;
+      await sqlRaw`DELETE FROM reward_payments WHERE user_id != ${PLATFORM_AGENT_ID}`;
+      await sqlRaw`DELETE FROM agent_reputation WHERE user_id != ${PLATFORM_AGENT_ID}`;
+      await sqlRaw`DELETE FROM x402_payments WHERE user_id != ${PLATFORM_AGENT_ID}`;
+      await sqlRaw`DELETE FROM registrations WHERE user_id != ${PLATFORM_AGENT_ID}`;
+      await sqlRaw`DELETE FROM agents WHERE user_id != ${PLATFORM_AGENT_ID}`;
+      await sqlRaw`DELETE FROM skills WHERE user_id != ${PLATFORM_AGENT_ID}`;
+      await sqlRaw`DELETE FROM listings WHERE seller_user_id != ${PLATFORM_AGENT_ID}`;
+      await sqlRaw`DELETE FROM agent_signals WHERE agent_id IN (SELECT id FROM agents WHERE user_id != ${PLATFORM_AGENT_ID})`;
+      await sqlRaw`DELETE FROM bounties WHERE creator_user_id != ${PLATFORM_AGENT_ID}`;
       
-      // Delete reputation records for test users
-      await db.execute(sql`DELETE FROM agent_reputation WHERE user_id != ${PLATFORM_AGENT_ID}`);
-      
-      // Delete x402 payments by test users
-      await db.execute(sql`DELETE FROM x402_payments WHERE user_id != ${PLATFORM_AGENT_ID}`);
-      
-      // Delete registrations by test users
-      await db.execute(sql`DELETE FROM registrations WHERE user_id != ${PLATFORM_AGENT_ID}`);
-      
-      // Delete agents by test users
-      await db.execute(sql`DELETE FROM agents WHERE user_id != ${PLATFORM_AGENT_ID}`);
-      
-      // Delete skills by test users
-      await db.execute(sql`DELETE FROM skills WHERE user_id != ${PLATFORM_AGENT_ID}`);
-      
-      // Delete test users (keep platform agent)
-      await db.execute(sql`DELETE FROM users WHERE id != ${PLATFORM_AGENT_ID}`);
+      // Now delete the test users
+      await sqlRaw`DELETE FROM users WHERE id != ${PLATFORM_AGENT_ID}`;
       
       return NextResponse.json({ ok: true, message: "Test users cleaned up. Only platform agent remains." });
     } catch (err: any) {
