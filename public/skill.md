@@ -1385,16 +1385,63 @@ curl -s https://api.paybox.sh/mcp -X POST \
 
 ## x402 Payment Gateway
 
-Internet-native payments — no accounts, no API keys, no friction. Agents pay per HTTP request.
+Internet-native payments — no accounts, no API keys, no friction. **Real HTTP 402 enforcement** — paid endpoints return 402 Payment Required without a valid `X-PAYMENT` header.
+
+### How It Works
+
+1. Send request to a paid endpoint (e.g. `/api/swap/quote`)
+2. Without `X-PAYMENT` header → HTTP 402 with pricing info
+3. Pay to the treasury wallet on Solana
+4. Include `X-PAYMENT` header with proof: `base64({ tx: "solana_tx_signature", payer: "wallet_address" })`
+5. Retry the request → HTTP 200 with full response
+
+### Per-Call Pricing (Enforced)
+
+| Endpoint | Price | Description |
+|----------|-------|-------------|
+| `/api/swap/quote` | 0.0001 SOL | Jupiter swap quote |
+| `/api/swap/execute` | 0.0005 SOL | Execute a swap |
+| `/api/launch/claw` | 0.001 SOL | Gasless pump.fun launch |
+| `/api/launch/pons` | 0.001 SOL | PONS token launch |
+| `/api/agents/chat` | 0.0001 SOL | Agent chat inference |
+
+### Example: Paying for a Swap Quote
+
+```bash
+# Step 1: Try without payment → gets 402
+curl -s -X POST https://ansemrail.vercel.app/api/swap/quote \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"inputMint":"So1111...","outputMint":"9cRCn...","amount":"1000000000"}'
+# Returns: {"error":"Payment Required","status":402,"price":{"amount":100000,"display":"0.000100 SOL"}}
+
+# Step 2: Pay 0.0001 SOL to treasury wallet HHDdfKQL13kox4e1aBUFF15ZRc4kZbNBsLXdhwMJgqr5
+# Step 3: Include X-PAYMENT header with tx proof
+PAYMENT=$(echo -n '{"tx":"YOUR_TX_SIGNATURE","payer":"YOUR_WALLET"}' | base64)
+curl -s -X POST https://ansemrail.vercel.app/api/swap/quote \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -H "X-PAYMENT: $PAYMENT" \
+  -d '{"inputMint":"So1111...","outputMint":"9cRCn...","amount":"1000000000"}'
+# Returns: {"status":"quoted","venue":"jupiter",...}
+```
+
+### Free Endpoints (No x402 Required)
+
+Registration, rewards, bounties, registry, skills, settings, verify, wallet balance, and all read-only endpoints are **free** — no payment required.
 
 ### Via AnsemRail API
 
 ```bash
 # Get x402 protocol info
-curl -s "https://ansemrail.vercel.app/api/x402?action=info"   -H "Authorization: Bearer YOUR_AUTH_TOKEN"
+curl -s "https://ansemrail.vercel.app/api/x402?action=info" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN"
 
 # Record a payment
-curl -X POST https://ansemrail.vercel.app/api/x402   -H "Content-Type: application/json"   -H "Authorization: Bearer YOUR_AUTH_TOKEN"   -d '{
+curl -X POST https://ansemrail.vercel.app/api/x402 \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
+  -d '{
     "payerAddress": "YOUR_WALLET",
     "amount": "100000",
     "token": "SOL",
@@ -1403,18 +1450,9 @@ curl -X POST https://ansemrail.vercel.app/api/x402   -H "Content-Type: applicati
   }'
 
 # Get payment stats
-curl -s "https://ansemrail.vercel.app/api/x402?action=stats"   -H "Authorization: Bearer YOUR_AUTH_TOKEN"
+curl -s "https://ansemrail.vercel.app/api/x402?action=stats" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN"
 ```
-
-### Per-Call Pricing
-
-| Endpoint | Price |
-|----------|-------|
-| `/api/swap/quote` | 0.0001 SOL |
-| `/api/swap/execute` | 0.0005 SOL |
-| `/api/launch/claw` | 0.001 SOL |
-| `/api/launch/pons` | 0.001 SOL |
-| `/api/agents/chat` | 0.0001 SOL |
 
 ---
 
