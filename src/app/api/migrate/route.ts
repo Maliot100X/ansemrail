@@ -309,6 +309,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const body = await request.json().catch(() => ({}));
+  const action = body.action;
 
   // Cleanup test users (only platform agent 5c117f16... remains)
   if (action === "cleanup-test-users") {
