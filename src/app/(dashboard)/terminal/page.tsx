@@ -26,6 +26,78 @@ function weiToEth(wei?: string | number | null): string {
   if (!wei) return "0";
   const n = Number(wei);
   if (!isFinite(n) || n <= 0) return "0";
+
+  async function pbFetchCredentials() {
+    setPbLoading(true); setPbError(null);
+    try {
+      const res = await fetch("/api/paybox?action=credentials");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load wallets");
+      const creds = data.credentials || [];
+      setPbCredentials(creds);
+      if (creds.length > 0 && !pbSelectedCred) setPbSelectedCred(creds[0].credential_id);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbFetchPortfolio() {
+    if (!pbSelectedCred) { setPbError("Select a wallet first"); return; }
+    setPbLoading(true); setPbError(null);
+    try {
+      const res = await fetch(`/api/paybox?action=portfolio&credentialId=${pbSelectedCred}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load portfolio");
+      setPbPortfolio(data);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbFetchServices() {
+    setPbLoading(true); setPbError(null);
+    try {
+      const res = await fetch("/api/paybox?action=services");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load services");
+      setPbServices(data.services || data || []);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbFetchPolicies() {
+    setPbLoading(true); setPbError(null);
+    try {
+      const res = await fetch("/api/paybox?action=policies");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load policies");
+      setPbPolicies(data.policies || data || []);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbTransfer() {
+    if (!pbSelectedCred || !pbTransfer.to || !pbTransfer.amount) { setPbError("Fill all fields"); return; }
+    setPbLoading(true); setPbError(null); setPbResult(null);
+    try {
+      const res = await fetch("/api/paybox", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "transfer", credentialId: pbSelectedCred, to: pbTransfer.to, amount: pbTransfer.amount, tokenMint: pbTransfer.tokenMint }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Transfer failed");
+      setPbResult(data);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbSwap() {
+    if (!pbSelectedCred || !pbSwap.srcToken || !pbSwap.dstToken || !pbSwap.amount) { setPbError("Fill all fields"); return; }
+    setPbLoading(true); setPbError(null); setPbResult(null);
+    try {
+      const res = await fetch("/api/paybox", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "swap", credentialId: pbSelectedCred, srcChain: "solana:mainnet", srcToken: pbSwap.srcToken, dstToken: pbSwap.dstToken, amount: pbSwap.amount }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Swap failed");
+      setPbResult(data);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
   return (n / 1e18).toFixed(6);
 }
 
@@ -40,6 +112,78 @@ function LaunchStatusBadge({ status }: { status: string }) {
     error: { label: "Error", cls: "bg-red-950 text-red-300 border-red-700" },
   };
   const s = map[status] || { label: status, cls: "bg-zinc-900 text-zinc-300 border-zinc-700" };
+
+  async function pbFetchCredentials() {
+    setPbLoading(true); setPbError(null);
+    try {
+      const res = await fetch("/api/paybox?action=credentials");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load wallets");
+      const creds = data.credentials || [];
+      setPbCredentials(creds);
+      if (creds.length > 0 && !pbSelectedCred) setPbSelectedCred(creds[0].credential_id);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbFetchPortfolio() {
+    if (!pbSelectedCred) { setPbError("Select a wallet first"); return; }
+    setPbLoading(true); setPbError(null);
+    try {
+      const res = await fetch(`/api/paybox?action=portfolio&credentialId=${pbSelectedCred}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load portfolio");
+      setPbPortfolio(data);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbFetchServices() {
+    setPbLoading(true); setPbError(null);
+    try {
+      const res = await fetch("/api/paybox?action=services");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load services");
+      setPbServices(data.services || data || []);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbFetchPolicies() {
+    setPbLoading(true); setPbError(null);
+    try {
+      const res = await fetch("/api/paybox?action=policies");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load policies");
+      setPbPolicies(data.policies || data || []);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbTransfer() {
+    if (!pbSelectedCred || !pbTransfer.to || !pbTransfer.amount) { setPbError("Fill all fields"); return; }
+    setPbLoading(true); setPbError(null); setPbResult(null);
+    try {
+      const res = await fetch("/api/paybox", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "transfer", credentialId: pbSelectedCred, to: pbTransfer.to, amount: pbTransfer.amount, tokenMint: pbTransfer.tokenMint }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Transfer failed");
+      setPbResult(data);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbSwap() {
+    if (!pbSelectedCred || !pbSwap.srcToken || !pbSwap.dstToken || !pbSwap.amount) { setPbError("Fill all fields"); return; }
+    setPbLoading(true); setPbError(null); setPbResult(null);
+    try {
+      const res = await fetch("/api/paybox", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "swap", credentialId: pbSelectedCred, srcChain: "solana:mainnet", srcToken: pbSwap.srcToken, dstToken: pbSwap.dstToken, amount: pbSwap.amount }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Swap failed");
+      setPbResult(data);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
   return (
     <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium ${s.cls}`}>
       {status === "failed" || status === "error" ? <XCircle className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
@@ -66,6 +210,78 @@ function TokenSelect({
   onChange: (v: string) => void;
   id?: string;
 }) {
+
+  async function pbFetchCredentials() {
+    setPbLoading(true); setPbError(null);
+    try {
+      const res = await fetch("/api/paybox?action=credentials");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load wallets");
+      const creds = data.credentials || [];
+      setPbCredentials(creds);
+      if (creds.length > 0 && !pbSelectedCred) setPbSelectedCred(creds[0].credential_id);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbFetchPortfolio() {
+    if (!pbSelectedCred) { setPbError("Select a wallet first"); return; }
+    setPbLoading(true); setPbError(null);
+    try {
+      const res = await fetch(`/api/paybox?action=portfolio&credentialId=${pbSelectedCred}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load portfolio");
+      setPbPortfolio(data);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbFetchServices() {
+    setPbLoading(true); setPbError(null);
+    try {
+      const res = await fetch("/api/paybox?action=services");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load services");
+      setPbServices(data.services || data || []);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbFetchPolicies() {
+    setPbLoading(true); setPbError(null);
+    try {
+      const res = await fetch("/api/paybox?action=policies");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load policies");
+      setPbPolicies(data.policies || data || []);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbTransfer() {
+    if (!pbSelectedCred || !pbTransfer.to || !pbTransfer.amount) { setPbError("Fill all fields"); return; }
+    setPbLoading(true); setPbError(null); setPbResult(null);
+    try {
+      const res = await fetch("/api/paybox", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "transfer", credentialId: pbSelectedCred, to: pbTransfer.to, amount: pbTransfer.amount, tokenMint: pbTransfer.tokenMint }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Transfer failed");
+      setPbResult(data);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbSwap() {
+    if (!pbSelectedCred || !pbSwap.srcToken || !pbSwap.dstToken || !pbSwap.amount) { setPbError("Fill all fields"); return; }
+    setPbLoading(true); setPbError(null); setPbResult(null);
+    try {
+      const res = await fetch("/api/paybox", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "swap", credentialId: pbSelectedCred, srcChain: "solana:mainnet", srcToken: pbSwap.srcToken, dstToken: pbSwap.dstToken, amount: pbSwap.amount }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Swap failed");
+      setPbResult(data);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
   return (
     <select
       id={id}
@@ -143,7 +359,18 @@ export default function TerminalPage() {
   const [agentsLoading, setAgentsLoading] = useState(false);
   const [executeAgentId, setExecuteAgentId] = useState("");
   const [executing, setExecuting] = useState(false);
-  const [executeResult, setExecuteResult] = useState<any>(null);
+  const [executeResult, setExecuteResult] = useState<any>(null);  // PayBox state
+  const [pbCredentials, setPbCredentials] = useState<any[]>([]);
+  const [pbSelectedCred, setPbSelectedCred] = useState("");
+  const [pbPortfolio, setPbPortfolio] = useState<any>(null);
+  const [pbLoading, setPbLoading] = useState(false);
+  const [pbError, setPbError] = useState<string | null>(null);
+  const [pbTransfer, setPbTransfer] = useState({ to: "", amount: "", tokenMint: "So11111111111111111111111111111111111111112" });
+  const [pbSwap, setPbSwap] = useState({ srcToken: "So11111111111111111111111111111111111111112", dstToken: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", amount: "" });
+  const [pbServices, setPbServices] = useState<any[]>([]);
+  const [pbPolicies, setPbPolicies] = useState<any[]>([]);
+  const [pbResult, setPbResult] = useState<any>(null);
+  const [pbActiveView, setPbActiveView] = useState<"wallet"|"transfer"|"swap"|"services"|"policies">("wallet");
   const [executeError, setExecuteError] = useState<string | null>(null);
 
   async function handleQuote(e: React.FormEvent) {
@@ -349,9 +576,153 @@ export default function TerminalPage() {
     if (!ponsForm.agentId) return;
     fetchPonsLaunches(ponsForm.agentId);
     const timer = setInterval(() => fetchPonsLaunches(ponsForm.agentId), 8000);
-    return () => clearInterval(timer);
+  
+  async function pbFetchCredentials() {
+    setPbLoading(true); setPbError(null);
+    try {
+      const res = await fetch("/api/paybox?action=credentials");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load wallets");
+      const creds = data.credentials || [];
+      setPbCredentials(creds);
+      if (creds.length > 0 && !pbSelectedCred) setPbSelectedCred(creds[0].credential_id);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbFetchPortfolio() {
+    if (!pbSelectedCred) { setPbError("Select a wallet first"); return; }
+    setPbLoading(true); setPbError(null);
+    try {
+      const res = await fetch(`/api/paybox?action=portfolio&credentialId=${pbSelectedCred}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load portfolio");
+      setPbPortfolio(data);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbFetchServices() {
+    setPbLoading(true); setPbError(null);
+    try {
+      const res = await fetch("/api/paybox?action=services");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load services");
+      setPbServices(data.services || data || []);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbFetchPolicies() {
+    setPbLoading(true); setPbError(null);
+    try {
+      const res = await fetch("/api/paybox?action=policies");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load policies");
+      setPbPolicies(data.policies || data || []);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbTransfer() {
+    if (!pbSelectedCred || !pbTransfer.to || !pbTransfer.amount) { setPbError("Fill all fields"); return; }
+    setPbLoading(true); setPbError(null); setPbResult(null);
+    try {
+      const res = await fetch("/api/paybox", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "transfer", credentialId: pbSelectedCred, to: pbTransfer.to, amount: pbTransfer.amount, tokenMint: pbTransfer.tokenMint }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Transfer failed");
+      setPbResult(data);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbSwap() {
+    if (!pbSelectedCred || !pbSwap.srcToken || !pbSwap.dstToken || !pbSwap.amount) { setPbError("Fill all fields"); return; }
+    setPbLoading(true); setPbError(null); setPbResult(null);
+    try {
+      const res = await fetch("/api/paybox", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "swap", credentialId: pbSelectedCred, srcChain: "solana:mainnet", srcToken: pbSwap.srcToken, dstToken: pbSwap.dstToken, amount: pbSwap.amount }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Swap failed");
+      setPbResult(data);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ponsForm.agentId]);
+
+
+  async function pbFetchCredentials() {
+    setPbLoading(true); setPbError(null);
+    try {
+      const res = await fetch("/api/paybox?action=credentials");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load wallets");
+      const creds = data.credentials || [];
+      setPbCredentials(creds);
+      if (creds.length > 0 && !pbSelectedCred) setPbSelectedCred(creds[0].credential_id);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbFetchPortfolio() {
+    if (!pbSelectedCred) { setPbError("Select a wallet first"); return; }
+    setPbLoading(true); setPbError(null);
+    try {
+      const res = await fetch(`/api/paybox?action=portfolio&credentialId=${pbSelectedCred}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load portfolio");
+      setPbPortfolio(data);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbFetchServices() {
+    setPbLoading(true); setPbError(null);
+    try {
+      const res = await fetch("/api/paybox?action=services");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load services");
+      setPbServices(data.services || data || []);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbFetchPolicies() {
+    setPbLoading(true); setPbError(null);
+    try {
+      const res = await fetch("/api/paybox?action=policies");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load policies");
+      setPbPolicies(data.policies || data || []);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbTransfer() {
+    if (!pbSelectedCred || !pbTransfer.to || !pbTransfer.amount) { setPbError("Fill all fields"); return; }
+    setPbLoading(true); setPbError(null); setPbResult(null);
+    try {
+      const res = await fetch("/api/paybox", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "transfer", credentialId: pbSelectedCred, to: pbTransfer.to, amount: pbTransfer.amount, tokenMint: pbTransfer.tokenMint }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Transfer failed");
+      setPbResult(data);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbSwap() {
+    if (!pbSelectedCred || !pbSwap.srcToken || !pbSwap.dstToken || !pbSwap.amount) { setPbError("Fill all fields"); return; }
+    setPbLoading(true); setPbError(null); setPbResult(null);
+    try {
+      const res = await fetch("/api/paybox", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "swap", credentialId: pbSelectedCred, srcChain: "solana:mainnet", srcToken: pbSwap.srcToken, dstToken: pbSwap.dstToken, amount: pbSwap.amount }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Swap failed");
+      setPbResult(data);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
 
   return (
     <div className="space-y-6">
@@ -361,7 +732,7 @@ export default function TerminalPage() {
       </div>
 
       <Tabs defaultValue="swap">
-        <TabsList className="grid w-full grid-cols-6 max-w-3xl">
+        <TabsList className="grid w-full grid-cols-7 max-w-4xl">
           <TabsTrigger value="swap" className="flex items-center gap-1">
             <Zap className="h-3 w-3" /> Swap
           </TabsTrigger>
@@ -955,7 +1326,79 @@ export default function TerminalPage() {
                       const cur = LAUNCH_STEPS.indexOf(ponsResult.launch.status);
                       const done = cur >= i;
                       const isErr = ponsResult.launch.status === "failed" || ponsResult.launch.status === "error";
-                      return (
+                    
+  async function pbFetchCredentials() {
+    setPbLoading(true); setPbError(null);
+    try {
+      const res = await fetch("/api/paybox?action=credentials");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load wallets");
+      const creds = data.credentials || [];
+      setPbCredentials(creds);
+      if (creds.length > 0 && !pbSelectedCred) setPbSelectedCred(creds[0].credential_id);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbFetchPortfolio() {
+    if (!pbSelectedCred) { setPbError("Select a wallet first"); return; }
+    setPbLoading(true); setPbError(null);
+    try {
+      const res = await fetch(`/api/paybox?action=portfolio&credentialId=${pbSelectedCred}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load portfolio");
+      setPbPortfolio(data);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbFetchServices() {
+    setPbLoading(true); setPbError(null);
+    try {
+      const res = await fetch("/api/paybox?action=services");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load services");
+      setPbServices(data.services || data || []);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbFetchPolicies() {
+    setPbLoading(true); setPbError(null);
+    try {
+      const res = await fetch("/api/paybox?action=policies");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load policies");
+      setPbPolicies(data.policies || data || []);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbTransfer() {
+    if (!pbSelectedCred || !pbTransfer.to || !pbTransfer.amount) { setPbError("Fill all fields"); return; }
+    setPbLoading(true); setPbError(null); setPbResult(null);
+    try {
+      const res = await fetch("/api/paybox", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "transfer", credentialId: pbSelectedCred, to: pbTransfer.to, amount: pbTransfer.amount, tokenMint: pbTransfer.tokenMint }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Transfer failed");
+      setPbResult(data);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  async function pbSwap() {
+    if (!pbSelectedCred || !pbSwap.srcToken || !pbSwap.dstToken || !pbSwap.amount) { setPbError("Fill all fields"); return; }
+    setPbLoading(true); setPbError(null); setPbResult(null);
+    try {
+      const res = await fetch("/api/paybox", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "swap", credentialId: pbSelectedCred, srcChain: "solana:mainnet", srcToken: pbSwap.srcToken, dstToken: pbSwap.dstToken, amount: pbSwap.amount }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Swap failed");
+      setPbResult(data);
+    } catch (err: any) { setPbError(err.message); }
+    setPbLoading(false);
+  }
+
+  return (
                         <div key={step} className="flex items-center gap-2">
                           {i > 0 && <span className={`h-px w-6 ${done ? "bg-green-600" : "bg-zinc-700"}`} />}
                           <span className={`flex items-center gap-1 ${isErr ? "text-red-400" : done ? "text-green-400" : "text-zinc-500"}`}>
@@ -1131,6 +1574,155 @@ export default function TerminalPage() {
               <ClawLaunchTab />
             </CardContent>
           </Card>
+
+        <TabsContent value="paybox" className="max-w-3xl space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Wallet className="h-4 w-4 text-amber-500" /> PayBox Agent
+              </CardTitle>
+              <CardDescription>
+                Connect your PayBox API key in Settings → Accounts, then manage wallets, transfer, swap, and discover services
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* PayBox Sub-navigation */}
+              <div className="flex gap-2 flex-wrap">
+                {(["wallet","transfer","swap","services","policies"] as const).map(v => (
+                  <Button key={v} size="sm" variant={pbActiveView === v ? "default" : "outline"} onClick={() => setPbActiveView(v)}>
+                    {v.charAt(0).toUpperCase() + v.slice(1)}
+                  </Button>
+                ))}
+              </div>
+
+              {pbError && (
+                <div className="rounded-md border border-red-800 bg-red-950/30 p-3 text-sm text-red-400">{pbError}</div>
+              )}
+
+              {/* Wallet View */}
+              {pbActiveView === "wallet" && (
+                <div className="space-y-3">
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={pbFetchCredentials} disabled={pbLoading}>Load Wallets</Button>
+                    {pbSelectedCred && <Button size="sm" variant="outline" onClick={pbFetchPortfolio} disabled={pbLoading}>Refresh Balance</Button>}
+                  </div>
+                  {pbCredentials.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-xs text-zinc-400">Select Wallet</Label>
+                      <select className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100" value={pbSelectedCred} onChange={e => { setPbSelectedCred(e.target.value); setPbPortfolio(null); }}>
+                        {pbCredentials.map((c: any) => (
+                          <option key={c.credential_id} value={c.credential_id}>{c.name || c.kind} — {c.metadata?.address?.slice(0,8)}...</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  {pbPortfolio && (
+                    <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 space-y-2">
+                      <p className="text-sm font-medium text-zinc-200">Portfolio — ${pbPortfolio.total_usd?.toFixed(2) || "0.00"} USD</p>
+                      {(pbPortfolio.items || []).map((item: any, i: number) => (
+                        <div key={i} className="flex justify-between text-xs text-zinc-400">
+                          <span>{item.symbol || item.token?.slice(0,8)}</span>
+                          <span className="font-mono">{Number(item.amount).toFixed(4)} (${item.usd_value?.toFixed(2) || "0"})</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Transfer View */}
+              {pbActiveView === "transfer" && (
+                <div className="space-y-3">
+                  <Label className="text-xs text-zinc-400">Send tokens from your PayBox wallet</Label>
+                  <Input placeholder="Recipient address" value={pbTransfer.to} onChange={e => setPbTransfer({...pbTransfer, to: e.target.value})} className="font-mono text-xs" />
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input placeholder="Amount" value={pbTransfer.amount} onChange={e => setPbTransfer({...pbTransfer, amount: e.target.value})} />
+                    <select className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100" value={pbTransfer.tokenMint} onChange={e => setPbTransfer({...pbTransfer, tokenMint: e.target.value})}>
+                      <option value="So11111111111111111111111111111111111111112">SOL</option>
+                      <option value="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v">USDC</option>
+                      <option value="9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump">$ANSEM</option>
+                      <option value="739dnZEG4yaBWFsY8L8ZwrfhGG6dhtCSercW8Umspump">$CLAW</option>
+                    </select>
+                  </div>
+                  <Button onClick={pbTransfer} disabled={pbLoading || !pbSelectedCred} className="bg-amber-600 hover:bg-amber-700">
+                    {pbLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}Send Transfer
+                  </Button>
+                </div>
+              )}
+
+              {/* Swap View */}
+              {pbActiveView === "swap" && (
+                <div className="space-y-3">
+                  <Label className="text-xs text-zinc-400">Swap tokens via PayBox</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <select className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100" value={pbSwap.srcToken} onChange={e => setPbSwap({...pbSwap, srcToken: e.target.value})}>
+                      <option value="So11111111111111111111111111111111111111112">SOL</option>
+                      <option value="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v">USDC</option>
+                      <option value="9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump">$ANSEM</option>
+                    </select>
+                    <Input placeholder="Amount" value={pbSwap.amount} onChange={e => setPbSwap({...pbSwap, amount: e.target.value})} />
+                    <select className="rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100" value={pbSwap.dstToken} onChange={e => setPbSwap({...pbSwap, dstToken: e.target.value})}>
+                      <option value="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v">USDC</option>
+                      <option value="So11111111111111111111111111111111111111112">SOL</option>
+                      <option value="9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump">$ANSEM</option>
+                      <option value="739dnZEG4yaBWFsY8L8ZwrfhGG6dhtCSercW8Umspump">$CLAW</option>
+                    </select>
+                  </div>
+                  <Button onClick={pbSwap} disabled={pbLoading || !pbSelectedCred} className="bg-amber-600 hover:bg-amber-700">
+                    {pbLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}Execute Swap
+                  </Button>
+                </div>
+              )}
+
+              {/* Services View */}
+              {pbActiveView === "services" && (
+                <div className="space-y-3">
+                  <Button size="sm" onClick={pbFetchServices} disabled={pbLoading}>Discover Services</Button>
+                  {pbServices.length > 0 && pbServices.map((s: any, i: number) => (
+                    <div key={i} className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
+                      <p className="text-sm font-medium text-zinc-200">{s.name || s.id}</p>
+                      <p className="text-xs text-zinc-500">{s.description}</p>
+                      {s.pricing && <p className="text-xs text-amber-400 mt-1">{s.pricing}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Policies View */}
+              {pbActiveView === "policies" && (
+                <div className="space-y-3">
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={pbFetchPolicies} disabled={pbLoading}>Load Policies</Button>
+                    <Button size="sm" variant="outline" onClick={async () => {
+                      setPbLoading(true); setPbError(null);
+                      try {
+                        const res = await fetch("/api/paybox", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "createAnsemPolicy" }) });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.error);
+                        setPbResult(data); pbFetchPolicies();
+                      } catch (err: any) { setPbError(err.message); }
+                      setPbLoading(false);
+                    }}>Create ANSEM-Only Policy</Button>
+                  </div>
+                  {pbPolicies.length > 0 && pbPolicies.map((p: any, i: number) => (
+                    <div key={i} className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
+                      <p className="text-sm font-medium text-zinc-200">{p.name || p.id}</p>
+                      <p className="text-xs text-zinc-500">Rules: {JSON.stringify(p.rules || [])}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Result */}
+              {pbResult && (
+                <div className="rounded-lg border border-green-800 bg-green-950/20 p-4">
+                  <p className="text-sm text-green-300 font-medium">Result</p>
+                  <pre className="mt-2 text-xs text-zinc-400 overflow-auto max-h-48">{JSON.stringify(pbResult, null, 2)}</pre>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
         </TabsContent>
       </Tabs>
     </div>
