@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRequestUser } from "@/lib/auth-session";
 import { db } from "@/db/client";
-import { bounties } from "@/db/schema";
+import { bounties, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +34,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { action, proofUrl } = body;
+    const { action, proofUrl, payoutWallet } = body;
 
     const [bounty] = await db.select().from(bounties).where(eq(bounties.id, id)).limit(1);
     if (!bounty) {
@@ -60,6 +60,14 @@ export async function POST(
       if (bounty.assigneeUserId !== user.id) {
         return NextResponse.json({ error: "Only the assignee can complete" }, { status: 403 });
       }
+      if (!payoutWallet) {
+        return NextResponse.json({ error: "Payout wallet address is required" }, { status: 400 });
+      }
+      // Save payout wallet to user profile
+      await db
+        .update(users)
+        .set({ payoutWallet, updatedAt: new Date() })
+        .where(eq(users.id, user.id));
       const [updated] = await db
         .update(bounties)
         .set({ status: "completed", proofUrl: proofUrl || null, updatedAt: new Date() })

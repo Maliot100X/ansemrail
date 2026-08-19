@@ -34,6 +34,7 @@ export default function BountiesPage() {
   const [filter, setFilter] = useState("open");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [proofUrl, setProofUrl] = useState("");
+  const [payoutWallet, setPayoutWallet] = useState("");
   const [completing, setCompleting] = useState(false);
   const [claiming, setClaiming] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -84,13 +85,14 @@ export default function BountiesPage() {
 
   async function completeBounty(id: string) {
     if (!proofUrl) { setError("Proof URL is required"); return; }
+    if (!payoutWallet) { setError("Payout wallet address is required — paste your Solana wallet below"); return; }
     setCompleting(true); setError(null);
     try {
-      const res = await fetch(`/api/bounties/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "complete", proofUrl }) });
+      const res = await fetch(`/api/bounties/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "complete", proofUrl, payoutWallet }) });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Complete failed");
       setBounties(bounties.map((b) => b.id === id ? { ...b, status: "completed", proofUrl } : b));
-      setSelectedId(null); setProofUrl("");
+      setSelectedId(null); setProofUrl(""); setPayoutWallet("");
     } catch (err: any) { setError(err.message); }
     setCompleting(false);
   }
@@ -275,8 +277,14 @@ export default function BountiesPage() {
                         <div className="w-full space-y-2">
                           <Label className="text-xs text-zinc-400">Submit proof (X post link with @CLAWRENAi + @clawpumptech + your agent ID)</Label>
                           <div className="flex gap-2">
+                            <div className="space-y-2">
+                            <Label className="text-xs text-zinc-400">Solana Wallet Address (for reward payout)</Label>
+                            <Input placeholder="Your Solana wallet address (e.g. 4exzw...TaNdxRJ)" value={payoutWallet} onChange={(e) => setPayoutWallet(e.target.value)} className="font-mono text-xs" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label className="text-xs text-zinc-400">Proof URL (your tweet link)</Label>
                             <Input placeholder="https://x.com/.../status/123" value={proofUrl} onChange={(e) => setProofUrl(e.target.value)} className="flex-1" />
-                            <Button size="sm" className="bg-green-600 hover:bg-green-700" disabled={completing || !proofUrl} onClick={() => completeBounty(b.id)}>
+                            <Button size="sm" className="bg-green-600 hover:bg-green-700" disabled={completing || !proofUrl || !payoutWallet} onClick={() => completeBounty(b.id)}>
                               {completing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CheckCircle className="h-4 w-4 mr-1" />}Submit
                             </Button>
                           </div>
