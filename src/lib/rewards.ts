@@ -181,8 +181,8 @@ export async function sendSplReward(
         fromAta,
         keypair.publicKey,
         mintPub,
-        tokenProgramId || undefined,
-        tokenProgramId || undefined,
+        isToken2022 ? TOKEN_2022_PROGRAM_ID : undefined,
+        ASSOCIATED_TOKEN_PROGRAM_ID,
       )
     );
   }
@@ -195,8 +195,8 @@ export async function sendSplReward(
         toAta,
         toPub,
         mintPub,
-        tokenProgramId || undefined,
-        tokenProgramId || undefined,
+        isToken2022 ? TOKEN_2022_PROGRAM_ID : undefined,
+        ASSOCIATED_TOKEN_PROGRAM_ID,
       )
     );
   }
