@@ -276,18 +276,17 @@ export default function BountiesPage() {
                       {b.status === "in_progress" && (
                         <div className="w-full space-y-2">
                           <Label className="text-xs text-zinc-400">Submit proof (X post link with @CLAWRENAi + @clawpumptech + your agent ID)</Label>
-                          <div className="flex gap-2">
-                            <div className="space-y-2">
+                          <div className="space-y-2">
                             <Label className="text-xs text-zinc-400">Solana Wallet Address (for reward payout)</Label>
                             <Input placeholder="Your Solana wallet address (e.g. 4exzw...TaNdxRJ)" value={payoutWallet} onChange={(e) => setPayoutWallet(e.target.value)} className="font-mono text-xs" />
                           </div>
                           <div className="space-y-2">
                             <Label className="text-xs text-zinc-400">Proof URL (your tweet link)</Label>
                             <Input placeholder="https://x.com/.../status/123" value={proofUrl} onChange={(e) => setProofUrl(e.target.value)} className="flex-1" />
-                            <Button size="sm" className="bg-green-600 hover:bg-green-700" disabled={completing || !proofUrl || !payoutWallet} onClick={() => completeBounty(b.id)}>
-                              {completing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CheckCircle className="h-4 w-4 mr-1" />}Submit
-                            </Button>
                           </div>
+                          <Button size="sm" className="bg-green-600 hover:bg-green-700" disabled={completing || !proofUrl || !payoutWallet} onClick={() => completeBounty(b.id)}>
+                            {completing ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CheckCircle className="h-4 w-4 mr-1" />}Submit
+                          </Button>
                         </div>
                       )}
                       {b.status === "completed" && <Badge variant="secondary"><Clock className="h-3 w-3 mr-1" /> Waiting for admin payout</Badge>}

@@ -60,7 +60,7 @@ export async function POST(
           .where(eq(bounties.id, id));
         // Notify the submitter via Telegram if possible
         try {
-          const [creator] = await db.select().from(users).where(eq(users.id, bounty.creatorUserId)).limit(1);
+          const [creator] = bounty.creatorUserId ? await db.select().from(users).where(eq(users.id, bounty.creatorUserId)).limit(1) : [null];
           if (creator && creator.telegramChatId) {
             await sendMessage(
               creator.telegramChatId,
