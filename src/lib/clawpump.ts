@@ -205,10 +205,10 @@ export async function launchTokenSelfFunded(params: {
   initialBuySol?: number | string;
   devBuy?: string;
 }, userApiKey?: string): Promise<any> {
-  const res = await fetch(`${CLAWPUMP_BASE}/api/v1/launch/self-funded`, {
+  const res = await fetch(`${CLAWPUMP_BASE}/api/v1/launch`, {
     method: "POST",
     headers: authHeaders(userApiKey),
-    body: JSON.stringify(params),
+    body: JSON.stringify({ ...params, selfFunded: true }),
   });
   if (!res.ok) {
     const text = await res.text();

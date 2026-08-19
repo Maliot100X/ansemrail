@@ -52,6 +52,7 @@ export default function ClawLaunchTab() {
   const [result, setResult] = useState<any>(null);
   const [funding, setFunding] = useState<any>(null);
   const [copied, setCopied] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
   async function fetchMyAgents() {
     setAgentsLoading(true);
@@ -323,7 +324,31 @@ export default function ClawLaunchTab() {
           </p>
         )}
 
-        <Button type="submit" variant="ansem" className="w-full" disabled={loading}>
+        {mode === "self-funded" && (
+          <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-4">
+            <p className="text-sm font-medium text-zinc-200">Cost Breakdown</p>
+            <div className="space-y-1 text-xs text-zinc-400">
+              <div className="flex justify-between"><span>~0.0350 SOL from agent wallet</span></div>
+              <div className="flex justify-between"><span>~0.0250 SOL mint and network fees</span></div>
+              <div className="flex justify-between"><span>ClawPump mints on your behalf — you keep 65% of creator fees</span></div>
+            </div>
+            <div className="border-t border-zinc-800 pt-3 space-y-2">
+              <p className="text-xs text-zinc-500">I agree to the Terms and understand what happens next:</p>
+              <ul className="text-[11px] text-zinc-500 space-y-1 list-disc list-inside">
+                <li>The mint is permanent — cannot be renamed, edited or undone once live.</li>
+                <li>Trading opens immediately on the bonding curve. Price is set by the market.</li>
+                <li>You keep 65% of creator fees, ClawPump takes 35%. Fees pay into the agent wallet.</li>
+                <li>ClawPump never custodies your funds. Every transaction is signed by the agent wallet.</li>
+              </ul>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="rounded border-zinc-700 bg-zinc-800" />
+                <span className="text-xs text-zinc-300">I understand and agree</span>
+              </label>
+            </div>
+          </div>
+        )}
+
+        <Button type="submit" variant="ansem" className="w-full" disabled={loading || (mode === "self-funded" && !agreed)}>
           {loading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
