@@ -170,10 +170,26 @@ export async function sendSplReward(
   const toAta = await getAssociatedTokenAddress(mintPub, toPub, false, tokenProgramId);
 
   const fromInfo = await conn.getAccountInfo(fromAta);
-  if (!fromInfo) throw new Error("Treasury has no token account for this mint — fund the treasury first.");
 
+  // Create treasury ATA if it doesn't exist (treasury may have tokens in wallet directly)
   const tx = new Transaction();
 
+<<<<<<< HEAD
+=======
+  if (!fromInfo) {
+    tx.add(
+      createAssociatedTokenAccountInstruction(
+        keypair.publicKey,
+        fromAta,
+        keypair.publicKey,
+        mintPub,
+        tokenProgramId || undefined,
+        tokenProgramId || undefined,
+      )
+    );
+  }
+
+>>>>>>> e413316 (fix: bounty payout ATA creation + admin approve/reject + migration for new columns)
   // Create recipient ATA if it doesn't exist
   const toInfo = await conn.getAccountInfo(toAta);
   if (!toInfo) {

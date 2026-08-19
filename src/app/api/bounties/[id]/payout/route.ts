@@ -13,7 +13,7 @@ const TOKEN_MINTS: Record<string, string> = {
   PROJECT: PROJECT_MINT,
 };
 
-// Admin-only bounty payout — sends real tokens from treasury wallet
+// Admin-only bounty actions: payout, approve, reject
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -24,15 +24,60 @@ export async function POST(
     const adminSecret = process.env.REWARDS_ADMIN_SECRET;
     const authHeader = request.headers.get("authorization") || "";
     const isAdmin = adminSecret && authHeader === `Bearer ${adminSecret}`;
-    if (!user && !isAdmin) {
-      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
-    }
+    // Non-admin gets payout; admin can also payout but can additionally approve/reject
+    const isNonAdmin = user && !isAdmin;
 
     const [bounty] = await db.select().from(bounties).where(eq(bounties.id, id)).limit(1);
     if (!bounty) {
       return NextResponse.json({ error: "Bounty not found" }, { status: 404 });
     }
 
+    const body = await request.json();
+    const { action } = body; // "payout", "approve", "reject"
+
+    // Handle admin approve/reject
+    if (isAdmin && action !== "payout") {
+      if (action === "approve") {
+        if (bounty.status !== "completed") {
+          return NextResponse.json({ error: "Bounty must be completed before approval" }, { status: 400 });
+        }
+        // Mark as approved for payout - keep status as completed, just note admin approved
+        await db
+          .update(bounties)
+          .set({ approvedByAdmin: true, updatedAt: new Date() })
+          .where(eq(bounties.id, id));
+        return NextResponse.json({ success: true, message: "Bounty approved by admin" });
+      }
+
+      if (action === "reject") {
+        const { reason } = body;
+        if (!reason) {
+          return NextResponse.json({ error: "Reject reason is required" }, { status: 400 });
+        }
+        await db
+          .update(bounties)
+          .set({ status: "rejected", rejectReason: reason, approvedByAdmin: false, updatedAt: new Date() })
+          .where(eq(bounties.id, id));
+        // Notify the submitter via Telegram if possible
+        try {
+          const [creator] = await db.select().from(users).where(eq(users.id, bounty.creatorUserId)).limit(1);
+          if (creator && creator.telegramChatId) {
+            await sendMessage(
+              creator.telegramChatId,
+              `❌ <b>Bounty Rejected</b>\n\n` +
+              `Bounty: ${bounty.title}\n` +
+              `Reason: ${reason}\n\n` +
+              `View your dashboard: https://ansemrail.vercel.app/dashboard`
+            );
+          }
+        } catch {}
+        return NextResponse.json({ success: true, message: "Bounty rejected by admin" });
+      }
+
+      return NextResponse.json({ error: "Invalid admin action" }, { status: 400 });
+    }
+
+    // Handle payout (admin or non-admin)
     if (bounty.status !== "completed") {
       return NextResponse.json({ error: "Bounty must be completed before payout" }, { status: 400 });
     }

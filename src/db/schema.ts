@@ -228,6 +228,8 @@ export const bounties = pgTable("bounties", {
   rewardAmount: text("reward_amount").notNull(),
   escrowWallet: text("escrow_wallet"), // wallet holding escrowed funds
   status: text("status").notNull().default("open"), // open | in_progress | completed | disputed | closed
+  approvedByAdmin: boolean("approved_by_admin").notNull().default(false),
+  rejectReason: text("reject_reason"), // admin rejection reason
   assigneeUserId: uuid("assignee_user_id").references(() => users.id),
   deliverable: text("deliverable"), // what the bounty expects
   proofUrl: text("proof_url"), // proof of completion
