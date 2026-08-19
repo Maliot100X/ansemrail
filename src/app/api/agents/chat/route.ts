@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { checkX402, recordX402Payment } from "@/lib/x402";
 import { chatWithAgent } from "@/lib/clawpump";
 import { getRequestUser, getUserClawpumpApiKey } from "@/lib/auth-session";
 import { db } from "@/db/client";
@@ -7,8 +6,6 @@ import { agents as agentsTable } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
-  const x402Response = checkX402(request);
-  if (x402Response) return x402Response;
   try {
     const { agentId, message } = await request.json();
     if (!agentId || !message) {

@@ -1,11 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { checkX402, recordX402Payment } from "@/lib/x402";
 import { swapExecute, listAgents } from "@/lib/clawpump";
 import { getRequestUser, getUserClawpumpApiKey } from "@/lib/auth-session";
 
 export async function POST(request: NextRequest) {
-  const x402Response = checkX402(request);
-  if (x402Response) return x402Response;
   try {
     const user = await getRequestUser(request);
     if (!user) {
