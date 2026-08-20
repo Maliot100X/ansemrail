@@ -50,7 +50,9 @@ export default function PayBoxPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<any>(null);
-  const [copied, setCopied] = useState(false);
+const [copied, setCopied] = useState(false);
+  const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
+  const [pendingStatus, setPendingStatus] = useState<string | null>(null);
 
   // Transfer form
   const [transfer, setTransfer] = useState({ to: "", amount: "", token: "SOL" });
@@ -75,9 +77,34 @@ export default function PayBoxPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Request failed");
       setResult(data);
+      // If there's a request_id, start polling for completion
+      if (data.request_id) {
+        setPendingRequestId(data.request_id);
+        setPendingStatus(data.status || "pending_signature");
+        pollRequest(data.request_id);
+      }
       return data;
     } catch (err: any) { setError(err.message); return null; }
     finally { setLoading(false); }
+  }
+
+  async function pollRequest(requestId: string) {
+    for (let i = 0; i < 30; i++) {
+      await new Promise(r => setTimeout(r, 2000));
+      try {
+        const res = await fetch(`/api/paybox?action=request&requestId=${requestId}`);
+        const data = await res.json();
+        const status = data.status || data?.output?.status;
+        setPendingStatus(status);
+        if (status === "success" || status === "confirmed" || status === "denied" || status === "error" || data.txHash || data?.output?.txHash) {
+          setResult(data);
+          setPendingRequestId(null);
+          return;
+        }
+      } catch {}
+    }
+    // After 60s, stop polling but keep showing status
+    setPendingRequestId(null);
   }
 
   async function loadWallets() {
@@ -350,12 +377,48 @@ export default function PayBoxPage() {
         </TabsContent>
       </Tabs>
 
+      {/* Pending Request */}
+      {pendingRequestId && (
+        <Card className="border-amber-800/50 bg-amber-950/10">
+          <CardContent className="p-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
+              <p className="text-sm font-medium text-amber-300">Swap in progress...</p>
+            </div>
+            <p className="text-xs text-zinc-400">Status: <span className="text-zinc-200">{pendingStatus || "processing"}</span></p>
+            <p className="text-xs text-zinc-500">Request: {shortAddr(pendingRequestId, 8)}</p>
+            <p className="text-xs text-zinc-500">Waiting for PayBox to sign and broadcast...</p>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Result */}
-      {result && (
-        <Card className="border-green-800/50">
-          <CardContent className="p-4">
-            <p className="text-sm text-green-300 font-medium mb-2">Result</p>
-            <pre className="text-xs text-zinc-400 overflow-auto max-h-64 bg-zinc-900 rounded-md p-3">{JSON.stringify(result, null, 2)}</pre>
+      {result && !pendingRequestId && (
+        <Card className={`border ${result.status === 'success' || result.txHash || result?.output?.txHash ? 'border-green-800/50' : 'border-zinc-700'}`}>
+          <CardContent className="p-4 space-y-2">
+            {(result.status === 'success' || result.txHash || result?.output?.txHash) && (
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-400" />
+                <p className="text-sm font-medium text-green-300">Swap Complete!</p>
+              </div>
+            )}
+            {result.status === 'denied' && (
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-red-400" />
+                <p className="text-sm font-medium text-red-300">Swap Denied</p>
+              </div>
+            )}
+            {result.txHash && (
+              <p className="text-xs text-zinc-400">
+                Tx: <a href={`https://solscan.io/tx/${result.txHash}`} target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:underline">{shortAddr(result.txHash, 10)}</a>
+              </p>
+            )}
+            {result?.output?.txHash && (
+              <p className="text-xs text-zinc-400">
+                Tx: <a href={`https://solscan.io/tx/${result.output.txHash}`} target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:underline">{shortAddr(result.output.txHash, 10)}</a>
+              </p>
+            )}
+            <pre className="text-xs text-zinc-500 overflow-auto max-h-48 bg-zinc-900 rounded-md p-3">{JSON.stringify(result, null, 2)}</pre>
           </CardContent>
         </Card>
       )}
