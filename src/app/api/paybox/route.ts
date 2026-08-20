@@ -14,6 +14,7 @@ import {
   verifySolanaBalance,
   buildAnsemPayBoxPolicy,
   buildSpendLimitPayBoxPolicy,
+  reopenSigningWindow,
 } from "@/lib/paybox";
 import {
   getRequestUser,
@@ -205,6 +206,12 @@ export async function POST(request: NextRequest) {
           token,
           params.token || params.tokenMint
         );
+        // Auto-reopen signing window to trigger autonomous signing
+        if (result?.request_id && result?.status === "pending_signature") {
+          try {
+            await reopenSigningWindow(result.request_id, token);
+          } catch {}
+        }
         return NextResponse.json(result);
       }
       case "swap": {
@@ -216,6 +223,12 @@ export async function POST(request: NextRequest) {
           params.amount,
           token
         );
+        // Auto-reopen signing window to trigger autonomous signing
+        if (result?.request_id && result?.status === "pending_signature") {
+          try {
+            await reopenSigningWindow(result.request_id, token);
+          } catch {}
+        }
         return NextResponse.json(result);
       }
       case "sign": {

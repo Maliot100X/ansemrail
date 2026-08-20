@@ -61,9 +61,6 @@ export interface PayBoxTransaction {
   timestamp: string;
 }
 
-let mcpInitialized = false;
-let mcpSessionHeaders: Record<string, string> = {};
-
 function getAuthHeaders(token?: string): Record<string, string> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -74,6 +71,47 @@ function getAuthHeaders(token?: string): Record<string, string> {
     headers["Authorization"] = `Bearer ${authToken}`;
   }
   return headers;
+}
+
+async function initMcpSession(token?: string): Promise<Record<string, string>> {
+  const res = await fetch(`${PAYBOX_BASE}/mcp`, {
+    method: "POST",
+    headers: getAuthHeaders(token),
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "initialize",
+      params: {
+        protocolVersion: "2024-11-05",
+        capabilities: {},
+        clientInfo: { name: "ansemrail", version: "1.0" },
+      },
+    }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`PayBox initialize: ${res.status} ${text.slice(0, 200)}`);
+  }
+
+  const sessionId = res.headers.get("mcp-session-id");
+  const sessionHeaders: Record<string, string> = {};
+  if (sessionId) {
+    sessionHeaders["mcp-session-id"] = sessionId;
+  }
+
+  // Send initialized notification
+  await fetch(`${PAYBOX_BASE}/mcp`, {
+    method: "POST",
+    headers: { ...getAuthHeaders(token), ...sessionHeaders },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      method: "notifications/initialized",
+      params: {},
+    }),
+  });
+
+  return sessionHeaders;
 }
 
 function parseMcpResponse(text: string): any {
@@ -94,51 +132,7 @@ function parseMcpResponse(text: string): any {
   }
 }
 
-export async function ensureMcpInitialized(token?: string): Promise<void> {
-  if (mcpInitialized) return;
 
-  const res = await fetch(`${PAYBOX_BASE}/mcp`, {
-    method: "POST",
-    headers: getAuthHeaders(token),
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: 1,
-      method: "initialize",
-      params: {
-        protocolVersion: "2024-11-05",
-        capabilities: {},
-        clientInfo: { name: "ansemrail", version: "1.0" },
-      },
-    }),
-  });
-
-  if (res.status === 406) {
-    throw new Error(
-      "PayBox MCP requires Accept: application/json, text/event-stream header"
-    );
-  }
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`PayBox initialize: ${res.status} ${text.slice(0, 200)}`);
-  }
-
-  const sessionId = res.headers.get("mcp-session-id");
-  if (sessionId) {
-    mcpSessionHeaders["mcp-session-id"] = sessionId;
-  }
-
-  await fetch(`${PAYBOX_BASE}/mcp`, {
-    method: "POST",
-    headers: { ...getAuthHeaders(token), ...mcpSessionHeaders },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      method: "notifications/initialized",
-      params: {},
-    }),
-  });
-
-  mcpInitialized = true;
-}
 
 export async function payboxCall(
   method: string,
@@ -147,10 +141,10 @@ export async function payboxCall(
 ): Promise<any> {
   let res: Response;
   try {
-    await ensureMcpInitialized(token);
+    const sessionHeaders = await initMcpSession(token);
     res = await fetch(`${PAYBOX_BASE}/mcp`, {
       method: "POST",
-      headers: { ...getAuthHeaders(token), ...mcpSessionHeaders },
+      headers: { ...getAuthHeaders(token), ...sessionHeaders },
       body: JSON.stringify({
         jsonrpc: "2.0",
         id: Date.now(),
@@ -170,7 +164,6 @@ export async function payboxCall(
     );
   }
   if (res.status === 406) {
-    mcpInitialized = false;
     throw new Error(
       "PayBox MCP requires Accept: application/json, text/event-stream header."
     );
@@ -505,4 +498,11 @@ export async function sendWithPayBox(
     token,
     tokenMint
   );
+}
+
+export async function reopenSigningWindow(
+  requestId: string,
+  token?: string
+): Promise<any> {
+  return payboxToolCall("reopen_signing_window", { request_id: requestId }, token);
 }

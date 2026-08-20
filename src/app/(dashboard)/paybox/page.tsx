@@ -89,8 +89,8 @@ const [copied, setCopied] = useState(false);
   }
 
   async function pollRequest(requestId: string) {
-    for (let i = 0; i < 30; i++) {
-      await new Promise(r => setTimeout(r, 2000));
+    for (let i = 0; i < 45; i++) {
+      await new Promise(r => setTimeout(r, 1500));
       try {
         const res = await fetch(`/api/paybox?action=request&requestId=${requestId}`);
         const data = await res.json();
@@ -103,7 +103,8 @@ const [copied, setCopied] = useState(false);
         }
       } catch {}
     }
-    // After 60s, stop polling but keep showing status
+    // After ~67s, stop polling
+    setPendingStatus("timeout");
     setPendingRequestId(null);
   }
 
@@ -383,11 +384,16 @@ const [copied, setCopied] = useState(false);
           <CardContent className="p-4 space-y-2">
             <div className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
-              <p className="text-sm font-medium text-amber-300">Swap in progress...</p>
+              <p className="text-sm font-medium text-amber-300">Transaction in progress...</p>
             </div>
             <p className="text-xs text-zinc-400">Status: <span className="text-zinc-200">{pendingStatus || "processing"}</span></p>
             <p className="text-xs text-zinc-500">Request: {shortAddr(pendingRequestId, 8)}</p>
-            <p className="text-xs text-zinc-500">Waiting for PayBox to sign and broadcast...</p>
+            <p className="text-xs text-zinc-500">PayBox is signing and broadcasting automatically...</p>
+            {result?.provision_url && (
+              <a href={result.provision_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 mt-1">
+                <ExternalLink className="h-3 w-3" /> Open PayBox to approve manually
+              </a>
+            )}
           </CardContent>
         </Card>
       )}
