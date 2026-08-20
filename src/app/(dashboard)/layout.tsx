@@ -48,6 +48,7 @@ const navItems = [
   { href: "/bounties", label: "Bounties", icon: Flame },
   { href: "/registry", label: "Registry", icon: Shield },
   { href: "/payments", label: "x402 Pay", icon: CreditCard },
+  { href: "/paybox", label: "PayBox", icon: WalletIcon },
 ];
 
 export default function DashboardLayout({
