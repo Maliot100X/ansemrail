@@ -13,11 +13,28 @@ import {
 } from "lucide-react";
 
 const TOKEN_MAP: Record<string, string> = {
-  SOL: "So11111111111111111111111111111111111111112",
+  SOL: "native",
   USDC: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
   ANSEM: "9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump",
   CLAW: "739dnZEG4yaBWFsY8L8ZwrfhGG6dhtCSercW8Umspump",
 };
+
+const TOKEN_DECIMALS: Record<string, number> = {
+  SOL: 9,
+  USDC: 6,
+  ANSEM: 6,
+  CLAW: 6,
+};
+
+function toSmallestUnit(humanAmount: string, token: string): string {
+  const decimals = TOKEN_DECIMALS[token] || 9;
+  const parts = humanAmount.split(".");
+  let whole = parts[0] || "0";
+  let frac = (parts[1] || "").padEnd(decimals, "0").slice(0, decimals);
+  // Remove leading zeros from whole part
+  whole = whole.replace(/^0+/, "") || "0";
+  return whole + frac;
+}
 
 function shortAddr(addr?: string, len = 6) {
   if (!addr) return "—";
@@ -90,12 +107,17 @@ export default function PayBoxPage() {
 
   async function doTransfer() {
     if (!transfer.to || !transfer.amount) { setError("Fill recipient and amount"); return; }
-    await apiPost({ action: "transfer", credentialId: selectedCred, to: transfer.to, amount: transfer.amount, tokenMint: TOKEN_MAP[transfer.token] || transfer.token });
+    const smallestAmt = toSmallestUnit(transfer.amount, transfer.token);
+    const txToken = TOKEN_MAP[transfer.token] || transfer.token;
+    const body: any = { action: "transfer", credentialId: selectedCred, to: transfer.to, amount: smallestAmt };
+    if (txToken && txToken !== "native") body.token = txToken;
+    await apiPost(body);
   }
 
   async function doSwap() {
     if (!swap.amount) { setError("Fill amount"); return; }
-    await apiPost({ action: "swap", credentialId: selectedCred, srcChain: "solana:mainnet", srcToken: TOKEN_MAP[swap.src] || swap.src, dstToken: TOKEN_MAP[swap.dst] || swap.dst, amount: swap.amount });
+    const smallestAmt = toSmallestUnit(swap.amount, swap.src);
+    await apiPost({ action: "swap", credentialId: selectedCred, srcChain: "solana:mainnet", srcToken: TOKEN_MAP[swap.src] || swap.src, dstToken: TOKEN_MAP[swap.dst] || swap.dst, amount: smallestAmt });
   }
 
   async function createAnsemPolicy() {

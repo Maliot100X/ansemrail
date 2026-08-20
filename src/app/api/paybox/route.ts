@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
           params.to,
           params.amount,
           token,
-          params.tokenMint
+          params.token || params.tokenMint
         );
         return NextResponse.json(result);
       }
@@ -242,7 +242,7 @@ export async function POST(request: NextRequest) {
       case "verifyBalance": {
         const result = await verifySolanaBalance(
           params.address,
-          params.tokenMint,
+          params.token || params.tokenMint,
           params.txSignature,
           token
         );
