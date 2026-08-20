@@ -26,7 +26,6 @@ function weiToEth(wei?: string | number | null): string {
   if (!wei) return "0";
   const n = Number(wei);
   if (!isFinite(n) || n <= 0) return "0";
-
   return (n / 1e18).toFixed(6);
 }
 
@@ -41,7 +40,6 @@ function LaunchStatusBadge({ status }: { status: string }) {
     error: { label: "Error", cls: "bg-red-950 text-red-300 border-red-700" },
   };
   const s = map[status] || { label: status, cls: "bg-zinc-900 text-zinc-300 border-zinc-700" };
-
   return (
     <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium ${s.cls}`}>
       {status === "failed" || status === "error" ? <XCircle className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
@@ -68,7 +66,6 @@ function TokenSelect({
   onChange: (v: string) => void;
   id?: string;
 }) {
-
   return (
     <select
       id={id}
@@ -147,6 +144,182 @@ export default function TerminalPage() {
   const [executeAgentId, setExecuteAgentId] = useState("");
   const [executing, setExecuting] = useState(false);
   const [executeResult, setExecuteResult] = useState<any>(null);
+  const [executeError, setExecuteError] = useState<string | null>(null);
+
+  async function handleQuote(e: React.FormEvent) {
+    e.preventDefault();
+    setQuoteLoading(true);
+    setError(null);
+    setQuote(null);
+    try {
+      const res = await fetch("/api/swap/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(swapForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Quote failed");
+      setQuote(data);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setQuoteLoading(false);
+    }
+  }
+
+  async function handleExecute(e: React.FormEvent) {
+    e.preventDefault();
+    if (!executeAgentId) {
+      setExecuteError("Select a ClawPump agent to execute the swap with.");
+      return;
+    }
+    setExecuting(true);
+    setExecuteError(null);
+    setExecuteResult(null);
+    try {
+      const res = await fetch("/api/swap/execute", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agentId: executeAgentId,
+          inputMint: swapForm.inputMint,
+          outputMint: swapForm.outputMint,
+          amount: swapForm.amount,
+          slippageBps: 50,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Swap execution failed");
+      setExecuteResult(data);
+    } catch (err: any) {
+      setExecuteError(err.message);
+    } finally {
+      setExecuting(false);
+    }
+  }
+
+  async function handleDca(e: React.FormEvent) {
+    e.preventDefault();
+    setDcaLoading(true);
+    setDcaError(null);
+    setDcaResult(null);
+    try {
+      const res = await fetch("/api/swap/quote", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inputMint: USDC_MINT,
+          outputMint: dcaForm.tokenMint,
+          amount: (parseFloat(dcaForm.amountPerBuy) * 1_000_000).toString(),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "DCA quote failed");
+      const outSymbol = TOKEN_OPTIONS.find((t) => t.mint === dcaForm.tokenMint)?.label || "token";
+      setDcaResult({
+        schedule: dcaForm.frequency,
+        amountUsd: dcaForm.amountPerBuy,
+        token: outSymbol,
+        quote: data,
+        message: `DCA order simulated: Buy $${dcaForm.amountPerBuy} of ${outSymbol} ${dcaForm.frequency}. Quote generated from Jupiter.`,
+      });
+    } catch (err: any) {
+      setDcaError(err.message);
+    } finally {
+      setDcaLoading(false);
+    }
+  }
+
+  async function handlePerps(e: React.FormEvent) {
+    e.preventDefault();
+    setPerpsLoading(true);
+    setPerpsError(null);
+    setPerpsResult(null);
+    try {
+      const marginUsd = parseFloat(perpsForm.margin) || 0;
+      const leverageNum = parseInt(perpsForm.leverage) || 1;
+      const sizeNum = parseFloat(perpsForm.size) || 0;
+      const notional = sizeNum * leverageNum;
+      setPerpsResult({
+        market: perpsForm.market,
+        side: perpsForm.side,
+        size: sizeNum,
+        leverage: perpsForm.leverage,
+        margin: marginUsd,
+        notionalValue: notional,
+        liquidationPrice: perpsForm.side === "long" ? marginUsd / notional : undefined,
+        message: `Position preview: ${perpsForm.side.toUpperCase()} ${sizeNum} ${perpsForm.market} at ${perpsForm.leverage} leverage. Notional: $${notional.toFixed(2)}. Margin: $${marginUsd}. Execute via ClawPump agent with perps skill.`,
+        warning: "Perps can result in total loss of margin. Ensure your agent has the perps skill enabled.",
+      });
+    } catch (err: any) {
+      setPerpsError(err.message);
+    } finally {
+      setPerpsLoading(false);
+    }
+  }
+
+  async function handleBridge(e: React.FormEvent) {
+    e.preventDefault();
+    setBridgeLoading(true);
+    setBridgeError(null);
+    setBridgeResult(null);
+    try {
+      const res = await fetch("https://agents.moonpay.com/api/tools/chain_list", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ testnet: false, vmId: 0 }),
+      });
+      const chains = await res.json();
+      const fromChainInfo = chains.items?.find((c: any) => c.id === bridgeForm.fromChain);
+      const toChainInfo = chains.items?.find((c: any) => c.id === bridgeForm.toChain);
+      setBridgeResult({
+        fromChain: bridgeForm.fromChain,
+        toChain: bridgeForm.toChain,
+        token: bridgeForm.token,
+        amount: bridgeForm.amount,
+        fromChainInfo: fromChainInfo ? { name: fromChainInfo.name, id: fromChainInfo.id } : null,
+        toChainInfo: toChainInfo ? { name: toChainInfo.name, id: toChainInfo.id } : null,
+        message: `Bridge preview: ${bridgeForm.amount} ${bridgeForm.token} from ${bridgeForm.fromChain} to ${bridgeForm.toChain}. Chain data retrieved from MoonPay. Execute via MoonPay CLI (mp) with authenticated wallet.`,
+      });
+    } catch (err: any) {
+      setBridgeError(err.message);
+    } finally {
+      setBridgeLoading(false);
+    }
+  }
+
+  async function handlePonsLaunch(e: React.FormEvent) {
+    e.preventDefault();
+    setPonsLoading(true);
+    setPonsError(null);
+    setPonsResult(null);
+    try {
+      const res = await fetch("/api/launch/pons", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(ponsForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "PONS launch failed");
+      setPonsResult(data);
+      if (data.launch?.tokenAddress || data.launch?.predictedTokenAddress) {
+        setTimeout(() => fetchPonsLaunches(ponsForm.agentId), 3000);
+      }
+    } catch (err: any) {
+      setPonsError(err.message);
+    } finally {
+      setPonsLoading(false);
+    }
+  }
+
+  async function fetchPonsLaunches(agentId: string) {
+    if (!agentId) return;
+    setPonsLaunchesLoading(true);
+    try {
+      const res = await fetch(`/api/launch/pons?agentId=${agentId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setPonsLaunches(data?.launches || []);
       }
     } catch {}
     setPonsLaunchesLoading(false);
@@ -176,11 +349,9 @@ export default function TerminalPage() {
     if (!ponsForm.agentId) return;
     fetchPonsLaunches(ponsForm.agentId);
     const timer = setInterval(() => fetchPonsLaunches(ponsForm.agentId), 8000);
-  
-  return () => clearInterval(timer);
+    return () => clearInterval(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ponsForm.agentId]);
-
 
   return (
     <div className="space-y-6">
@@ -190,7 +361,7 @@ export default function TerminalPage() {
       </div>
 
       <Tabs defaultValue="swap">
-        <TabsList className="grid w-full grid-cols-7 max-w-4xl">
+        <TabsList className="grid w-full grid-cols-6 max-w-3xl">
           <TabsTrigger value="swap" className="flex items-center gap-1">
             <Zap className="h-3 w-3" /> Swap
           </TabsTrigger>
@@ -784,8 +955,7 @@ export default function TerminalPage() {
                       const cur = LAUNCH_STEPS.indexOf(ponsResult.launch.status);
                       const done = cur >= i;
                       const isErr = ponsResult.launch.status === "failed" || ponsResult.launch.status === "error";
-                    
-  return (
+                      return (
                         <div key={step} className="flex items-center gap-2">
                           {i > 0 && <span className={`h-px w-6 ${done ? "bg-green-600" : "bg-zinc-700"}`} />}
                           <span className={`flex items-center gap-1 ${isErr ? "text-red-400" : done ? "text-green-400" : "text-zinc-500"}`}>
@@ -961,7 +1131,6 @@ export default function TerminalPage() {
               <ClawLaunchTab />
             </CardContent>
           </Card>
-
         </TabsContent>
       </Tabs>
     </div>
