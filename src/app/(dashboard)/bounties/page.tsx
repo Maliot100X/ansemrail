@@ -348,22 +348,6 @@ export default function BountiesPage() {
                             Approve & Pay ({b.rewardAmount} {b.rewardToken})
                           </Button>
                         )}
-                        {(b.status === "completed" || b.status === "in_progress") && (
-                          <Button size="sm" variant="outline" className="text-red-400 hover:text-red-300" onClick={async () => {
-                            const reason = window.prompt("Reject reason");
-                            if (!reason) return;
-                            const res = await fetch(`/api/bounties/${b.id}/payout`, {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json", Authorization: `Bearer ${adminSecret}` },
-                              body: JSON.stringify({ action: "reject", reason }),
-                            });
-                            const data = await res.json().catch(() => ({}));
-                            setAdminMsg(res.ok ? `❌ Rejected: ${reason}` : `❌ ${data.error || "Reject failed"}`);
-                            loadAdmin();
-                          }}>
-                            Reject
-                          </Button>
-                        )}
                         <Button size="sm" variant="ghost" className="text-zinc-500 hover:text-red-400" onClick={async () => {
                           await fetch(`/api/bounties?id=${b.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${adminSecret}` } });
                           loadAdmin();
