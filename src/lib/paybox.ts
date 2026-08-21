@@ -266,19 +266,18 @@ export async function requestPayBoxSwap(
   srcToken: string,
   dstToken: string,
   amount: string,
-  token?: string
+  token?: string,
+  recipient?: string
 ): Promise<PayBoxRequest> {
-  return payboxToolCall(
-    "request_swap",
-    {
-      credential_id: credentialId,
-      src_chain: srcChain,
-      src_token: srcToken,
-      dst_token: dstToken,
-      amount,
-    },
-    token
-  );
+  const args: Record<string, unknown> = {
+    credential_id: credentialId,
+    src_chain: srcChain,
+    src_token: srcToken,
+    dst_token: dstToken,
+    amount,
+  };
+  if (recipient) args.recipient = recipient;
+  return payboxToolCall("request_swap", args, token);
 }
 
 export async function requestPayBoxSign(

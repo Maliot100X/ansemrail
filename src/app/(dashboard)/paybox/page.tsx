@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import PayBoxSigningWindow from "./signing-window";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -53,12 +54,17 @@ export default function PayBoxPage() {
 const [copied, setCopied] = useState(false);
   const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
+  const [activeTool, setActiveTool] = useState<any>(null);
+  const [registeredAgents, setRegisteredAgents] = useState<any[]>([]);
+  const [selectedAgentId, setSelectedAgentId] = useState("");
+  const [sendToAgentWallet, setSendToAgentWallet] = useState(false);
 
   // Transfer form
   const [transfer, setTransfer] = useState({ to: "", amount: "", token: "SOL" });
   // Swap form
   const [swap, setSwap] = useState({ src: "SOL", dst: "USDC", amount: "" });
   const [requestApiKey, setRequestApiKey] = useState("");
+  const [requestSigningKey, setRequestSigningKey] = useState("");
 
   async function apiGet(action: string, extra?: string) {
     setLoading(true); setError(null);
@@ -88,6 +94,7 @@ const [copied, setCopied] = useState(false);
       if (!res.ok) throw new Error(data.error || "Request failed");
       setResult(data);
       // If there's a request_id, start polling for completion
+      if (data._tool) setActiveTool(data._tool);
       if (data.request_id) {
         setPendingRequestId(data.request_id);
         setPendingStatus(data.status || "pending_signature");
@@ -98,8 +105,8 @@ const [copied, setCopied] = useState(false);
     finally { setLoading(false); }
   }
 
-  async function pollRequest(requestId: string) {
-    for (let i = 0; i < 45; i++) {
+  async function pollRequest(requestId: string, onComplete?: (result: any) => void) {
+    for (let i = 0; i < 240; i++) {
       await new Promise(r => setTimeout(r, 1500));
       try {
         const res = await fetch(`/api/paybox?action=request&requestId=${requestId}`, {
@@ -111,19 +118,24 @@ const [copied, setCopied] = useState(false);
         if (status === "success" || status === "confirmed" || status === "denied" || status === "error" || data.txHash || data?.output?.txHash) {
           setResult(data);
           setPendingRequestId(null);
+          setActiveTool(null);
+          onComplete?.(data);
           return;
         }
       } catch {}
     }
-    // After ~67s, stop polling
+    // Stop polling after six minutes.
     setPendingStatus("timeout");
     setPendingRequestId(null);
+    setActiveTool(null);
   }
 
   async function loadWallets() {
     const data = await apiGet("credentials");
     if (data) {
-      const creds = data.credentials || [];
+      const granted = (data.credentials || []).map((credential: any) => ({ ...credential, granted: true }));
+      const ungranted = (data.ungranted || []).map((credential: any) => ({ ...credential, granted: false }));
+      const creds = [...granted, ...ungranted];
       setCredentials(creds);
       if (creds.length > 0 && !selectedCred) setSelectedCred(creds[0].credential_id);
     }
@@ -145,25 +157,48 @@ const [copied, setCopied] = useState(false);
     if (data) setPolicies(data.policies || data || []);
   }
 
+  async function loadRegisteredAgents() {
+    const data = await apiGet("agents");
+    if (data) setRegisteredAgents(data.agents || []);
+  }
+
+  function selectedAgentWallet() {
+    const agent = registeredAgents.find((item) => item.id === selectedAgentId);
+    return agent?.walletAddress || agent?.payoutWallet || null;
+  }
+
+  async function changeAccount(args: Record<string, unknown>) {
+    await apiPost({ action: "accountChange", ...args });
+    loadWallets();
+  }
+
   async function doTransfer() {
     if (!transfer.to || !transfer.amount) { setError("Fill recipient and amount"); return; }
     const smallestAmt = toSmallestUnit(transfer.amount, transfer.token);
     const txToken = TOKEN_MAP[transfer.token] || transfer.token;
     const body: any = { action: "transfer", credentialId: selectedCred, to: transfer.to, amount: smallestAmt };
     if (txToken && txToken !== "native") body.token = txToken;
+    const agentWallet = selectedAgentWallet();
+    if (sendToAgentWallet && agentWallet) body.to = agentWallet;
     await apiPost(body);
   }
 
   async function doSwap() {
     if (!swap.amount) { setError("Fill amount"); return; }
     const smallestAmt = toSmallestUnit(swap.amount, swap.src);
-    await apiPost({ action: "swap", credentialId: selectedCred, srcChain: "solana:mainnet", srcToken: TOKEN_MAP[swap.src] || swap.src, dstToken: TOKEN_MAP[swap.dst] || swap.dst, amount: smallestAmt });
+    const agentWallet = selectedAgentWallet();
+    await apiPost({
+      action: "swap",
+      credentialId: selectedCred,
+      srcChain: "solana:mainnet",
+      srcToken: TOKEN_MAP[swap.src] || swap.src,
+      dstToken: TOKEN_MAP[swap.dst] || swap.dst,
+      amount: smallestAmt,
+      recipient: sendToAgentWallet && agentWallet ? agentWallet : undefined,
+    });
   }
 
-  async function createAnsemPolicy() {
-    await apiPost({ action: "createAnsemPolicy" });
-    loadPolicies();
-  }
+
 
   async function copyAddr(addr: string) {
     await navigator.clipboard.writeText(addr);
@@ -198,8 +233,21 @@ const [copied, setCopied] = useState(false);
                 Clear
               </Button>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="request-signing-key" className="text-xs text-zinc-400">Request-only PayBox signing credential (optional)</Label>
+              <Input
+                id="request-signing-key"
+                type="password"
+                placeholder="pbxk1..."
+                value={requestSigningKey}
+                onChange={(e) => setRequestSigningKey(e.target.value)}
+              />
+              <p className="text-xs text-zinc-500">
+                Used only inside the isolated PayBox signing view. It is never sent to AnsemRail APIs or stored.
+              </p>
+            </div>
             <p className="text-xs text-zinc-500">
-              Overrides your saved key for actions on this page only. It is kept in page memory and never stored by AnsemRail.
+              Overrides your saved connector key for actions on this page only. It is kept in page memory and never stored by AnsemRail.
             </p>
           </div>
         </CardContent>
@@ -290,6 +338,34 @@ const [copied, setCopied] = useState(false);
 
         {/* TRANSFER */}
         <TabsContent value="transfer" className="space-y-4">
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3 space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="text-xs text-zinc-400">Registered platform agent</Label>
+                  <Button type="button" size="sm" variant="outline" onClick={loadRegisteredAgents} disabled={loading}>Load agents</Button>
+                </div>
+                <select
+                  className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+                  value={selectedAgentId}
+                  onChange={(event) => setSelectedAgentId(event.target.value)}
+                >
+                  <option value="">No agent context</option>
+                  {registeredAgents.map((agent) => (
+                    <option key={agent.id} value={agent.id}>
+                      {agent.name} — {shortAddr(agent.walletAddress || "no wallet", 6)}
+                    </option>
+                  ))}
+                </select>
+                <label className="flex items-center gap-2 text-xs text-zinc-400">
+                  <input
+                    type="checkbox"
+                    checked={sendToAgentWallet}
+                    disabled={!selectedAgentId}
+                    onChange={(event) => setSendToAgentWallet(event.target.checked)}
+                  />
+                  Send output to the selected agent payout wallet
+                </label>
+              </div>
+
           <Card>
             <CardHeader>
               <CardTitle className="text-sm flex items-center gap-2"><Send className="h-4 w-4 text-amber-500" /> Transfer Tokens</CardTitle>
@@ -325,6 +401,33 @@ const [copied, setCopied] = useState(false);
 
         {/* SWAP */}
         <TabsContent value="swap" className="space-y-4">
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <Label className="text-xs text-zinc-400">Registered platform agent</Label>
+              <Button type="button" size="sm" variant="outline" onClick={loadRegisteredAgents} disabled={loading}>Load agents</Button>
+            </div>
+            <select
+              className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+              value={selectedAgentId}
+              onChange={(event) => setSelectedAgentId(event.target.value)}
+            >
+              <option value="">No agent context</option>
+              {registeredAgents.map((agent) => (
+                <option key={agent.id} value={agent.id}>
+                  {agent.name} — {shortAddr(agent.walletAddress || "no wallet", 6)}
+                </option>
+              ))}
+            </select>
+            <label className="flex items-center gap-2 text-xs text-zinc-400">
+              <input
+                type="checkbox"
+                checked={sendToAgentWallet}
+                disabled={!selectedAgentId}
+                onChange={(event) => setSendToAgentWallet(event.target.checked)}
+              />
+              Send swap output to the selected agent payout wallet
+            </label>
+          </div>
           <Card>
             <CardHeader>
               <CardTitle className="text-sm flex items-center gap-2"><ArrowRightLeft className="h-4 w-4 text-amber-500" /> Swap Tokens</CardTitle>
@@ -392,26 +495,41 @@ const [copied, setCopied] = useState(false);
         <TabsContent value="policies" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="text-sm flex items-center gap-2"><Shield className="h-4 w-4 text-amber-500" /> Spending Policies</CardTitle>
-              <CardDescription>Create and manage spending limits and token restrictions</CardDescription>
+              <CardTitle className="text-sm flex items-center gap-2"><Shield className="h-4 w-4 text-amber-500" /> PayBox Policies</CardTitle>
+              <CardDescription>Grant wallets, revoke access, create wallets, and switch PayBox approval mode</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="flex gap-2">
-                <Button size="sm" onClick={loadPolicies} disabled={loading}>
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}Load Policies
-                </Button>
-                <Button size="sm" variant="outline" onClick={createAnsemPolicy} disabled={loading}>Create ANSEM-Only Policy</Button>
-              </div>
-              {policies.length > 0 && policies.map((p: any, i: number) => (
-                <div key={i} className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 space-y-1">
-                  <p className="text-sm font-medium text-zinc-200">{p.name || p.id}</p>
-                  <p className="text-xs text-zinc-500">Action: {p.action || "allow"} · Priority: {p.priority || "default"}</p>
-                  {(p.rules || []).map((r: any, j: number) => (
-                    <p key={j} className="text-xs text-zinc-400 font-mono">{r.type}: {JSON.stringify(r)}</p>
-                  ))}
+              <Button size="sm" onClick={loadWallets} disabled={loading}>
+                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}Load credentials
+              </Button>
+              {credentials.map((credential: any) => (
+                <div key={credential.credential_id} className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-medium text-zinc-200">{credential.name || credential.kind}</p>
+                      <p className="text-xs font-mono text-zinc-500">{credential.metadata?.address}</p>
+                      <p className="text-xs text-zinc-500">Mode: {credential.approval_mode || "unknown"} · {credential.granted ? "granted" : "ungranted"}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {!credential.granted ? (
+                        <Button size="sm" variant="outline" onClick={() => changeAccount({ add: [credential.credential_id], note: "Connect this wallet to AnsemRail" })}>Grant</Button>
+                      ) : (
+                        <>
+                          <Button size="sm" variant="outline" onClick={() => changeAccount({ set_mode: [{ credential_id: credential.credential_id, mode: "autonomous" }], note: "Enable autonomous signing for AnsemRail" })}>Autonomous</Button>
+                          <Button size="sm" variant="outline" onClick={() => changeAccount({ set_mode: [{ credential_id: credential.credential_id, mode: "always_approve" }], note: "Require approval for every operation" })}>Always approve</Button>
+                          <Button size="sm" variant="outline" onClick={() => changeAccount({ remove: [credential.credential_id], note: "Revoke AnsemRail access" })}>Revoke</Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
               ))}
-              {policies.length === 0 && !loading && <p className="text-xs text-zinc-500">No policies yet. Create one to restrict spending.</p>}
+              <Button size="sm" variant="outline" onClick={() => changeAccount({ create: [{ kind: "wallet", chain: "solana", name: "AnsemRail Solana wallet" }], note: "Create a new PayBox wallet for AnsemRail" })}>
+                Create Solana wallet
+              </Button>
+              <p className="text-xs text-zinc-500">
+                Saved local policy templates remain auxiliary metadata. Enforcement comes from these real PayBox account grants and approval modes.
+              </p>
             </CardContent>
           </Card>
         </TabsContent>
@@ -420,18 +538,29 @@ const [copied, setCopied] = useState(false);
       {/* Pending Request */}
       {pendingRequestId && (
         <Card className="border-amber-800/50 bg-amber-950/10">
-          <CardContent className="p-4 space-y-2">
+          <CardContent className="p-4 space-y-3">
             <div className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
-              <p className="text-sm font-medium text-amber-300">Transaction in progress...</p>
+              <p className="text-sm font-medium text-amber-300">PayBox request active</p>
             </div>
             <p className="text-xs text-zinc-400">Status: <span className="text-zinc-200">{pendingStatus || "processing"}</span></p>
             <p className="text-xs text-zinc-500">Request: {shortAddr(pendingRequestId, 8)}</p>
-            <p className="text-xs text-zinc-500">PayBox is signing and broadcasting automatically...</p>
-            {result?.provision_url && (
-              <a href={result.provision_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300 mt-1">
-                <ExternalLink className="h-3 w-3" /> Open PayBox to approve manually
+            {pendingStatus === "pending_approval" && result?.approval_url && (
+              <a href={result.approval_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300">
+                Approve in PayBox <ExternalLink className="h-3 w-3" />
               </a>
+            )}
+            {pendingStatus === "pending_signature" && (
+              <PayBoxSigningWindow
+                requestId={pendingRequestId}
+                apiKey={requestApiKey}
+                signingKey={requestSigningKey}
+                onComplete={(completed) => {
+                  setResult(completed);
+                  setPendingRequestId(null);
+                  setActiveTool(null);
+                }}
+              />
             )}
           </CardContent>
         </Card>

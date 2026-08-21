@@ -20,6 +20,7 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState({
     clawpumpApiKey: "",
     payboxApiKey: "",
+    payboxSigningKey: "",
     moonpayEmail: "",
     payoutWallet: "",
     telegramChatId: "",
@@ -30,6 +31,7 @@ export default function SettingsPage() {
   const [connecting, setConnecting] = useState(false);
   const [connectResult, setConnectResult] = useState<string | null>(null);
   const [hasPayboxKey, setHasPayboxKey] = useState(false);
+  const [hasPayboxSigningKey, setHasPayboxSigningKey] = useState(false);
   const [payboxConnecting, setPayboxConnecting] = useState(false);
   const [payboxConnectResult, setPayboxConnectResult] = useState<string | null>(null);
   const [payboxPolicies, setPayboxPolicies] = useState<any[]>([]);
@@ -56,6 +58,7 @@ export default function SettingsPage() {
         if (data.ansemPreference !== undefined) setAnsemPreference(data.ansemPreference);
         if (data.hasClawpumpKey !== undefined) setHasClawpumpKey(!!data.hasClawpumpKey);
         if (data.hasPayboxKey !== undefined) setHasPayboxKey(!!data.hasPayboxKey);
+        if (data.hasPayboxSigningKey !== undefined) setHasPayboxSigningKey(!!data.hasPayboxSigningKey);
         if (Array.isArray(data.payboxPolicies)) setPayboxPolicies(data.payboxPolicies);
         if (data.clawpumpProfile) setClawpumpProfile(data.clawpumpProfile);
       })
@@ -101,6 +104,7 @@ export default function SettingsPage() {
         body: JSON.stringify({
           clawpumpApiKey: settings.clawpumpApiKey || undefined,
           payboxApiKey: settings.payboxApiKey || undefined,
+          payboxSigningKey: settings.payboxSigningKey || undefined,
           moonpayEmail: settings.moonpayEmail || undefined,
           payoutWallet: settings.payoutWallet || undefined,
           telegramChatId: settings.telegramChatId || undefined,
@@ -115,10 +119,12 @@ export default function SettingsPage() {
         setClawpumpProfile(data.clawpump || null);
       }
       if (settings.payboxApiKey) setHasPayboxKey(true);
+      if (settings.payboxSigningKey) setHasPayboxSigningKey(true);
       setSettings((prev) => ({
         ...prev,
         clawpumpApiKey: "",
         payboxApiKey: "",
+        payboxSigningKey: "",
       }));
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -477,6 +483,21 @@ export default function SettingsPage() {
                   <p className="text-xs text-zinc-500">
                     Your saved PayBox API key is encrypted at rest. OWS policy creation and PayBox actions use it automatically.
                   </p>
+                  <div className="space-y-2 pt-2">
+                    <Input
+                      type="password"
+                      placeholder={hasPayboxSigningKey ? "Enter a new pbxk1... signing credential" : "pbxk1..."}
+                      value={settings.payboxSigningKey}
+                      onChange={(e) => setSettings({ ...settings, payboxSigningKey: e.target.value })}
+                    />
+                    <Button variant="ansem" size="sm" onClick={handleSave} disabled={saving || !settings.payboxSigningKey}>
+                      {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Link2 className="h-3 w-3" />}
+                      {hasPayboxSigningKey ? "Apply New Signing Credential" : "Apply Signing Credential"}
+                    </Button>
+                    <p className="text-xs text-zinc-500">
+                      The pbxk1 credential is encrypted at rest and injected only into your isolated PayBox signing view for automatic approval.
+                    </p>
+                  </div>
                 </div>
                 {payboxConnectResult && (
                   <p className={`text-xs ${payboxConnectResult.includes("connected") ? "text-green-400" : "text-red-400"}`}>

@@ -89,6 +89,26 @@ export async function getUserPayboxApiKey(
   return undefined;
 }
 
+export async function getUserPayboxSigningKey(
+  userId?: string
+): Promise<string | undefined> {
+  if (!userId) return undefined;
+  try {
+    const [user] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, userId))
+      .limit(1);
+    const encryptedKeys = (user?.encryptedKeys as Record<string, string>) || {};
+    if (encryptedKeys.payboxSigningKey) {
+      return decryptApiKey(encryptedKeys.payboxSigningKey);
+    }
+  } catch {
+    return undefined;
+  }
+  return undefined;
+}
+
 export async function getUserPayboxPolicies(
   userId?: string
 ): Promise<any[]> {

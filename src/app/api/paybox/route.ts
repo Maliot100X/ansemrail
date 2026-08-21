@@ -15,16 +15,67 @@ import {
   buildAnsemPayBoxPolicy,
   buildSpendLimitPayBoxPolicy,
   reopenSigningWindow,
+  payboxRequest,
 } from "@/lib/paybox";
 import {
   getRequestUser,
   getUserPayboxApiKey,
   getUserPayboxPolicies,
+  getUserPayboxSigningKey,
 } from "@/lib/auth-session";
 import { db } from "@/db/client";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { encryptApiKey, decryptApiKey } from "@/lib/crypto";
+import { agents as agentsTable } from "@/db/schema";
+
+const SIGNING_APP_TOOLS = new Set([
+  "get_request",
+  "reopen_signing_window",
+  "submit_signature",
+  "submit_envelopes",
+  "moonx_sign",
+  "moonx_resolve_binding",
+]);
+
+function toolResult(result: any) {
+  if (result?.content?.[0]?.text) {
+    try {
+      return JSON.parse(result.content[0].text);
+    } catch {
+      return result.content[0].text;
+    }
+  }
+  return result;
+}
+
+function withToolMeta(toolName: string, args: Record<string, unknown>, rawResult: any) {
+  return {
+    ...toolResult(rawResult),
+    _tool: {
+      name: toolName,
+      arguments: args,
+      raw: rawResult,
+    },
+  };
+}
+
+async function buildSignIntent(
+  credentialId: string,
+  message: string,
+  token: string | undefined,
+  address?: string
+) {
+  if (address) return { op: "solanaMessage", address, message };
+  const { credentials = [] } = await listPayBoxCredentials(token);
+  const credential = credentials.find((item: any) => item.credential_id === credentialId);
+  const chains = credential?.metadata?.chains || [];
+  const walletAddress = credential?.metadata?.address;
+  if (walletAddress && (chains.includes("solana") || chains.includes("solana:mainnet"))) {
+    return { op: "solanaMessage", address: walletAddress, message };
+  }
+  return { op: "message", message };
+}
 
 async function resolvePayboxToken(
   request: NextRequest,
@@ -69,6 +120,8 @@ async function savePolicyForUser(
     .set({ encryptedKeys, updatedAt: new Date() })
     .where(eq(users.id, userId));
 }
+
+export const dynamic = "force-dynamic";
 
 const NEEDS_KEY_MSG =
   "Connect your own PayBox API key in Settings → Accounts first, then use PayBox actions.";
@@ -120,6 +173,65 @@ export async function GET(request: NextRequest) {
         }
         const req = await getPayBoxRequest(requestId, token);
         return NextResponse.json(req);
+      }
+      case "signing-context": {
+        const requestId = request.nextUrl.searchParams.get("requestId");
+        if (!requestId) {
+          return NextResponse.json(
+            { error: "requestId is required for signing-context action" },
+            { status: 400 }
+          );
+        }
+        const args = { request_id: requestId };
+        const raw = await payboxRequest(
+          "tools/call",
+          { name: "reopen_signing_window", arguments: args },
+          token
+        );
+        return NextResponse.json(withToolMeta("reopen_signing_window", args, raw), { headers: { "Cache-Control": "no-store" } });
+      }
+      case "ui-resource": {
+        const [readResult, listResult] = await Promise.all([
+          payboxRequest("resources/read", { uri: "ui://paybox/app" }, token),
+          payboxRequest("resources/list", {}, token).catch(() => null),
+        ]);
+        const content = readResult?.contents?.[0];
+        const listed = listResult?.resources?.find((item: any) => item.uri === "ui://paybox/app");
+        return NextResponse.json({
+          resource: { ...content, _meta: content?._meta || listed?._meta },
+          meta: content?._meta || listed?._meta,
+        });
+      }
+      case "signing-key": {
+        const user = await getRequestUser(request);
+        if (!user) {
+          return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+        }
+        const signingKey = await getUserPayboxSigningKey(user.id);
+        return NextResponse.json({ signingKey });
+      }
+      case "agents": {
+        const user = await getRequestUser(request);
+        if (!user) {
+          return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+        }
+        const [registeredAgents, ownerRows] = await Promise.all([
+          db
+            .select({
+              id: agentsTable.id,
+              clawpumpAgentId: agentsTable.clawpumpAgentId,
+              name: agentsTable.name,
+              status: agentsTable.status,
+              walletAddress: agentsTable.walletAddress,
+            })
+            .from(agentsTable)
+            .where(eq(agentsTable.userId, user.id)),
+          db.select({ payoutWallet: users.payoutWallet }).from(users).where(eq(users.id, user.id)).limit(1),
+        ]);
+        return NextResponse.json({
+          agents: registeredAgents,
+          defaultPayoutWallet: ownerRows[0]?.payoutWallet || null,
+        });
       }
       case "world-markets": {
         const status = request.nextUrl.searchParams.get("status") || undefined;
@@ -200,47 +312,65 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case "transfer": {
-        const result = await requestPayBoxTransfer(
-          params.credentialId,
-          params.chain || "solana:mainnet",
-          params.to,
-          params.amount,
-          token,
-          params.token || params.tokenMint
-        );
-        // Auto-reopen signing window to trigger autonomous signing
-        if (result?.request_id && result?.status === "pending_signature") {
-          try {
-            await reopenSigningWindow(result.request_id, token);
-          } catch {}
-        }
-        return NextResponse.json(result);
+        const args: Record<string, unknown> = {
+          credential_id: params.credentialId,
+          chain: params.chain || "solana:mainnet",
+          to: params.to,
+          amount: params.amount,
+        };
+        if (params.token || params.tokenMint) args.token = params.token || params.tokenMint;
+        const raw = await payboxRequest("tools/call", { name: "request_transfer", arguments: args }, token);
+        return NextResponse.json(withToolMeta("request_transfer", args, raw));
       }
       case "swap": {
-        const result = await requestPayBoxSwap(
-          params.credentialId,
-          params.srcChain || "solana:mainnet",
-          params.srcToken || "native",
-          params.dstToken,
-          params.amount,
-          token
-        );
-        // Auto-reopen signing window to trigger autonomous signing
-        if (result?.request_id && result?.status === "pending_signature") {
-          try {
-            await reopenSigningWindow(result.request_id, token);
-          } catch {}
-        }
-        return NextResponse.json(result);
+        const args: Record<string, unknown> = {
+          credential_id: params.credentialId,
+          src_chain: params.srcChain || "solana:mainnet",
+          src_token: params.srcToken || "native",
+          dst_token: params.dstToken,
+          amount: params.amount,
+        };
+        if (params.recipient) args.recipient = params.recipient;
+        const raw = await payboxRequest("tools/call", { name: "request_swap", arguments: args }, token);
+        return NextResponse.json(withToolMeta("request_swap", args, raw));
       }
       case "sign": {
-        const result = await signWithPayBox(
+        const intent = await buildSignIntent(
           params.credentialId,
           params.message,
-          undefined,
-          token
+          token,
+          params.address
         );
-        return NextResponse.json(result);
+        const args = {
+          credential_id: params.credentialId,
+          intent,
+        };
+        const raw = await payboxRequest("tools/call", { name: "request_wallet_sign", arguments: args }, token);
+        return NextResponse.json(withToolMeta("request_wallet_sign", args, raw));
+      }
+      case "accountChange": {
+        const allowed = ["add", "remove", "create", "set_mode", "note"];
+        const args: Record<string, unknown> = {};
+        for (const key of allowed) {
+          if (params[key] !== undefined) args[key] = params[key];
+        }
+        if (Object.keys(args).length === 0) {
+          return NextResponse.json({ error: "At least one account change is required" }, { status: 400 });
+        }
+        const raw = await payboxRequest("tools/call", { name: "request_account_change", arguments: args }, token);
+        return NextResponse.json(withToolMeta("request_account_change", args, raw));
+      }
+      case "mcpTool": {
+        const toolName = params.toolName;
+        if (!SIGNING_APP_TOOLS.has(toolName)) {
+          return NextResponse.json({ error: `Tool ${toolName} is not allowed from the signing app` }, { status: 403 });
+        }
+        const args = params.arguments;
+        if (!args || typeof args !== "object" || Array.isArray(args)) {
+          return NextResponse.json({ error: "arguments object is required" }, { status: 400 });
+        }
+        const raw = await payboxRequest("tools/call", { name: toolName, arguments: args }, token);
+        return NextResponse.json(raw);
       }
       case "buyLink": {
         const result = await getPayBoxBuyLink(

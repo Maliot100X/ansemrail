@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>PayBox Sandbox</title>
+    <style>html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent}iframe{border:0;width:100%;height:100%;display:block}</style>
+  </head>
+  <body>
+    <script>
+      (() => {
+        const OWN_ORIGIN = window.location.origin;
+        const HOST_ORIGIN = new URLSearchParams(window.location.search).get("host") || window.location.origin;
+        const PROXY_READY = "ui/notifications/sandbox-proxy-ready";
+        const RESOURCE_READY = "ui/notifications/sandbox-resource-ready";
+        let inner = null;
+
+        function origins(values) {
+          return [...new Set((values || []).filter(Boolean).map((value) => {
+            try { return new URL(value, window.location.href).origin; }
+            catch { return null; }
+          }).filter(Boolean))];
+        }
+
+        function csp(csp) {
+          const connect = origins(csp?.connectDomains);
+          const resources = origins(csp?.resourceDomains);
+          const frames = origins(csp?.frameDomains);
+          const base = origins(csp?.baseUriDomains);
+          const list = [
+            "default-src 'none'",
+            `script-src ${resources.join(" ") || "'none'"}`,
+            `style-src ${resources.join(" ") || "'none'"} 'unsafe-inline'`,
+            `img-src ${resources.join(" ") || "'none'"} data: blob:`,
+            `font-src ${resources.join(" ") || "'none'"} data:`,
+            `connect-src ${connect.join(" ") || "'none'"}`,
+            frames.length ? `frame-src ${frames.join(" ")}` : "frame-src 'none'",
+            base.length ? `base-uri ${base.join(" ")}` : "base-uri 'self'",
+            "form-action 'none'",
+            "object-src 'none'"
+          ];
+          return list.join("; ");
+        }
+
+        function permissions(permissions) {
+          return Object.entries(permissions || {}).map(([key]) => {
+            const policyKey = key === "clipboardWrite" ? "clipboard-write" : key;
+            return `${policyKey}=*`;
+          }).join(", ");
+        }
+
+        function decodeSigningKey(token) {
+          try {
+            const raw = token.startsWith("pbxk1.") ? token.slice(6) : token;
+            let base64 = raw.replace(/-/g, "+").replace(/_/g, "/");
+            while (base64.length % 4) base64 += "=";
+            const payload = JSON.parse(atob(base64));
+            const publicKey = String(payload.p ?? payload.apiPubHex ?? "").trim();
+            const secretKey = String(payload.s ?? payload.apiPrivHex ?? "").trim();
+            if (!publicKey || !secretKey) return null;
+            return { apiPubHex: publicKey, apiPrivHex: secretKey };
+          } catch {
+            return null;
+          }
+        }
+
+        function storeSigningKey(token) {
+          try {
+            const decoded = decodeSigningKey(token);
+            if (decoded && inner?.contentWindow) {
+              inner.contentWindow.localStorage.setItem(
+                "paybox.walletSign.creds.v2",
+                JSON.stringify(decoded)
+              );
+            }
+          } catch {}
+        }
+
+        function clearSigningKey() {
+          try {
+            inner?.contentWindow?.localStorage.removeItem("paybox.walletSign.creds.v2");
+          } catch {}
+        }
+
+        function loadResource({ html, csp: resourceCsp, permissions: resourcePermissions, signingKey }) {
+          if (inner) inner.remove();
+          inner = document.createElement("iframe");
+          inner.sandbox = "allow-scripts allow-same-origin";
+          inner.allow = permissions(resourcePermissions);
+          inner.setAttribute(
+            "style",
+            "border:0;width:100%;height:100%;display:block;background:transparent"
+          );
+          let policy = "";
+          const policyValue = csp(resourceCsp);
+          if (policyValue) policy = `<meta http-equiv="Content-Security-Policy" content="${policyValue.replace(/"/g, "&#34;")}">`;
+          inner.srcdoc = `<!doctype html><html><head><meta charset="utf-8">${policy}</head><body>${html}</body></html>`;
+          document.body.appendChild(inner);
+          storeSigningKey(signingKey);
+        }
+
+        window.addEventListener("message", (event) => {
+          if (event.origin !== HOST_ORIGIN || event.source !== window.parent) return;
+          const data = event.data;
+          if (!data || data.jsonrpc !== "2.0") return;
+
+          if (data.method === RESOURCE_READY) {
+            loadResource(data.params || {});
+            return;
+          }
+
+          if (data.method === "ui/notifications/paybox-clear-credentials") {
+            clearSigningKey();
+            return;
+          }
+
+          if (
+            ((data.method &&
+            !data.method.startsWith("ui/notifications/sandbox-") &&
+            data.method !== "ui/notifications/paybox-clear-credentials") || data.id !== undefined) &&
+            inner?.contentWindow
+          ) {
+            inner.contentWindow.postMessage(data, "*");
+          }
+        });
+
+        window.addEventListener("message", (event) => {
+          if (event.source !== inner?.contentWindow) return;
+          const data = event.data;
+          if (!data || data.jsonrpc !== "2.0") return;
+          if (data.method?.startsWith("ui/notifications/sandbox-")) return;
+          window.parent.postMessage(data, HOST_ORIGIN);
+        });
+
+        if (HOST_ORIGIN !== OWN_ORIGIN) {
+          window.parent.postMessage({
+            jsonrpc: "2.0",
+            method: PROXY_READY,
+            params: {}
+          }, HOST_ORIGIN);
+        } else {
+          window.parent.postMessage({
+            jsonrpc: "2.0",
+            method: PROXY_READY,
+            params: {}
+          }, OWN_ORIGIN);
+        }
+      })();
+    </script>
+  </body>
+</html>

@@ -56,6 +56,7 @@ export async function GET(request: NextRequest) {
       ansemPreference: row.ansemPreference,
       hasClawpumpKey: !!encryptedKeys.clawpumpApiKey,
       hasPayboxKey: !!encryptedKeys.payboxApiKey,
+      hasPayboxSigningKey: !!encryptedKeys.payboxSigningKey,
       payboxPolicies: await getUserPayboxPolicies(row.id),
       clawpumpProfile,
     });
@@ -81,6 +82,7 @@ export async function PUT(request: NextRequest) {
     const {
       clawpumpApiKey,
       payboxApiKey,
+      payboxSigningKey,
       moonpayEmail,
       payoutWallet,
       telegramChatId,
@@ -129,6 +131,19 @@ export async function PUT(request: NextRequest) {
         (updateData.encryptedKeys as Record<string, string>) ||
         ((existing.encryptedKeys as Record<string, string>) || {});
       existingEncryptedKeys.payboxApiKey = encryptApiKey(payboxApiKey);
+      updateData.encryptedKeys = existingEncryptedKeys;
+    }
+    if (payboxSigningKey !== undefined && payboxSigningKey !== "") {
+      if (!payboxSigningKey.startsWith("pbxk1.")) {
+        return NextResponse.json(
+          { error: "PayBox signing key must start with pbxk1." },
+          { status: 400 }
+        );
+      }
+      const existingEncryptedKeys =
+        (updateData.encryptedKeys as Record<string, string>) ||
+        ((existing.encryptedKeys as Record<string, string>) || {});
+      existingEncryptedKeys.payboxSigningKey = encryptApiKey(payboxSigningKey);
       updateData.encryptedKeys = existingEncryptedKeys;
     }
     if (moonpayEmail !== undefined) updateData.moonpayEmail = moonpayEmail;
