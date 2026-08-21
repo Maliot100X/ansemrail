@@ -46,8 +46,6 @@ export default function BountiesPage() {
   const [adminMsg, setAdminMsg] = useState<string | null>(null);
   const [rejectReasons, setRejectReasons] = useState<Record<string, string>>({});
 
-  useEffect(() => { fetchBounties(); }, [filter]);
-
   async function fetchBounties() {
     setLoading(true);
     try {
@@ -57,6 +55,11 @@ export default function BountiesPage() {
     } catch {}
     setLoading(false);
   }
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => { void fetchBounties(); }, 0);
+    return () => clearTimeout(timeoutId);
+  }, [filter]);
 
   async function createBounty() {
     if (!form.title || !form.description || !form.rewardAmount) { setError("Title, description, and reward amount are required"); return; }
