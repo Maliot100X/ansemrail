@@ -75,6 +75,9 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    if (!["ANSEM", "CLAW", "CLAWRENA", "PROJECT", "SOL"].includes((rewardToken || "ANSEM").toUpperCase())) {
+      return NextResponse.json({ error: "Unsupported reward token" }, { status: 400 });
+    }
 
     const [bounty] = await db
       .insert(bounties)

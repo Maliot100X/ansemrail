@@ -44,6 +44,7 @@ export default function BountiesPage() {
   const [adminLoading, setAdminLoading] = useState(false);
   const [adminData, setAdminData] = useState<any>(null);
   const [adminMsg, setAdminMsg] = useState<string | null>(null);
+  const [rejectReasons, setRejectReasons] = useState<Record<string, string>>({});
 
   useEffect(() => { fetchBounties(); }, [filter]);
 
@@ -132,6 +133,27 @@ export default function BountiesPage() {
     } catch (err: any) { setAdminMsg(`❌ ${err.message}`); }
   }
 
+  async function adminReject(bountyId: string) {
+    const reason = (rejectReasons[bountyId] || "").trim();
+    if (!reason) {
+      setAdminMsg("❌ Reject reason is required");
+      return;
+    }
+    try {
+      const res = await fetch(`/api/bounties/${bountyId}/payout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${adminSecret}` },
+        body: JSON.stringify({ action: "reject", reason }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Reject failed");
+      setAdminMsg("✅ Bounty rejected");
+      loadAdmin();
+    } catch (err: any) {
+      setAdminMsg(`❌ ${err.message}`);
+    }
+  }
+
   function statusIcon(s: string) {
     if (s === "open") return <Flame className="h-4 w-4 text-green-400" />;
     if (s === "in_progress") return <Clock className="h-4 w-4 text-amber-400" />;
@@ -192,7 +214,6 @@ export default function BountiesPage() {
                 <option value="ANSEM">ANSEM</option>
                 <option value="CLAW">CLAW</option>
                 <option value="SOL">SOL</option>
-                <option value="USDC">USDC</option>
               </select>
             </div>
             <div className="flex gap-2">
@@ -348,6 +369,14 @@ export default function BountiesPage() {
                             Approve & Pay ({b.rewardAmount} {b.rewardToken})
                           </Button>
                         )}
+                        <Button size="sm" variant="outline" className="text-red-400 border-red-800/50 hover:bg-red-950/30" onClick={() => adminReject(b.id)}>
+                          Reject
+                        </Button>
+                        <Input
+                          placeholder="Required rejection reason"
+                          value={rejectReasons[b.id] || ""}
+                          onChange={(event) => setRejectReasons({ ...rejectReasons, [b.id]: event.target.value })}
+                        />
                         <Button size="sm" variant="ghost" className="text-zinc-500 hover:text-red-400" onClick={async () => {
                           await fetch(`/api/bounties?id=${b.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${adminSecret}` } });
                           loadAdmin();

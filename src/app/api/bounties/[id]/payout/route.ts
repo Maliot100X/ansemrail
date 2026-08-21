@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { bounties, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { sendSplReward, ANSEM_MINT, CLAW_MINT, PROJECT_MINT, getTreasuryKeypair, treasureWalletAddress } from "@/lib/rewards";
+import { sendSplReward, sendSolReward, ANSEM_MINT, CLAW_MINT, PROJECT_MINT, getTreasuryKeypair, treasureWalletAddress } from "@/lib/rewards";
 import { sendMessage } from "@/lib/telegram";
 
 const TOKEN_MINTS: Record<string, string> = {
@@ -34,7 +34,7 @@ export async function POST(
     const { action } = body; // "payout", "approve", "reject"
 
     // Handle admin approve/reject
-    if (isAdmin && action !== "payout") {
+    if (action !== "payout") {
       if (action === "approve") {
         if (bounty.status !== "completed") {
           return NextResponse.json({ error: "Bounty must be completed before approval" }, { status: 400 });
@@ -107,19 +107,21 @@ export async function POST(
       return NextResponse.json({ error: "Treasury address not found" }, { status: 500 });
     }
 
-    // Map token to mint
-    const token = (bounty.rewardToken || "CLAWRENA").toUpperCase();
-    const mint = TOKEN_MINTS[token] || TOKEN_MINTS["CLAWRENA"];
+    const token = (bounty.rewardToken || "").toUpperCase();
     const amount = parseFloat(bounty.rewardAmount);
-
+    const mint = TOKEN_MINTS[token];
+    if (token !== "SOL" && !mint) {
+      return NextResponse.json({ error: `Unsupported reward token: ${token || "missing"}` }, { status: 400 });
+    }
     if (!amount || amount <= 0) {
       return NextResponse.json({ error: "Invalid reward amount" }, { status: 400 });
     }
 
-    // Send real SPL token transfer from treasury
     let txSignature: string;
     try {
-      txSignature = await sendSplReward(mint, payoutWallet, amount);
+      txSignature = token === "SOL"
+        ? await sendSolReward(payoutWallet, amount)
+        : await sendSplReward(mint, payoutWallet, amount);
     } catch (err: any) {
       return NextResponse.json({ error: "Payout failed: " + err.message }, { status: 500 });
     }

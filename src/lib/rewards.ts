@@ -3,7 +3,7 @@ import { db } from "@/db/client";
 import { platformConfig } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { encryptApiKey, decryptApiKey } from "@/lib/crypto";
-import { Connection, Keypair, PublicKey, LAMPORTS_PER_SOL, Transaction } from "@solana/web3.js";
+import { Connection, Keypair, PublicKey, LAMPORTS_PER_SOL, SystemProgram, Transaction } from "@solana/web3.js";
 import { createTransferInstruction, createAssociatedTokenAccountInstruction, getAssociatedTokenAddress, TOKEN_2022_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from "@solana/spl-token";
 import bs58 from "bs58";
 import { getBalance, getTokenAccountsByOwner } from "@/lib/helius";
@@ -229,6 +229,32 @@ export async function sendSplReward(
   const sig = await conn.sendRawTransaction(tx.serialize());
   await conn.confirmTransaction(sig, "confirmed");
   return sig;
+}
+
+export async function sendSolReward(toWallet: string, uiAmount: number): Promise<string> {
+  const keypair = await getTreasuryKeypair();
+  if (!keypair) throw new Error("Treasury key is not set — configure the treasury wallet in Rewards admin settings.");
+
+  const conn = getConnection();
+  const lamports = BigInt(Math.round(uiAmount * Number(LAMPORTS_PER_SOL)));
+  const balance = await conn.getBalance(keypair.publicKey);
+  if (BigInt(balance) < lamports + BigInt(10_000)) {
+    throw new Error("Treasury has insufficient SOL balance for this payout.");
+  }
+
+  const tx = new Transaction().add(
+    SystemProgram.transfer({
+      fromPubkey: keypair.publicKey,
+      toPubkey: new PublicKey(toWallet),
+      lamports,
+    }),
+  );
+  tx.feePayer = keypair.publicKey;
+  tx.recentBlockhash = (await conn.getLatestBlockhash()).blockhash;
+  tx.sign(keypair);
+  const signature = await conn.sendRawTransaction(tx.serialize());
+  await conn.confirmTransaction(signature, "confirmed");
+  return signature;
 }
 
 export async function getTreasurySolBalance(address?: string): Promise<number> {
