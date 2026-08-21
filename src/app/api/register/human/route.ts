@@ -51,6 +51,7 @@ export async function POST(request: NextRequest) {
         .set({
           walletAddress: walletAddress || existingUser.walletAddress,
           encryptedKeys: mergedKeys,
+          payoutWallet: walletAddress || existingUser.payoutWallet,
           moonpayEmail: moonpayEmail || existingUser.moonpayEmail,
           googleId: googleId || existingUser.googleId,
           type: "human",
@@ -81,6 +82,7 @@ export async function POST(request: NextRequest) {
         email,
         googleId,
         walletAddress,
+        payoutWallet: walletAddress || null,
         clawpumpApiKey: authToken,
         encryptedKeys: Object.keys(encryptedKeys).length > 0 ? encryptedKeys : null,
         moonpayEmail,

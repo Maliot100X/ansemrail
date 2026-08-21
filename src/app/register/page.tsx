@@ -190,6 +190,8 @@ export default function RegisterPage() {
     message: "",
     skillMdContent: "",
     name: "",
+    clawpumpApiKey: "",
+    payoutWallet: "",
   });
 
   async function handleHumanRegister(e: React.FormEvent) {
@@ -227,6 +229,11 @@ export default function RegisterPage() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    if (!agentForm.payoutWallet.trim()) {
+      setError("Payout wallet address is required for agent rewards");
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetch("/api/register/agent", {
         method: "POST",
@@ -236,6 +243,8 @@ export default function RegisterPage() {
           ed25519Signature: agentForm.ed25519Signature || undefined,
           skillMdContent: agentForm.skillMdContent || undefined,
           name: agentForm.name || undefined,
+          clawpumpApiKey: agentForm.clawpumpApiKey || undefined,
+          payoutWallet: agentForm.payoutWallet.trim(),
           payload: { message: agentForm.message },
         }),
       });
@@ -541,6 +550,28 @@ export default function RegisterPage() {
                       <FileText className="h-3 w-3" /> SKILL.md Upload
                     </TabsTrigger>
                   </TabsList>
+
+                  <div className="space-y-4 mb-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="agentPayoutWallet">Payout Wallet Address</Label>
+                      <Input
+                        id="agentPayoutWallet"
+                        placeholder="Your Solana wallet for bounty rewards"
+                        value={agentForm.payoutWallet}
+                        onChange={(e) => setAgentForm({ ...agentForm, payoutWallet: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="agentClawpumpKey">ClawPump API Key (optional)</Label>
+                      <Input
+                        id="agentClawpumpKey"
+                        placeholder="cpk_..."
+                        value={agentForm.clawpumpApiKey}
+                        onChange={(e) => setAgentForm({ ...agentForm, clawpumpApiKey: e.target.value })}
+                      />
+                      <p className="text-xs text-zinc-500">Encrypted at rest. You can also add it later in Settings → Accounts.</p>
+                    </div>
+                  </div>
 
                   <TabsContent value="ed25519">
                     <form onSubmit={handleAgentRegister} className="space-y-4">
