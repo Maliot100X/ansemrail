@@ -25,9 +25,8 @@ import {
 } from "@/lib/auth-session";
 import { db } from "@/db/client";
 import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, isNotNull, or } from "drizzle-orm";
 import { encryptApiKey, decryptApiKey } from "@/lib/crypto";
-import { agents as agentsTable } from "@/db/schema";
 
 const SIGNING_APP_TOOLS = new Set([
   "get_request",
@@ -81,6 +80,15 @@ async function createDirectPayboxClient(request: NextRequest, token: string) {
   const user = await getRequestUser(request);
   const signingKey = await getUserPayboxSigningKey(user?.id);
   return new PayboxClient({ apiKey: token, signingKey });
+}
+
+async function reopenPayboxRequest(requestId: string, token: string) {
+  const raw = await payboxRequest(
+    "tools/call",
+    { name: "reopen_signing_window", arguments: { request_id: requestId } },
+    token
+  );
+  return toolResult(raw);
 }
 
 async function resolvePayboxToken(
@@ -226,14 +234,18 @@ export async function GET(request: NextRequest) {
         const [registeredAgents, ownerRows] = await Promise.all([
           db
             .select({
-              id: agentsTable.id,
-              clawpumpAgentId: agentsTable.clawpumpAgentId,
-              name: agentsTable.name,
-              status: agentsTable.status,
-              walletAddress: agentsTable.walletAddress,
+              id: users.id,
+              name: users.email,
+              walletAddress: users.walletAddress,
+              payoutWallet: users.payoutWallet,
             })
-            .from(agentsTable)
-            .where(eq(agentsTable.userId, user.id)),
+            .from(users)
+            .where(
+              and(
+                eq(users.type, "agent"),
+                or(isNotNull(users.walletAddress), isNotNull(users.payoutWallet))
+              )
+            ),
           db.select({ payoutWallet: users.payoutWallet }).from(users).where(eq(users.id, user.id)).limit(1),
         ]);
         return NextResponse.json({
@@ -406,6 +418,68 @@ export async function POST(request: NextRequest) {
         }
         const raw = await payboxRequest("tools/call", { name: "request_account_change", arguments: args }, token);
         return NextResponse.json(withToolMeta("request_account_change", args, raw));
+      }
+      case "completeRequest": {
+        const user = await getRequestUser(request);
+        if (!user) {
+          return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+        }
+        if (!params.requestId) {
+          return NextResponse.json({ error: "requestId is required" }, { status: 400 });
+        }
+        const signingKey = await getUserPayboxSigningKey(user.id);
+        const client = new PayboxClient({ apiKey: token, signingKey });
+        if (!client.canSign) {
+          const reopenedForSetup = await reopenPayboxRequest(params.requestId, token);
+          return NextResponse.json(
+            { error: "Save this account's pbxk1... signing credential to confirm the active request.", provisionUrl: reopenedForSetup.provision_url },
+            { status: 409 }
+          );
+        }
+        const reopened = await reopenPayboxRequest(params.requestId, token);
+        if (reopened.status !== "pending_signature") {
+          return NextResponse.json(reopened);
+        }
+        if (reopened.operation?.intent) {
+          const operation = reopened.operation;
+          const boundClient = new PayboxClient({
+            apiKey: token,
+            signingKey,
+            fetchImpl: async (url: any, init: any) => {
+              if (String(url).endsWith("/agent/wallet-sign")) {
+                return new Response(JSON.stringify({
+                  response: reopened,
+                  binding: {
+                    wallet_id: operation.wallet_id,
+                    key_id: operation.key_id,
+                    derivation_path: operation.derivation_path,
+                  },
+                }), { status: 200, headers: { "content-type": "application/json" } });
+              }
+              return fetch(url, init);
+            },
+          });
+          const completed = await boundClient.requestWalletSign(
+            { credentialId: params.credentialId || operation.wallet_id, intent: operation.intent },
+            { autoSign: true }
+          );
+          return NextResponse.json(completed);
+        }
+        if (reopened.plan) {
+          const signingClient = client as unknown as {
+            request(method: string, path: string, init: Record<string, unknown>): Promise<{ plan: any }>;
+            completeSwap(result: { response: any; plan: any }, options: { autoSign: boolean }): Promise<{ response: any }>;
+          };
+          const refreshed = reopened.plan.txs?.some((tx: any) => tx.vm === "solana")
+            ? await signingClient.request("POST", `/agent/requests/${params.requestId}/refresh`, { body: {} })
+            : { plan: reopened.plan };
+          const completed = await signingClient.completeSwap(
+            { response: reopened, plan: refreshed.plan },
+            { autoSign: true }
+          );
+          return NextResponse.json(completed.response);
+        }
+        return NextResponse.json(reopened);
       }
       case "mcpTool": {
         const toolName = params.toolName;

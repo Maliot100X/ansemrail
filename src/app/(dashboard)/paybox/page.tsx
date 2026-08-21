@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import PayBoxSigningWindow from "./signing-window";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -61,6 +60,7 @@ const [copied, setCopied] = useState(false);
   const [registeredAgents, setRegisteredAgents] = useState<any[]>([]);
   const [selectedAgentId, setSelectedAgentId] = useState("");
   const [sendToAgentWallet, setSendToAgentWallet] = useState(false);
+  const [keySetupUrl, setKeySetupUrl] = useState<string | null>(null);
 
   // Transfer form
   const [transfer, setTransfer] = useState({ to: "", amount: "", token: "SOL" });
@@ -106,8 +106,19 @@ const [copied, setCopied] = useState(false);
       try {
       const res = await fetch(`/api/paybox?action=request&requestId=${requestId}`, {
       });
-        const data = await res.json();
-        const status = data.status || data?.output?.status;
+        let data = await res.json();
+        let status = data.status || data?.output?.status;
+        if (status === "pending_signature") {
+          const confirmRes = await fetch("/api/paybox", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "completeRequest", requestId }),
+          });
+          const confirmData = await confirmRes.json().catch(() => ({}));
+          if (confirmData.provisionUrl) setKeySetupUrl(confirmData.provisionUrl);
+          if (confirmRes.ok && confirmData.request_id) data = confirmData;
+        }
+        status = data.status || data?.output?.status;
         setPendingStatus(status);
         if (status === "success" || status === "confirmed" || status === "denied" || status === "error" || transactionHash(data)) {
           setResult(data);
@@ -155,7 +166,7 @@ const [copied, setCopied] = useState(false);
 
   function selectedAgentWallet() {
     const agent = registeredAgents.find((item) => item.id === selectedAgentId);
-    return agent?.walletAddress || agent?.payoutWallet || null;
+    return agent?.payoutWallet || agent?.walletAddress || null;
   }
 
   async function changeAccount(args: Record<string, unknown>) {
@@ -304,7 +315,7 @@ const [copied, setCopied] = useState(false);
                   <option value="">No agent context</option>
                   {registeredAgents.map((agent) => (
                     <option key={agent.id} value={agent.id}>
-                      {agent.name} — {shortAddr(agent.walletAddress || "no wallet", 6)}
+                      {agent.name || "Platform Agent"} — {shortAddr(agent.payoutWallet || agent.walletAddress || "no wallet", 6)}
                     </option>
                   ))}
                 </select>
@@ -498,14 +509,10 @@ const [copied, setCopied] = useState(false);
             </div>
             <p className="text-xs text-zinc-400">Status: <span className="text-zinc-200">{pendingStatus || "processing"}</span></p>
             <p className="text-xs text-zinc-500">Request: {shortAddr(pendingRequestId, 8)}</p>
-            {pendingStatus === "pending_signature" && (
-              <PayBoxSigningWindow
-                requestId={pendingRequestId}
-                onComplete={(completed) => {
-                  setResult(completed);
-                  setPendingRequestId(null);
-                }}
-              />
+            {pendingStatus === "pending_signature" && keySetupUrl && (
+              <a href={keySetupUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300">
+                Get signing key for automatic confirmation <ExternalLink className="h-3 w-3" />
+              </a>
             )}
             {pendingStatus === "pending_approval" && result?.approval_url && (
               <a href={result.approval_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300">
