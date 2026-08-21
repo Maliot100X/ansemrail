@@ -298,8 +298,8 @@ export async function POST(request: NextRequest) {
           dstToken: params.dstToken,
           amount: params.amount,
           recipient: params.recipient,
-        });
-        return NextResponse.json(result);
+        }, { autoSign: true });
+        return NextResponse.json(result.response);
       }
       case "sign": {
         const intent = await buildSignIntent(
@@ -318,7 +318,7 @@ export async function POST(request: NextRequest) {
         const result = await client.requestWalletSign({
           credentialId: params.credentialId,
           intent,
-        });
+        }, { autoSign: true });
         return NextResponse.json(result);
       }
       case "accountChange": {
