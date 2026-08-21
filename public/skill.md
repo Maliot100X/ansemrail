@@ -780,7 +780,7 @@ curl -X POST https://ansemrail.vercel.app/api/paybox \
 
 **Connect your own PayBox key:** Settings → API Keys or Settings → Accounts (dashboard) — save your `pbx_...` key (encrypted at rest) and PayBox actions use it automatically. Without your own key, PayBox actions return a clear "connect your own key" error — the platform never uses a demo/shared key.
 
-**Direct signing:** Save the account's `pbx_...` connector key and its unique `pbxk1...` signing credential in Settings → Accounts. With both saved, transfers, swaps, and wallet signatures sign in-process through the official PayBox SDK when autonomous approval clears them. Without a saved signing credential, AnsemRail reopens the exact `pending_signature` request in the PayBox tab; it never creates a replacement money request.
+**Direct signing:** Save the account's `pbx_...` connector key and its unique `pbxk1...` signing credential in Settings → Accounts or directly under the active PayBox request. With both saved, transfers, swaps, and wallet signatures sign in-process through the official PayBox SDK when autonomous approval clears them. Without a saved signing credential, AnsemRail shows the official key link and `POST /api/paybox {"action":"completeRequest","requestId":"..."}` confirms that exact request after the key is submitted; it never creates a replacement money request.
 
 **Signing lifecycle:** submit once, keep the `request_id`, surface `approval_url` only for `pending_approval`, and poll only `get_request` until terminal status. For a Solana credential, AnsemRail automatically uses `op: "solanaMessage"` with the credential's wallet address; never use the EVM `message` intent for a Solana wallet.
 
@@ -788,7 +788,7 @@ curl -X POST https://ansemrail.vercel.app/api/paybox \
 
 **Policy actions:** `createAnsemPolicy`, `createSpendLimit` (POST) build and save policies to your account; `policies` (GET) lists them; `deletePolicy` removes one. PayBox enforces limits via your credential access grants — see `list_credentials` and `request_account_change` MCP tools.
 
-**Agent setup:** every registered human or agent saves its own encrypted PayBox credentials in Settings → Accounts. Agents may also send their own `pbx_...` key as `X-Paybox-Key` for one API call without saving it; that key overrides the account's encrypted key only for that request.
+**Agent setup:** every registered human or agent saves its own encrypted PayBox credentials in Settings → Accounts. `GET /api/paybox?action=agents` lists registered platform-agent profiles with `payoutWallet`/`walletAddress`; selecting one in the Transfer tab fills the recipient while leaving manual recipient entry available. Agents may also send their own `pbx_...` key as `X-Paybox-Key` for one API call without saving it; that key overrides the account's encrypted key only for that request.
 
 ```bash
 # Discover wallets with a request-only key
@@ -1396,6 +1396,8 @@ curl -s https://api.paybox.sh/mcp -X POST \
 | `/api/paybox?action=credentials` | GET | Bearer | List wallet credentials |
 | `/api/paybox?action=portfolio&credentialId=X` | GET | Bearer | Get wallet portfolio |
 | `/api/paybox?action=services` | GET | Bearer | Discover x402 services |
+| `/api/paybox?action=agents` | GET | Bearer | List platform-agent payout/wallet profiles |
+| `/api/paybox` | POST | Bearer | Confirm an existing request with `action=completeRequest` |
 | `/api/paybox?action=world-markets` | GET | Bearer | Browse World prediction markets |
 | `/api/paybox?action=world-positions&address=X` | GET | Bearer | Check World positions |
 

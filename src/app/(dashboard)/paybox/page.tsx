@@ -350,7 +350,15 @@ const [copied, setCopied] = useState(false);
                 <select
                   className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
                   value={selectedAgentId}
-                  onChange={(event) => setSelectedAgentId(event.target.value)}
+                  onChange={(event) => {
+                    const agentId = event.target.value;
+                    setSelectedAgentId(agentId);
+                    const selected = registeredAgents.find((agent) => agent.id === agentId);
+                    setTransfer((current) => ({
+                      ...current,
+                      to: selected?.payoutWallet || selected?.walletAddress || "",
+                    }));
+                  }}
                 >
                   <option value="">No agent context</option>
                   {registeredAgents.map((agent) => (
@@ -359,15 +367,7 @@ const [copied, setCopied] = useState(false);
                     </option>
                   ))}
                 </select>
-                <label className="flex items-center gap-2 text-xs text-zinc-400">
-                  <input
-                    type="checkbox"
-                    checked={sendToAgentWallet}
-                    disabled={!selectedAgentId}
-                    onChange={(event) => setSendToAgentWallet(event.target.checked)}
-                  />
-                  Send output to the selected agent payout wallet
-                </label>
+                <p className="text-xs text-zinc-500">Selecting an agent fills the recipient with its profile wallet. Clear the selector to send to any address.</p>
               </div>
 
           <Card>
