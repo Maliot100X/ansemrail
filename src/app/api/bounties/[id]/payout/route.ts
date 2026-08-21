@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getRequestUser } from "@/lib/auth-session";
 import { db } from "@/db/client";
 import { bounties, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -20,12 +19,13 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const user = await getRequestUser(request);
     const adminSecret = process.env.REWARDS_ADMIN_SECRET;
     const authHeader = request.headers.get("authorization") || "";
     const isAdmin = adminSecret && authHeader === `Bearer ${adminSecret}`;
-    // Non-admin gets payout; admin can also payout but can additionally approve/reject
-    const isNonAdmin = user && !isAdmin;
+
+    if (!isAdmin) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const [bounty] = await db.select().from(bounties).where(eq(bounties.id, id)).limit(1);
     if (!bounty) {

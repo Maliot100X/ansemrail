@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -64,6 +64,23 @@ const [copied, setCopied] = useState(false);
   const [signingKey, setSigningKey] = useState("");
   const [submittingKey, setSubmittingKey] = useState(false);
   const [keyMessage, setKeyMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadAgentsSilently() {
+      try {
+        const res = await fetch("/api/paybox?action=agents");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setRegisteredAgents(data.agents || []);
+      } catch {
+      }
+    }
+    loadAgentsSilently();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Transfer form
   const [transfer, setTransfer] = useState({ to: "", amount: "", token: "SOL" });
