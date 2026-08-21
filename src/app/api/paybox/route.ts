@@ -31,7 +31,9 @@ async function resolvePayboxToken(
   bodyToken?: string
 ): Promise<string | undefined> {
   const urlToken = request.nextUrl.searchParams.get("token") || undefined;
+  const headerToken = request.headers.get("x-paybox-key") || undefined;
   if (bodyToken) return bodyToken;
+  if (headerToken) return headerToken;
   if (urlToken) return urlToken;
   const user = await getRequestUser(request);
   if (user?.id) {

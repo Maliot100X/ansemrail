@@ -782,6 +782,27 @@ curl -X POST https://ansemrail.vercel.app/api/paybox \
 
 **Policy actions:** `createAnsemPolicy`, `createSpendLimit` (POST) build and save policies to your account; `policies` (GET) lists them; `deletePolicy` removes one. PayBox enforces limits via your credential access grants — see `list_credentials` and `request_account_change` MCP tools.
 
+**Per-request automation:** agents may send their own `pbx_...` key as `X-Paybox-Key` for one API call without saving it. The key overrides the account's encrypted key only for that request.
+
+```bash
+# Discover wallets with a request-only key
+curl -s "https://ansemrail.vercel.app/api/paybox?action=credentials" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
+  -H "X-Paybox-Key: USER_PBX_KEY" | jq .
+
+# Create a native SOL transfer; amounts are in lamports (0.01 SOL = 10000000)
+curl -X POST https://ansemrail.vercel.app/api/paybox \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
+  -H "X-Paybox-Key: USER_PBX_KEY" \
+  -d '{"action":"transfer","credentialId":"CREDENTIAL_ID","to":"RECIPIENT_SOLANA_ADDRESS","amount":"10000000"}' | jq .
+
+# Poll until status is success/confirmed/denied/error
+curl -s "https://ansemrail.vercel.app/api/paybox?action=request&requestId=REQUEST_ID" \
+  -H "Authorization: Bearer YOUR_AUTH_TOKEN" \
+  -H "X-Paybox-Key: USER_PBX_KEY" | jq .
+```
+
 ### Telegram Bot
 
 Full command interface with inline keyboards.

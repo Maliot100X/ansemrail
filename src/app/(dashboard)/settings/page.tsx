@@ -333,14 +333,29 @@ export default function SettingsPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="paybox">PayBox API Key</Label>
-                <Input
-                  id="paybox"
-                  type="password"
-                  placeholder="pbx_..."
-                  value={settings.payboxApiKey}
-                  onChange={(e) => setSettings({ ...settings, payboxApiKey: e.target.value })}
-                />
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Input
+                    id="paybox"
+                    type="password"
+                    placeholder="pbx_..."
+                    value={settings.payboxApiKey}
+                    onChange={(e) => setSettings({ ...settings, payboxApiKey: e.target.value })}
+                  />
+                  <Button
+                    type="button"
+                    variant="ansem"
+                    onClick={handleConnectPaybox}
+                    disabled={payboxConnecting || !settings.payboxApiKey}
+                  >
+                    {payboxConnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply PayBox Key"}
+                  </Button>
+                </div>
                 <p className="text-xs text-zinc-500">Get yours at app.paybox.sh — powers OWS policies and signing</p>
+                {payboxConnectResult && (
+                  <p className={`text-xs ${payboxConnectResult.includes("connected") ? "text-green-400" : "text-red-400"}`}>
+                    {payboxConnectResult}
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="moonpay">MoonPay Email</Label>
@@ -448,24 +463,21 @@ export default function SettingsPage() {
                     <Badge variant="secondary">Not Connected</Badge>
                   )}
                 </div>
-                {hasPayboxKey ? (
+                <div className="space-y-2">
+                  <Input
+                    type="password"
+                    placeholder={hasPayboxKey ? "Enter a new pbx_... key to replace it" : "pbx_..."}
+                    value={settings.payboxApiKey}
+                    onChange={(e) => setSettings({ ...settings, payboxApiKey: e.target.value })}
+                  />
+                  <Button variant="ansem" size="sm" onClick={handleConnectPaybox} disabled={payboxConnecting || !settings.payboxApiKey}>
+                    {payboxConnecting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Link2 className="h-3 w-3" />}
+                    {hasPayboxKey ? "Apply New PayBox Key" : "Apply PayBox Key"}
+                  </Button>
                   <p className="text-xs text-zinc-500">
-                    Your PayBox API key is encrypted at rest. OWS policy creation and PayBox actions use it automatically.
+                    Your saved PayBox API key is encrypted at rest. OWS policy creation and PayBox actions use it automatically.
                   </p>
-                ) : (
-                  <div className="space-y-2">
-                    <Input
-                      type="password"
-                      placeholder="pbx_..."
-                      value={settings.payboxApiKey}
-                      onChange={(e) => setSettings({ ...settings, payboxApiKey: e.target.value })}
-                    />
-                    <Button variant="ansem" size="sm" onClick={handleConnectPaybox} disabled={payboxConnecting}>
-                      {payboxConnecting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Link2 className="h-3 w-3" />}
-                      Connect PayBox
-                    </Button>
-                  </div>
-                )}
+                </div>
                 {payboxConnectResult && (
                   <p className={`text-xs ${payboxConnectResult.includes("connected") ? "text-green-400" : "text-red-400"}`}>
                     {payboxConnectResult}
