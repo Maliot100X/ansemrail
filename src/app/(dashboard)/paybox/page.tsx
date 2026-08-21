@@ -63,15 +63,11 @@ const [copied, setCopied] = useState(false);
   const [transfer, setTransfer] = useState({ to: "", amount: "", token: "SOL" });
   // Swap form
   const [swap, setSwap] = useState({ src: "SOL", dst: "USDC", amount: "" });
-  const [requestApiKey, setRequestApiKey] = useState("");
-  const [requestSigningKey, setRequestSigningKey] = useState("");
 
   async function apiGet(action: string, extra?: string) {
     setLoading(true); setError(null);
     try {
-      const res = await fetch(`/api/paybox?action=${action}${extra ? "&" + extra : ""}`, {
-        headers: requestApiKey ? { "x-paybox-key": requestApiKey } : undefined,
-      });
+      const res = await fetch(`/api/paybox?action=${action}${extra ? "&" + extra : ""}`);
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Request failed");
       return data;
@@ -84,10 +80,7 @@ const [copied, setCopied] = useState(false);
     try {
       const res = await fetch("/api/paybox", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(requestApiKey ? { "x-paybox-key": requestApiKey } : {}),
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       const data = await res.json();
@@ -109,9 +102,8 @@ const [copied, setCopied] = useState(false);
     for (let i = 0; i < 240; i++) {
       await new Promise(r => setTimeout(r, 1500));
       try {
-        const res = await fetch(`/api/paybox?action=request&requestId=${requestId}`, {
-          headers: requestApiKey ? { "x-paybox-key": requestApiKey } : undefined,
-        });
+      const res = await fetch(`/api/paybox?action=request&requestId=${requestId}`, {
+      });
         const data = await res.json();
         const status = data.status || data?.output?.status;
         setPendingStatus(status);
@@ -212,46 +204,6 @@ const [copied, setCopied] = useState(false);
         <h1 className="text-2xl font-bold text-zinc-50">PayBox Agent</h1>
         <p className="text-sm text-zinc-400">Your non-custodial wallet for agents — trade, swap, transfer across chains. Connect your PayBox API key in Settings → Accounts.</p>
       </div>
-
-      <Card>
-        <CardContent className="p-4 space-y-3">
-          <div className="space-y-2">
-            <Label htmlFor="request-api-key" className="text-xs text-zinc-400">Request-only PayBox API key (optional)</Label>
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Input
-                id="request-api-key"
-                type="password"
-                placeholder="pbx_..."
-                value={requestApiKey}
-                onChange={(e) => setRequestApiKey(e.target.value)}
-              />
-              <Button
-                variant="outline"
-                onClick={() => setRequestApiKey("")}
-                disabled={!requestApiKey}
-              >
-                Clear
-              </Button>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="request-signing-key" className="text-xs text-zinc-400">Request-only PayBox signing credential (optional)</Label>
-              <Input
-                id="request-signing-key"
-                type="password"
-                placeholder="pbxk1..."
-                value={requestSigningKey}
-                onChange={(e) => setRequestSigningKey(e.target.value)}
-              />
-              <p className="text-xs text-zinc-500">
-                Used only inside the isolated PayBox signing view. It is never sent to AnsemRail APIs or stored.
-              </p>
-            </div>
-            <p className="text-xs text-zinc-500">
-              Overrides your saved connector key for actions on this page only. It is kept in page memory and never stored by AnsemRail.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
 
       {error && (
         <div className="rounded-lg border border-red-800/50 bg-red-950/20 p-3 text-sm text-red-300 flex items-center gap-2">
@@ -553,8 +505,6 @@ const [copied, setCopied] = useState(false);
             {pendingStatus === "pending_signature" && (
               <PayBoxSigningWindow
                 requestId={pendingRequestId}
-                apiKey={requestApiKey}
-                signingKey={requestSigningKey}
                 onComplete={(completed) => {
                   setResult(completed);
                   setPendingRequestId(null);
