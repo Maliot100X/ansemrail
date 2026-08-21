@@ -47,7 +47,7 @@ npm install
 - Updated `src/app/api/paybox/route.ts` with real actions:
   - GET: `tools`, `credentials`, `portfolio`, `services`, `request`, `world-markets`, `world-positions`, `verify-balance`
   - POST: `transfer`, `swap`, `sign`, `buyLink`, `pollRequest`, `verifyBalance`
-- **Tested with `pbx_live_65af702581981fb9c9fb3b20b1fbe4ec6cd544af60ea762abd54bbba2680f993` token — returns 2 wallet credentials (Solana: `4EtXvzwvxFv6q2cEKsYL4sNxfyDXLcMPBnEaXYxcp6ub`, EVM: `0x0276f899a529C39373DEe53139fC1084fAAAE086`)**
+- **Tested with a `pbx_live_...` token — returns 2 wallet credentials**
 - PayBox has 25+ tools including World prediction markets, x402 payments, cross-chain swaps
 
 ### 2. PONS Gasless Token Launch (Robinhood Chain) — NEW FEATURE
@@ -142,10 +142,10 @@ npm install
 
 **You MUST set these env vars on Vercel manually** (via dashboard at https://vercel.com/maliot100x/ansemrail/settings/env):
 
-1. **`CLAWPUMP_API_KEY`** = `cpk_EILUP2NwZoM-UW-xkxt4HlJfnL5xujMd1IM-a2D7AZw`
+1. **`CLAWPUMP_API_KEY`** = `cpk_...`
    - This is a WORKING key (the old one had exhausted quota)
    - Chat, swap quotes, agents all work with this key
-2. **`PAYBOX_AUTH_TOKEN`** = `pbx_live_65af702581981fb9c9fb3b20b1fbe4ec6cd544af60ea762abd54bbba2680f993`
+2. **`PAYBOX_AUTH_TOKEN`** = `pbx_live_...`
    - PayBox MCP Bearer token — tested and working
 3. **`PAYBOX_API_URL`** = `https://api.paybox.sh`
    - May already be set but verify it points to `api.paybox.sh` not `app.paybox.sh`
@@ -173,7 +173,7 @@ curl -s "https://ansemrail.vercel.app/api/paybox?action=credentials" | jq .
 # Register:
 curl -s -X POST https://ansemrail.vercel.app/api/register/human \
   -H "Content-Type: application/json" \
-  -d '{"email":"test@test.com","walletAddress":"WALLET","clawpumpApiKey":"cpk_EILUP2NwZoM-UW-xkxt4HlJfnL5xujMd1IM-a2D7AZw"}' | jq .
+  -d '{"email":"test@test.com","walletAddress":"WALLET","clawpumpApiKey":"cpk_..."}' | jq .
 
 # Then chat with token:
 curl -s -X POST https://ansemrail.vercel.app/api/agents/chat \
@@ -249,9 +249,9 @@ public/
 
 | Service | Key | Status |
 |---------|-----|--------|
-| ClawPump API | `cpk_EILUP2NwZoM-UW-xkxt4HlJfnL5xujMd1IM-a2D7AZw` | ✅ Works (chat, swap, agents) |
-| PayBox MCP | `pbx_live_65af702581981fb9c9fb3b20b1fbe4ec6cd544af60ea762abd54bbba2680f993` | ✅ Works (25+ tools) |
-| GitHub | `ghp_eJEW...` (in original prompt) | ⚠️ Rotate — was shared in plaintext |
+| ClawPump API | `cpk_...` | ✅ Works (chat, swap, agents) |
+| PayBox MCP | `pbx_live_...` | ✅ Works (25+ tools) |
+| GitHub | `ghp_...` (in original prompt) | ⚠️ Rotate — was shared in plaintext |
 | Vercel | Both tokens EXPIRED | ❌ Need new token to set env vars |
 
 ---

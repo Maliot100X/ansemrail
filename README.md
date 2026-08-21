@@ -136,7 +136,7 @@ moonpay-auth, moonpay-block-explorer, moonpay-buy-crypto, moonpay-buy-the-dip, m
 - Bitcoin: `bc1qdrw70l55sl3vtv4284mz06y3l4rtcdxm2rnn4l`
 - Plus Cosmos, Tron, TON, Sui, XRPL, Filecoin, NEAR, Nano, Spark
 
-**OWS Verified API Key**: `ows_key_cce2fd97dc7664a077fe4e039069ab96f8d817d5f0d8d9a56a0a81f2b4b9c9ff`
+**OWS Verified API Key**: `ows_key_...`
 
 #### $ANSEM Token
 
