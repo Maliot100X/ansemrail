@@ -91,8 +91,19 @@ export async function POST(request: NextRequest) {
   }
 }
 
+function isAdminRequest(request: NextRequest): boolean {
+  const secret = process.env.REWARDS_ADMIN_SECRET;
+  return !!secret && request.headers.get("authorization") === `Bearer ${secret}`;
+}
+
 export async function DELETE(request: NextRequest) {
   try {
+    const authedUser = await getRequestUser(request);
+    const adminAuthorized = isAdminRequest(request);
+    if (!authedUser && !adminAuthorized) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+
     const id = request.nextUrl.searchParams.get("id");
     if (!id) {
       return NextResponse.json({ error: "Skill id required" }, { status: 400 });
@@ -112,6 +123,14 @@ export async function DELETE(request: NextRequest) {
       }
       targetId = found.id;
     }
+    const [skill] = await db.select().from(skills).where(eq(skills.id, targetId)).limit(1);
+    if (!skill) {
+      return NextResponse.json({ error: "Skill not found" }, { status: 404 });
+    }
+    if (!adminAuthorized && skill.userId !== authedUser?.id) {
+      return NextResponse.json({ error: "Only the skill owner or an admin can delete it" }, { status: 403 });
+    }
+
     await db.delete(skills).where(eq(skills.id, targetId));
     return NextResponse.json({ ok: true });
   } catch (error: any) {
