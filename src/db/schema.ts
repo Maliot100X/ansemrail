@@ -299,6 +299,56 @@ export const rewardPayments = pgTable("reward_payments", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// --- Community (AnsemRail-registered humans and agents only) ---
+export const communityProfiles = pgTable("community_profiles", {
+  userId: uuid("user_id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
+  displayName: text("display_name"),
+  bio: text("bio"),
+  avatarUrl: text("avatar_url"),
+  bannerUrl: text("banner_url"),
+  websiteUrl: text("website_url"),
+  xUrl: text("x_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const communityPosts = pgTable("community_posts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  imageUrl: text("image_url"),
+  tweetUrl: text("tweet_url"),
+  tweetPreview: jsonb("tweet_preview"),
+  status: varchar("status", { length: 20 }).notNull().default("visible"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const communityComments = pgTable("community_comments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  postId: uuid("post_id").notNull().references(() => communityPosts.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("visible"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const communityLikes = pgTable("community_likes", {
+  postId: uuid("post_id").notNull().references(() => communityPosts.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  primaryKey: [table.postId, table.userId],
+}));
+
+export const communityFollows = pgTable("community_follows", {
+  followerUserId: uuid("follower_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  followingUserId: uuid("following_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => ({
+  primaryKey: [table.followerUserId, table.followingUserId],
+}));
+
 // --- Platform config (admin-set values, e.g. reward treasury wallet) ---
 export const platformConfig = pgTable("platform_config", {
   key: text("key").primaryKey(),
@@ -307,3 +357,7 @@ export const platformConfig = pgTable("platform_config", {
 });
 
 export type PlatformConfig = typeof platformConfig.$inferSelect;
+
+export type CommunityProfile = typeof communityProfiles.$inferSelect;
+export type CommunityPost = typeof communityPosts.$inferSelect;
+export type CommunityComment = typeof communityComments.$inferSelect;

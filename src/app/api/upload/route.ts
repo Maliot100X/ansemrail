@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { sql } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import { getRequestUser } from "@/lib/auth-session";
 
 export const dynamic = "force-dynamic";
 
@@ -10,6 +11,11 @@ const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getRequestUser(request);
+    if (!user) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+
     const body = await request.json();
     const raw = typeof body.image === "string" ? body.image.trim() : "";
     if (!raw) {
@@ -59,13 +65,15 @@ export async function POST(request: NextRequest) {
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS uploaded_images (
         id uuid PRIMARY KEY,
+        owner_id uuid REFERENCES users(id) ON DELETE SET NULL,
         mime text NOT NULL,
         data bytea NOT NULL,
         created_at timestamp DEFAULT now() NOT NULL
       )
     `);
+    await db.execute(sql`ALTER TABLE uploaded_images ADD COLUMN IF NOT EXISTS owner_id uuid REFERENCES users(id) ON DELETE SET NULL`);
     await db.execute(sql`
-      INSERT INTO uploaded_images (id, mime, data) VALUES (${id}, ${mime}, ${buffer})
+      INSERT INTO uploaded_images (id, owner_id, mime, data) VALUES (${id}, ${user.id}, ${mime}, ${buffer})
     `);
 
     const url = `${request.nextUrl.origin}/api/upload/${id}`;

@@ -2,8 +2,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getUserClawpumpApiKey } from "@/lib/auth-session";
 import { db } from "@/db/client";
-import { users, agents } from "@/db/schema";
-import { eq, or } from "drizzle-orm";
+import { users, agents, communityFollows, communityPosts, communityProfiles } from "@/db/schema";
+import { and, eq, or, sql } from "drizzle-orm";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,6 +46,21 @@ export default async function AgentProfilePage({
     .where(eq(users.id, id))
     .limit(1);
 
+  const [communityProfile] = await db
+    .select()
+    .from(communityProfiles)
+    .where(eq(communityProfiles.userId, id))
+    .limit(1);
+  const visiblePostsFilter = and(eq(communityPosts.userId, id), eq(communityPosts.status, "visible"));
+  const [communityFeed, postCountRow, followerCountRow, followingCountRow, followRow] = await Promise.all([
+    db.select().from(communityPosts).where(visiblePostsFilter),
+    db.select({ count: sql<number>`count(*)::int` }).from(communityPosts).where(visiblePostsFilter),
+    db.select({ count: sql<number>`count(*)::int` }).from(communityFollows).where(eq(communityFollows.followingUserId, id)),
+    db.select({ count: sql<number>`count(*)::int` }).from(communityFollows).where(eq(communityFollows.followerUserId, id)),
+    sessionUserId ? db.select().from(communityFollows).where(and(eq(communityFollows.followerUserId, sessionUserId), eq(communityFollows.followingUserId, id))).limit(1) : Promise.resolve([]),
+  ]);
+  const communityName = communityProfile?.displayName || (localUser?.type === "agent" ? localUser.email || "AnsemRail Agent" : "AnsemRail Human");
+
   // 2. Try local agents table (agents created via platform)
   const [localAgent] = await db
     .select()
@@ -72,16 +87,23 @@ export default async function AgentProfilePage({
         </Link>
 
         {/* Header Card */}
-        <Card className="border-zinc-800 bg-zinc-900/50">
+        <Card className="border-zinc-800 bg-zinc-900/50 overflow-hidden">
+          <div className="h-32 bg-gradient-to-r from-amber-600/30 to-orange-600/20">
+            {communityProfile?.bannerUrl && <img src={communityProfile.bannerUrl} alt="" className="h-full w-full object-cover" />}
+          </div>
           <CardContent className="p-6">
             <div className="flex items-start gap-5">
-              <div className="shrink-0 h-20 w-20 rounded-xl bg-zinc-800 flex items-center justify-center overflow-hidden border border-zinc-700">
-                <Bot className="h-10 w-10 text-amber-500/60" />
+              <div className="shrink-0 -mt-14 h-20 w-20 rounded-xl bg-zinc-800 flex items-center justify-center overflow-hidden border-4 border-zinc-950">
+                {communityProfile?.avatarUrl ? (
+                  <img src={communityProfile.avatarUrl} alt={communityName} className="h-full w-full object-cover" />
+                ) : (
+                  <Bot className="h-10 w-10 text-amber-500/60" />
+                )}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-3 flex-wrap">
                   <h1 className="text-2xl font-bold text-zinc-50">
-                    {localUser.email || "AnsemRail Agent"}
+                    {communityName}
                   </h1>
                   <Badge variant={localUser.type === "agent" ? "ansem" : "secondary"}>
                     {localUser.type}
@@ -106,8 +128,9 @@ export default async function AgentProfilePage({
                     {twitterHandle}
                   </a>
                 )}
+                {communityProfile?.bio && <p className="mt-2 text-sm text-zinc-300">{communityProfile.bio}</p>}
                 <p className="mt-2 text-xs text-zinc-500">
-                  Registered {localUser.createdAt.toLocaleDateString()} · ID: {shortAddress(localUser.id, 8)}
+                  Registered {localUser.createdAt.toLocaleDateString()} · ID: {shortAddress(localUser.id, 8)} · {postCountRow[0]?.count || 0} posts · {followerCountRow[0]?.count || 0} followers · {followingCountRow[0]?.count || 0} following{sessionUserId && sessionUserId !== localUser.id ? (followRow.length ? " · Following" : " · Not following") : ""}
                 </p>
               </div>
             </div>
@@ -194,6 +217,30 @@ export default async function AgentProfilePage({
               <p className="text-xs text-zinc-500 mb-1">$ANSEM Preference</p>
               <p className="text-zinc-300">{localUser.ansemPreference ? "Yes" : "No"}</p>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Community Posts */}
+        <Card className="border-zinc-800 bg-zinc-900/50">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm text-zinc-400">
+              <User className="h-4 w-4 text-amber-500" /> Community Posts
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {communityFeed.length === 0 && <p className="text-sm text-zinc-500">No Community posts yet.</p>}
+            {communityFeed.map((post) => (
+              <div key={post.id} className="rounded-lg border border-zinc-800 bg-zinc-950/40 p-3 space-y-2">
+                <p className="text-xs text-zinc-500">{post.createdAt.toLocaleString()}</p>
+                <p className="whitespace-pre-wrap text-sm text-zinc-100">{post.content}</p>
+                {post.imageUrl && <img src={post.imageUrl} alt="" className="max-h-80 w-full rounded-md object-cover" />}
+                {post.tweetUrl && (
+                  <a href={post.tweetUrl} target="_blank" rel="noopener noreferrer" className="block rounded-md bg-zinc-900 p-2 text-xs text-sky-400 hover:text-sky-300">
+                    {(post.tweetPreview as any)?.text || post.tweetUrl}
+                  </a>
+                )}
+              </div>
+            ))}
           </CardContent>
         </Card>
       </div>
