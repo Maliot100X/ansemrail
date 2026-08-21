@@ -273,6 +273,13 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case "transfer": {
+        const client = await createDirectPayboxClient(request, token);
+        if (!client.canSign) {
+          return NextResponse.json(
+            { error: "Save your pbxk1... PayBox signing credential in Settings → Accounts to complete transfers automatically." },
+            { status: 409 }
+          );
+        }
         const args: Record<string, unknown> = {
           credential_id: params.credentialId,
           chain: params.chain || "solana:mainnet",
@@ -281,6 +288,23 @@ export async function POST(request: NextRequest) {
         };
         if (params.token || params.tokenMint) args.token = params.token || params.tokenMint;
         const raw = await payboxRequest("tools/call", { name: "request_transfer", arguments: args }, token);
+        const created = toolResult(raw);
+        if (created.status === "pending_signature" && created.plan) {
+          const signingClient = client as unknown as {
+            request(method: string, path: string, init: Record<string, unknown>): Promise<{ plan: any }>;
+            completeSwap(result: { response: any; plan: any }, options: { autoSign: boolean }): Promise<{ response: any }>;
+          };
+          const refreshed = await signingClient.request(
+            "POST",
+            `/agent/requests/${created.request_id}/refresh`,
+            { body: {} }
+          );
+          const completed = await signingClient.completeSwap(
+            { response: created, plan: refreshed.plan },
+            { autoSign: true }
+          );
+          return NextResponse.json(completed.response);
+        }
         return NextResponse.json(withToolMeta("request_transfer", args, raw));
       }
       case "swap": {

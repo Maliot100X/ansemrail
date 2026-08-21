@@ -41,6 +41,10 @@ function shortAddr(addr?: string, len = 6) {
   return addr.length > len * 2 + 3 ? `${addr.slice(0, len)}...${addr.slice(-len)}` : addr;
 }
 
+function transactionHash(result: any) {
+  return result?.txHash || result?.output?.txHash || result?.output?.value?.tx_hash || result?.output?.value?.tx_hashes?.[0] || null;
+}
+
 export default function PayBoxPage() {
   const [credentials, setCredentials] = useState<any[]>([]);
   const [selectedCred, setSelectedCred] = useState("");
@@ -104,7 +108,7 @@ const [copied, setCopied] = useState(false);
         const data = await res.json();
         const status = data.status || data?.output?.status;
         setPendingStatus(status);
-        if (status === "success" || status === "confirmed" || status === "denied" || status === "error" || data.txHash || data?.output?.txHash) {
+        if (status === "success" || status === "confirmed" || status === "denied" || status === "error" || transactionHash(data)) {
           setResult(data);
           setPendingRequestId(null);
           return;
@@ -191,6 +195,8 @@ const [copied, setCopied] = useState(false);
     setCopied(true);
     setTimeout(() => setCopied(false), 1500);
   }
+
+  const resultTxHash = result ? transactionHash(result) : null;
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -502,12 +508,12 @@ const [copied, setCopied] = useState(false);
 
       {/* Result */}
       {result && !pendingRequestId && (
-        <Card className={`border ${result.status === 'success' || result.txHash || result?.output?.txHash ? 'border-green-800/50' : 'border-zinc-700'}`}>
+        <Card className={`border ${result.status === "success" || resultTxHash ? "border-green-800/50" : "border-zinc-700"}`}>
           <CardContent className="p-4 space-y-2">
-            {(result.status === 'success' || result.txHash || result?.output?.txHash) && (
+            {(result.status === "success" || resultTxHash) && (
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-green-400" />
-                <p className="text-sm font-medium text-green-300">Swap Complete!</p>
+                <p className="text-sm font-medium text-green-300">Transaction Complete!</p>
               </div>
             )}
             {result.status === 'denied' && (
@@ -516,14 +522,9 @@ const [copied, setCopied] = useState(false);
                 <p className="text-sm font-medium text-red-300">Swap Denied</p>
               </div>
             )}
-            {result.txHash && (
+            {resultTxHash && (
               <p className="text-xs text-zinc-400">
-                Tx: <a href={`https://solscan.io/tx/${result.txHash}`} target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:underline">{shortAddr(result.txHash, 10)}</a>
-              </p>
-            )}
-            {result?.output?.txHash && (
-              <p className="text-xs text-zinc-400">
-                Tx: <a href={`https://solscan.io/tx/${result.output.txHash}`} target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:underline">{shortAddr(result.output.txHash, 10)}</a>
+                Tx: <a href={`https://solscan.io/tx/${resultTxHash}`} target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:underline">{shortAddr(resultTxHash, 10)}</a>
               </p>
             )}
             <pre className="text-xs text-zinc-500 overflow-auto max-h-48 bg-zinc-900 rounded-md p-3">{JSON.stringify(result, null, 2)}</pre>
