@@ -61,6 +61,9 @@ const [copied, setCopied] = useState(false);
   const [selectedAgentId, setSelectedAgentId] = useState("");
   const [sendToAgentWallet, setSendToAgentWallet] = useState(false);
   const [keySetupUrl, setKeySetupUrl] = useState<string | null>(null);
+  const [signingKey, setSigningKey] = useState("");
+  const [submittingKey, setSubmittingKey] = useState(false);
+  const [keyMessage, setKeyMessage] = useState<string | null>(null);
 
   // Transfer form
   const [transfer, setTransfer] = useState({ to: "", amount: "", token: "SOL" });
@@ -130,6 +133,43 @@ const [copied, setCopied] = useState(false);
     // Stop polling after six minutes.
     setPendingStatus("timeout");
     setPendingRequestId(null);
+  }
+
+  async function submitSigningKey() {
+    if (!signingKey.startsWith("pbxk1.")) {
+      setKeyMessage("PayBox signing key must start with pbxk1.");
+      return;
+    }
+    setSubmittingKey(true); setKeyMessage(null); setError(null);
+    try {
+      const saveRes = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payboxSigningKey: signingKey }),
+      });
+      const saveData = await saveRes.json();
+      if (!saveRes.ok) throw new Error(saveData.error || "Could not save signing key");
+      setSigningKey("");
+      setKeyMessage("Signing key saved. Confirming the active request…");
+      if (!pendingRequestId) return;
+      const confirmRes = await fetch("/api/paybox", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "completeRequest", requestId: pendingRequestId }),
+      });
+      const confirmData = await confirmRes.json();
+      if (!confirmRes.ok) throw new Error(confirmData.error || "Could not confirm the active request");
+      setResult(confirmData);
+      setPendingStatus(confirmData.status || "processing");
+      if (["success", "confirmed", "denied", "error"].includes(confirmData.status) || transactionHash(confirmData)) {
+        setPendingRequestId(null);
+        setKeyMessage(null);
+      }
+    } catch (err: any) {
+      setKeyMessage(err.message);
+    } finally {
+      setSubmittingKey(false);
+    }
   }
 
   async function loadWallets() {
@@ -514,6 +554,28 @@ const [copied, setCopied] = useState(false);
                 Get signing key for automatic confirmation <ExternalLink className="h-3 w-3" />
               </a>
             )}
+            {pendingStatus === "pending_signature" && (
+              <div className="rounded-lg border border-zinc-800 bg-zinc-900/70 p-3 space-y-2">
+                <Label className="text-xs text-zinc-300">Submit signing key</Label>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Input
+                    type="password"
+                    placeholder="pbxk1..."
+                    value={signingKey}
+                    onChange={(event) => setSigningKey(event.target.value)}
+                    autoComplete="off"
+                  />
+                  <Button type="button" variant="ansem" size="sm" onClick={submitSigningKey} disabled={submittingKey || !signingKey}>
+                    {submittingKey ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CheckCircle2 className="h-4 w-4 mr-1" />}
+                    Submit &amp; Confirm
+                  </Button>
+                </div>
+                <p className="text-xs text-zinc-500">
+                  Paste the pbxk1 key PayBox showed you. It is encrypted and saved only to this account.
+                </p>
+                {keyMessage && <p className="text-xs text-amber-300">{keyMessage}</p>}
+              </div>
+            )}
             {pendingStatus === "pending_approval" && result?.approval_url && (
               <a href={result.approval_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300">
                 Approve in PayBox <ExternalLink className="h-3 w-3" />
@@ -526,25 +588,37 @@ const [copied, setCopied] = useState(false);
       {/* Result */}
       {result && !pendingRequestId && (
         <Card className={`border ${result.status === "success" || resultTxHash ? "border-green-800/50" : "border-zinc-700"}`}>
-          <CardContent className="p-4 space-y-2">
-            {(result.status === "success" || resultTxHash) && (
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-400" />
-                <p className="text-sm font-medium text-green-300">Transaction Complete!</p>
-              </div>
-            )}
-            {result.status === 'denied' && (
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-red-400" />
-                <p className="text-sm font-medium text-red-300">Swap Denied</p>
-              </div>
-            )}
-            {resultTxHash && (
-              <p className="text-xs text-zinc-400">
-                Tx: <a href={`https://solscan.io/tx/${resultTxHash}`} target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:underline">{shortAddr(resultTxHash, 10)}</a>
-              </p>
-            )}
-            <pre className="text-xs text-zinc-500 overflow-auto max-h-48 bg-zinc-900 rounded-md p-3">{JSON.stringify(result, null, 2)}</pre>
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center gap-2">
+              {result.status === "success" || resultTxHash ? (
+                <>
+                  <CheckCircle2 className="h-4 w-4 text-green-400" />
+                  <p className="text-sm font-medium text-green-300">Transaction Complete</p>
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="h-4 w-4 text-red-400" />
+                  <p className="text-sm font-medium text-red-300">Transaction Failed</p>
+                </>
+              )}
+            </div>
+            <div className="grid gap-1 text-xs">
+              <p className="text-zinc-400">Status: <span className="text-zinc-200">{result.status || "unknown"}</span></p>
+              {result.request_id && <p className="text-zinc-400">Request: <span className="font-mono text-zinc-200">{result.request_id}</span></p>}
+              {(result.error || result.reason || result.output?.value?.error) && (
+                <p className="text-zinc-400">Reason: <span className="text-red-300">{result.error || result.reason || result.output?.value?.error}</span></p>
+              )}
+              {result.output?.output_type && <p className="text-zinc-400">Result type: <span className="text-zinc-200">{result.output.output_type}</span></p>}
+              {resultTxHash && (
+                <p className="text-zinc-400">
+                  Transaction: <a href={`https://solscan.io/tx/${resultTxHash}`} target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:underline break-all">{resultTxHash}</a>
+                </p>
+              )}
+              {result.output?.value?.signature && (
+                <p className="text-zinc-400">Signature: <span className="font-mono text-zinc-200 break-all">{result.output.value.signature}</span></p>
+              )}
+            </div>
+            <pre className="text-xs text-zinc-500 overflow-auto max-h-64 bg-zinc-900 rounded-md p-3">{JSON.stringify(result, null, 2)}</pre>
           </CardContent>
         </Card>
       )}
