@@ -4,6 +4,7 @@ import { users, registrations } from "@/db/schema";
 import { encryptApiKey } from "@/lib/crypto";
 import { randomBytes } from "crypto";
 import { eq } from "drizzle-orm";
+import { getRequestUser } from "@/lib/auth-session";
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,6 +35,14 @@ export async function POST(request: NextRequest) {
     }
 
     if (existingUser) {
+      const authenticatedUser = await getRequestUser(request);
+      if (authenticatedUser?.id !== existingUser.id) {
+        return NextResponse.json(
+          { error: "Account already exists. Sign in with your token or Google account." },
+          { status: 409 }
+        );
+      }
+
       const existingEncryptedKeys = (existingUser.encryptedKeys as Record<string, string>) || {};
       const mergedKeys = { ...existingEncryptedKeys, ...encryptedKeys };
 
