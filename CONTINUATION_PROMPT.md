@@ -149,7 +149,7 @@ All verified. See README.md for full matrix.
 
 ### Telegram Webhook ❌ TOKEN EXPIRED
 - Attempted to set webhook to `https://ansemrail.vercel.app/api/telegram`
-- **FAILED**: Telegram API returns 401 Unauthorized — the redacted bot token is invalid/expired
+- **FAILED**: Telegram API returns 401 Unauthorized — bot token `8979997512:AAH2KSjp_tX8EL9sex64yZi6h4pjteZT4yU` is invalid/expired
 - **Next agent must**: Get a new bot token from @BotFather, update `.env` and Vercel env var `TELEGRAM_BOT_TOKEN`, then set webhook
 
 ### Local Testing ✅ ALL PASSED (14/14 API + 3/3 Ed25519 + 9/9 pages)
@@ -372,7 +372,7 @@ The Telegram bot token is expired/invalid (401 Unauthorized). Fix this:
 # 1. Get new token from @BotFather on Telegram
 # 2. Update .env locally: TELEGRAM_BOT_TOKEN=new_token_here
 # 3. Update on Vercel:
-VERCEL_TOKEN="$VERCEL_TOKEN"
+VERCEL_TOKEN="vcp_8LotOyegDtoW1GtwFBgPrhPjjeXsL44urz9qJxfEcDuCWJFEjh17Vnle"
 PROJECT_ID="prj_RwVskDWF0QuAtI5dkx7a2W6LPztm"
 # Delete old env var, create new one, redeploy, set webhook:
 curl -s "https://api.telegram.org/botNEW_TOKEN/setWebhook?url=https://ansemrail.vercel.app/api/telegram"
@@ -422,19 +422,19 @@ After this session's push auto-deploys to Vercel, verify on https://ansemrail.ve
 ## ENVIRONMENT VARIABLES (in .env, gitignored — also set on Vercel)
 
 ```
-CLAWPUMP_API_KEY=$CLAWPUMP_API_KEY
+CLAWPUMP_API_KEY=cpk_lpWha1WqYxkyCIFkaKwqB143VcI3a5OLMXOwBkGNkSU
 MOONPAY_EMAIL=
-DATABASE_URL=$DATABASE_URL
-NEXTAUTH_SECRET=$NEXTAUTH_SECRET
+DATABASE_URL=postgresql://neondb_owner:npg_UwOs4NcGgI9Q@ep-delicate-grass-axu7dz5x.c-4.us-east-2.aws.neon.tech/neondb?sslmode=require
+NEXTAUTH_SECRET=b70c937a4bbac44a61c79bef37aa3fa2ad394a48da8b8e428011c61fb014130d
 NEXTAUTH_URL=https://ansemrail.vercel.app
 OWS_WALLET_NAME=ansemrail-treasury
 NEXT_PUBLIC_APP_URL=https://ansemrail.vercel.app
-HELIUS_API_KEY=$HELIUS_API_KEY
-HELIUS_RPC_URL=$HELIUS_RPC_URL
-ENCRYPTION_KEY=$ENCRYPTION_KEY
+HELIUS_API_KEY=9a468116-ce99-46d4-9adf-2568be3cf1b4
+HELIUS_RPC_URL=https://mainnet.helius-rpc.com/?api-key=9a468116-ce99-46d4-9adf-2568be3cf1b4
+ENCRYPTION_KEY=b70c937a4bbac44a61c79bef37aa3fa2ad394a48da8b8e428011c61fb014130d
 UPSTASH_REDIS_REST_URL=https://definite-walrus-35650.upstash.io
-UPSTASH_REDIS_REST_TOKEN=$UPSTASH_REDIS_REST_TOKEN
-TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN
+UPSTASH_REDIS_REST_TOKEN=AYtCAAIgcDEwNTUxMzRkNjM3NTU0OWU0YTBmNWI2ZmFmMTcyZTY5ZQ
+TELEGRAM_BOT_TOKEN=8979997512:AAH2KSjp_tX8EL9sex64yZi6h4pjteZT4yU  # EXPIRED — needs new token
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 ANSEM_TOKEN_MINT=9cRCn9rGT8V2imeM2BaKs13yhMEais3ruM3rPvTGpump
@@ -442,14 +442,14 @@ PAYBOX_API_URL=https://app.paybox.sh
 ```
 
 **Additional credentials (not in .env):**
-- Neon API token: redacted
+- Neon API token: `napi_qc3mermompqti0e6dvx2yqq0fs13g8tc6zv94moxc3n0ae7kz3k9r8a6ajdju2k0`
 - Neon org ID: `org-proud-leaf-88507341`
 - GitHub token: `ghp_<PREVIOUS_TOKEN_EXPIRED>`
-- Vercel tokens: redacted
+- Vercel tokens: `vcp_8LotOyegDtoW1GtwFBgPrhPjjeXsL44urz9qJxfEcDuCWJFEjh17Vnle` / `vcp_61vOK63Bu9cPo1FWCzQJ8H5rKaOldaH7QikR`
 - Vercel user ID: `IngwQOAgmmsn3alTBb62JxId`
 - Vercel team ID: `team_pnet5YnAM2pej7leQ1liFVq3`
 - Vercel project ID: `prj_RwVskDWF0QuAtI5dkx7a2W6LPztm`
-- Upstash Redis CLI: use the encrypted token from the provider dashboard
+- Upstash Redis CLI: `redis-cli --tls -u redis://default:AYtCAAIgcDEwNTUxMzRkNjM3NTU0OWU0YTBmNWI2ZmFmMTcyZTY5ZQ@definite-walrus-35650.upstash.io:6379`
 
 ---
 
@@ -469,7 +469,7 @@ git push origin main
 
 # Option 2: API call
 curl -s -X POST "https://api.vercel.com/v13/deployments" \
-  -H "Authorization: Bearer $VERCEL_TOKEN" \
+  -H "Authorization: Bearer vcp_8LotOyegDtoW1GtwFBgPrhPjjeXsL44urz9qJxfEcDuCWJFEjh17Vnle" \
   -H "Content-Type: application/json" \
   -d '{"name":"ansemrail","target":"production","gitSource":{"type":"github","repoId":1319650338,"ref":"main"}}'
 ```
