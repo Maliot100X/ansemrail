@@ -169,12 +169,33 @@ export async function sendSplReward(
   const fromAta = await getAssociatedTokenAddress(mintPub, keypair.publicKey, false, tokenProgramId);
   const toAta = await getAssociatedTokenAddress(mintPub, toPub, false, tokenProgramId);
 
+  let sourceAta = fromAta;
   const fromInfo = await conn.getAccountInfo(fromAta);
+  const fromBalance = fromInfo ? await conn.getTokenAccountBalance(fromAta) : null;
 
-  // Create treasury ATA if it doesn't exist (treasury may have tokens in wallet directly)
+  if (!fromBalance?.value || BigInt(fromBalance.value.amount) < amountBase) {
+    const treasuryAccounts = await getTokenAccountsByOwner(
+      keypair.publicKey.toBase58(),
+      isToken2022 ? TOKEN2022_PROGRAM : "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+    );
+    const fundedAccounts = treasuryAccounts
+      .filter((account: any) => account?.account?.data?.parsed?.info?.mint === mint)
+      .filter((account: any) => BigInt(account.account.data.parsed.info.tokenAmount.amount) >= amountBase)
+      .sort((left: any, right: any) =>
+        BigInt(right.account.data.parsed.info.tokenAmount.amount) >
+        BigInt(left.account.data.parsed.info.tokenAmount.amount) ? 1 : -1,
+      );
+
+    if (fundedAccounts.length > 0) {
+      sourceAta = new PublicKey(fundedAccounts[0].pubkey);
+    } else {
+      throw new Error(`Treasury has insufficient ${mint === PROJECT_MINT ? "CLAWRENA" : "reward token"} balance for this payout.`);
+    }
+  }
+
   const tx = new Transaction();
 
-  if (!fromInfo) {
+  if (!fromInfo && sourceAta.equals(fromAta)) {
     tx.add(
       createAssociatedTokenAccountInstruction(
         keypair.publicKey,
@@ -201,7 +222,7 @@ export async function sendSplReward(
     );
   }
 
-  tx.add(createTransferInstruction(fromAta, toAta, keypair.publicKey, amountBase, undefined, tokenProgramId));
+  tx.add(createTransferInstruction(sourceAta, toAta, keypair.publicKey, amountBase, undefined, tokenProgramId));
   tx.feePayer = keypair.publicKey;
   tx.recentBlockhash = (await conn.getLatestBlockhash()).blockhash;
   tx.sign(keypair);
