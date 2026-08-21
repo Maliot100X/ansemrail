@@ -29,6 +29,15 @@ import { eq } from "drizzle-orm";
 import { encryptApiKey, decryptApiKey } from "@/lib/crypto";
 import { agents as agentsTable } from "@/db/schema";
 
+const SIGNING_APP_TOOLS = new Set([
+  "get_request",
+  "reopen_signing_window",
+  "submit_signature",
+  "submit_envelopes",
+  "moonx_sign",
+  "moonx_resolve_binding",
+]);
+
 function toolResult(result: any) {
   if (result?.content?.[0]?.text) {
     try {
@@ -72,27 +81,6 @@ async function createDirectPayboxClient(request: NextRequest, token: string) {
   const user = await getRequestUser(request);
   const signingKey = await getUserPayboxSigningKey(user?.id);
   return new PayboxClient({ apiKey: token, signingKey });
-}
-
-async function getPayboxProvisionUrl(token: string) {
-  try {
-    const client = new PayboxClient({ apiKey: token });
-    const account = await client.requestAccountChange("AnsemRail PayBox signing setup");
-    const clientId = account?.client_id;
-    return clientId ? `https://app.paybox.sh/agent-key?client_id=${clientId}` : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-async function requireSigningSetup(request: NextRequest, token: string, action: "transfers" | "swaps" | "signatures") {
-  return NextResponse.json(
-    {
-      error: `Save your pbxk1... PayBox signing credential in Settings → Accounts to complete ${action} automatically.`,
-      provisionUrl: await getPayboxProvisionUrl(token),
-    },
-    { status: 409 }
-  );
 }
 
 async function resolvePayboxToken(
@@ -156,14 +144,6 @@ export async function GET(request: NextRequest) {
     }
 
     switch (action) {
-      case "setup": {
-        const user = await getRequestUser(request);
-        const signingKey = await getUserPayboxSigningKey(user?.id);
-        return NextResponse.json({
-          hasSigningKey: !!signingKey,
-          provisionUrl: signingKey ? undefined : await getPayboxProvisionUrl(token),
-        });
-      }
       case "tools": {
         const tools = await listPayBoxTools(token);
         return NextResponse.json({ tools });
@@ -188,6 +168,44 @@ export async function GET(request: NextRequest) {
       case "services": {
         const services = await discoverPayBoxServices(token);
         return NextResponse.json({ services });
+      }
+      case "signing-context": {
+        const requestId = request.nextUrl.searchParams.get("requestId");
+        if (!requestId) {
+          return NextResponse.json(
+            { error: "requestId is required for signing-context action" },
+            { status: 400 }
+          );
+        }
+        const args = { request_id: requestId };
+        const raw = await payboxRequest(
+          "tools/call",
+          { name: "reopen_signing_window", arguments: args },
+          token
+        );
+        return NextResponse.json(withToolMeta("reopen_signing_window", args, raw), {
+          headers: { "Cache-Control": "no-store" },
+        });
+      }
+      case "ui-resource": {
+        const [readResult, listResult] = await Promise.all([
+          payboxRequest("resources/read", { uri: "ui://paybox/app" }, token),
+          payboxRequest("resources/list", {}, token).catch(() => null),
+        ]);
+        const content = readResult?.contents?.[0];
+        const listed = listResult?.resources?.find((item: any) => item.uri === "ui://paybox/app");
+        return NextResponse.json({
+          resource: { ...content, _meta: content?._meta || listed?._meta },
+          meta: content?._meta || listed?._meta,
+        });
+      }
+      case "signing-key": {
+        const user = await getRequestUser(request);
+        if (!user) {
+          return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+        }
+        const signingKey = await getUserPayboxSigningKey(user.id);
+        return NextResponse.json({ signingKey });
       }
       case "request": {
         const requestId = request.nextUrl.searchParams.get("requestId");
@@ -303,9 +321,6 @@ export async function POST(request: NextRequest) {
     switch (action) {
       case "transfer": {
         const client = await createDirectPayboxClient(request, token);
-        if (!client.canSign) {
-          return requireSigningSetup(request, token, "transfers");
-        }
         const args: Record<string, unknown> = {
           credential_id: params.credentialId,
           chain: params.chain || "solana:mainnet",
@@ -315,6 +330,7 @@ export async function POST(request: NextRequest) {
         if (params.token || params.tokenMint) args.token = params.token || params.tokenMint;
         const raw = await payboxRequest("tools/call", { name: "request_transfer", arguments: args }, token);
         const created = toolResult(raw);
+        if (!client.canSign) return NextResponse.json(withToolMeta("request_transfer", args, raw));
         if (created.status === "pending_signature" && created.plan) {
           const signingClient = client as unknown as {
             request(method: string, path: string, init: Record<string, unknown>): Promise<{ plan: any }>;
@@ -336,7 +352,16 @@ export async function POST(request: NextRequest) {
       case "swap": {
         const client = await createDirectPayboxClient(request, token);
         if (!client.canSign) {
-          return requireSigningSetup(request, token, "swaps");
+          const args: Record<string, unknown> = {
+            credential_id: params.credentialId,
+            src_chain: params.srcChain || "solana:mainnet",
+            src_token: params.srcToken || "native",
+            dst_token: params.dstToken,
+            amount: params.amount,
+          };
+          if (params.recipient) args.recipient = params.recipient;
+          const raw = await payboxRequest("tools/call", { name: "request_swap", arguments: args }, token);
+          return NextResponse.json(withToolMeta("request_swap", args, raw));
         }
         const result = await client.requestSwap({
           credentialId: params.credentialId,
@@ -357,7 +382,12 @@ export async function POST(request: NextRequest) {
         );
         const client = await createDirectPayboxClient(request, token);
         if (!client.canSign) {
-          return requireSigningSetup(request, token, "signatures");
+          const raw = await payboxRequest(
+            "tools/call",
+            { name: "request_wallet_sign", arguments: { credential_id: params.credentialId, intent } },
+            token
+          );
+          return NextResponse.json(withToolMeta("request_wallet_sign", { credential_id: params.credentialId, intent }, raw));
         }
         const result = await client.requestWalletSign({
           credentialId: params.credentialId,
@@ -376,6 +406,18 @@ export async function POST(request: NextRequest) {
         }
         const raw = await payboxRequest("tools/call", { name: "request_account_change", arguments: args }, token);
         return NextResponse.json(withToolMeta("request_account_change", args, raw));
+      }
+      case "mcpTool": {
+        const toolName = params.toolName;
+        if (!SIGNING_APP_TOOLS.has(toolName)) {
+          return NextResponse.json({ error: `Tool ${toolName} is not allowed from the signing app` }, { status: 403 });
+        }
+        const args = params.arguments;
+        if (!args || typeof args !== "object" || Array.isArray(args)) {
+          return NextResponse.json({ error: "arguments object is required" }, { status: 400 });
+        }
+        const raw = await payboxRequest("tools/call", { name: toolName, arguments: args }, token);
+        return NextResponse.json(raw);
       }
       case "buyLink": {
         const result = await getPayBoxBuyLink(
