@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -60,6 +60,18 @@ const [copied, setCopied] = useState(false);
   const [registeredAgents, setRegisteredAgents] = useState<any[]>([]);
   const [selectedAgentId, setSelectedAgentId] = useState("");
   const [sendToAgentWallet, setSendToAgentWallet] = useState(false);
+  const [hasSigningKey, setHasSigningKey] = useState<boolean | null>(null);
+  const [keySetupUrl, setKeySetupUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/paybox?action=setup")
+      .then((res) => res.json())
+      .then((data) => {
+        setHasSigningKey(!!data.hasSigningKey);
+        setKeySetupUrl(data.provisionUrl || null);
+      })
+      .catch(() => setHasSigningKey(null));
+  }, []);
 
   // Transfer form
   const [transfer, setTransfer] = useState({ to: "", amount: "", token: "SOL" });
@@ -86,7 +98,11 @@ const [copied, setCopied] = useState(false);
         body: JSON.stringify(body),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Request failed");
+      if (!res.ok) {
+        if (data.provisionUrl) setKeySetupUrl(data.provisionUrl);
+        throw new Error(data.error || "Request failed");
+      }
+      if (data.provision_url) setKeySetupUrl(data.provision_url);
       setResult(data);
       // If there's a request_id, start polling for completion
       if (data.request_id) {
@@ -200,6 +216,29 @@ const [copied, setCopied] = useState(false);
 
   return (
     <div className="space-y-6 max-w-4xl">
+      {hasSigningKey === false && keySetupUrl && (
+        <Card className="border-amber-800/50 bg-amber-950/10">
+          <CardContent className="p-4 space-y-2">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-400" />
+              <p className="text-sm font-medium text-amber-300">Automatic signing needs one-time setup</p>
+            </div>
+            <p className="text-xs text-zinc-400">
+              Open PayBox, mint this account&apos;s pbxk1 signing credential, then paste it in Settings → Accounts.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <a href={keySetupUrl} target="_blank" rel="noopener noreferrer">
+                <Button size="sm" variant="outline">Open PayBox key setup <ExternalLink className="h-3 w-3 ml-1" /></Button>
+              </a>
+              <a href="/settings">
+                <Button size="sm" variant="ansem">Open Settings</Button>
+              </a>
+              <Button size="sm" variant="ghost" onClick={() => window.location.reload()}>I saved it</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div>
         <h1 className="text-2xl font-bold text-zinc-50">PayBox Agent</h1>
         <p className="text-sm text-zinc-400">Your non-custodial wallet for agents — trade, swap, transfer across chains. Connect your PayBox API key in Settings → Accounts.</p>

@@ -74,6 +74,27 @@ async function createDirectPayboxClient(request: NextRequest, token: string) {
   return new PayboxClient({ apiKey: token, signingKey });
 }
 
+async function getPayboxProvisionUrl(token: string) {
+  try {
+    const client = new PayboxClient({ apiKey: token });
+    const account = await client.requestAccountChange("AnsemRail PayBox signing setup");
+    const clientId = account?.client_id;
+    return clientId ? `https://app.paybox.sh/agent-key?client_id=${clientId}` : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function requireSigningSetup(request: NextRequest, token: string, action: "transfers" | "swaps" | "signatures") {
+  return NextResponse.json(
+    {
+      error: `Save your pbxk1... PayBox signing credential in Settings → Accounts to complete ${action} automatically.`,
+      provisionUrl: await getPayboxProvisionUrl(token),
+    },
+    { status: 409 }
+  );
+}
+
 async function resolvePayboxToken(
   request: NextRequest,
   bodyToken?: string
@@ -135,6 +156,14 @@ export async function GET(request: NextRequest) {
     }
 
     switch (action) {
+      case "setup": {
+        const user = await getRequestUser(request);
+        const signingKey = await getUserPayboxSigningKey(user?.id);
+        return NextResponse.json({
+          hasSigningKey: !!signingKey,
+          provisionUrl: signingKey ? undefined : await getPayboxProvisionUrl(token),
+        });
+      }
       case "tools": {
         const tools = await listPayBoxTools(token);
         return NextResponse.json({ tools });
@@ -275,10 +304,7 @@ export async function POST(request: NextRequest) {
       case "transfer": {
         const client = await createDirectPayboxClient(request, token);
         if (!client.canSign) {
-          return NextResponse.json(
-            { error: "Save your pbxk1... PayBox signing credential in Settings → Accounts to complete transfers automatically." },
-            { status: 409 }
-          );
+          return requireSigningSetup(request, token, "transfers");
         }
         const args: Record<string, unknown> = {
           credential_id: params.credentialId,
@@ -310,10 +336,7 @@ export async function POST(request: NextRequest) {
       case "swap": {
         const client = await createDirectPayboxClient(request, token);
         if (!client.canSign) {
-          return NextResponse.json(
-            { error: "Save your pbxk1... PayBox signing credential in Settings → Accounts to complete swaps automatically." },
-            { status: 409 }
-          );
+          return requireSigningSetup(request, token, "swaps");
         }
         const result = await client.requestSwap({
           credentialId: params.credentialId,
@@ -334,10 +357,7 @@ export async function POST(request: NextRequest) {
         );
         const client = await createDirectPayboxClient(request, token);
         if (!client.canSign) {
-          return NextResponse.json(
-            { error: "Save your pbxk1... PayBox signing credential in Settings → Accounts to sign automatically." },
-            { status: 409 }
-          );
+          return requireSigningSetup(request, token, "signatures");
         }
         const result = await client.requestWalletSign({
           credentialId: params.credentialId,

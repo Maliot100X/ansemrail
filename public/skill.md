@@ -780,7 +780,7 @@ curl -X POST https://ansemrail.vercel.app/api/paybox \
 
 **Connect your own PayBox key:** Settings → API Keys or Settings → Accounts (dashboard) — save your `pbx_...` key (encrypted at rest) and PayBox actions use it automatically. Without your own key, PayBox actions return a clear "connect your own key" error — the platform never uses a demo/shared key.
 
-**Direct signing:** Save your `pbx_...` connector key and generated `pbxk1...` signing credential in Settings → Accounts. Swaps and wallet signatures use the official PayBox SDK in-process when autonomous approval clears them; there is no hosted PayBox UI or iframe fallback. The `pbxk1...` credential is never an MCP bearer key.
+**Direct signing:** Save the account's `pbx_...` connector key, then provision its unique `pbxk1...` signing credential once. Call `GET /api/paybox?action=setup` for the official PayBox key-setup URL, mint the key there, and save it with `PUT /api/settings`. Swaps, transfers, and wallet signatures then use the official PayBox SDK in-process when autonomous approval clears them; there is no hosted PayBox UI or iframe fallback. The `pbxk1...` credential is never an MCP bearer key.
 
 **Signing lifecycle:** submit once, keep the `request_id`, surface `approval_url` only for `pending_approval`, and poll only `get_request` until terminal status. For a Solana credential, AnsemRail automatically uses `op: "solanaMessage"` with the credential's wallet address; never use the EVM `message` intent for a Solana wallet.
 
@@ -788,7 +788,7 @@ curl -X POST https://ansemrail.vercel.app/api/paybox \
 
 **Policy actions:** `createAnsemPolicy`, `createSpendLimit` (POST) build and save policies to your account; `policies` (GET) lists them; `deletePolicy` removes one. PayBox enforces limits via your credential access grants — see `list_credentials` and `request_account_change` MCP tools.
 
-**Per-request automation:** agents may send their own `pbx_...` key as `X-Paybox-Key` for one API call without saving it. The key overrides the account's encrypted key only for that request.
+**Agent setup:** authenticate with the agent's AnsemRail Bearer token, call `GET /api/paybox?action=setup`, open the returned `provisionUrl`, mint that account's `pbxk1...` key, then save it encrypted with `PUT /api/settings`. Agents may also send their own `pbx_...` key as `X-Paybox-Key` for one API call without saving it; that key overrides the account's encrypted key only for that request.
 
 ```bash
 # Discover wallets with a request-only key
