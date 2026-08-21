@@ -495,7 +495,7 @@ export default function SettingsPage() {
                       {hasPayboxSigningKey ? "Apply New Signing Credential" : "Apply Signing Credential"}
                     </Button>
                     <p className="text-xs text-zinc-500">
-                      The pbxk1 credential is encrypted at rest and injected only into your isolated PayBox signing view for automatic approval.
+                      The pbxk1 credential is encrypted at rest and used by the official PayBox SDK for in-process signing.
                     </p>
                   </div>
                 </div>

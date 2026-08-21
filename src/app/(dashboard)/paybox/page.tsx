@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import PayBoxSigningWindow from "./signing-window";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,7 +53,6 @@ export default function PayBoxPage() {
 const [copied, setCopied] = useState(false);
   const [pendingRequestId, setPendingRequestId] = useState<string | null>(null);
   const [pendingStatus, setPendingStatus] = useState<string | null>(null);
-  const [activeTool, setActiveTool] = useState<any>(null);
   const [registeredAgents, setRegisteredAgents] = useState<any[]>([]);
   const [selectedAgentId, setSelectedAgentId] = useState("");
   const [sendToAgentWallet, setSendToAgentWallet] = useState(false);
@@ -87,7 +85,6 @@ const [copied, setCopied] = useState(false);
       if (!res.ok) throw new Error(data.error || "Request failed");
       setResult(data);
       // If there's a request_id, start polling for completion
-      if (data._tool) setActiveTool(data._tool);
       if (data.request_id) {
         setPendingRequestId(data.request_id);
         setPendingStatus(data.status || "pending_signature");
@@ -98,7 +95,7 @@ const [copied, setCopied] = useState(false);
     finally { setLoading(false); }
   }
 
-  async function pollRequest(requestId: string, onComplete?: (result: any) => void) {
+  async function pollRequest(requestId: string) {
     for (let i = 0; i < 240; i++) {
       await new Promise(r => setTimeout(r, 1500));
       try {
@@ -110,8 +107,6 @@ const [copied, setCopied] = useState(false);
         if (status === "success" || status === "confirmed" || status === "denied" || status === "error" || data.txHash || data?.output?.txHash) {
           setResult(data);
           setPendingRequestId(null);
-          setActiveTool(null);
-          onComplete?.(data);
           return;
         }
       } catch {}
@@ -119,7 +114,6 @@ const [copied, setCopied] = useState(false);
     // Stop polling after six minutes.
     setPendingStatus("timeout");
     setPendingRequestId(null);
-    setActiveTool(null);
   }
 
   async function loadWallets() {
@@ -501,16 +495,6 @@ const [copied, setCopied] = useState(false);
               <a href={result.approval_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300">
                 Approve in PayBox <ExternalLink className="h-3 w-3" />
               </a>
-            )}
-            {pendingStatus === "pending_signature" && (
-              <PayBoxSigningWindow
-                requestId={pendingRequestId}
-                onComplete={(completed) => {
-                  setResult(completed);
-                  setPendingRequestId(null);
-                  setActiveTool(null);
-                }}
-              />
             )}
           </CardContent>
         </Card>

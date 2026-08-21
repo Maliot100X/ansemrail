@@ -780,9 +780,9 @@ curl -X POST https://ansemrail.vercel.app/api/paybox \
 
 **Connect your own PayBox key:** Settings → API Keys or Settings → Accounts (dashboard) — save your `pbx_...` key (encrypted at rest) and PayBox actions use it automatically. Without your own key, PayBox actions return a clear "connect your own key" error — the platform never uses a demo/shared key.
 
-**In-platform signing:** AnsemRail hosts the PayBox MCP Apps signing window for transfers, swaps, wallet signatures, and account/policy changes. A `pbx_...` connector key is required for MCP. A generated `pbxk1...` approval/signing-side token is not a valid MCP bearer key and cannot be used as `Authorization`. When a request is `pending_signature`, the platform reopens that exact request and renders its isolated PayBox UI; it never creates a replacement money request to finish an existing one.
+**Direct signing:** Save your `pbx_...` connector key and generated `pbxk1...` signing credential in Settings → Accounts. Swaps and wallet signatures use the official PayBox SDK in-process when autonomous approval clears them; there is no hosted PayBox UI or iframe fallback. The `pbxk1...` credential is never an MCP bearer key.
 
-**Signing lifecycle:** submit the request once, keep its `request_id`, show `approval_url` when PayBox returns `pending_approval`, render the signing window for `pending_signature`, and poll only `get_request` until `success`, `denied`, or `error`. For a Solana credential, AnsemRail automatically uses `op: "solanaMessage"` with the credential's wallet address; never use the EVM `message` intent for a Solana wallet.
+**Signing lifecycle:** submit once, keep the `request_id`, surface `approval_url` only for `pending_approval`, and poll only `get_request` until terminal status. For a Solana credential, AnsemRail automatically uses `op: "solanaMessage"` with the credential's wallet address; never use the EVM `message` intent for a Solana wallet.
 
 **Real policies:** Use Policies → Grant/Revoke/Autonomous/Always approve to call PayBox `request_account_change`. Local policy templates are auxiliary metadata only; PayBox enforces actual access through credential grants and approval modes.
 
