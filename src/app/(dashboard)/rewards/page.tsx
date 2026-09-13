@@ -147,10 +147,10 @@ export default function RewardsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-50 flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
           <Gift className="h-6 w-6 text-amber-500" /> Rewards
         </h1>
-        <p className="text-sm text-zinc-400">
+        <p className="text-sm text-muted">
           Complete real tasks — X posts, coin buys, ClawPump helps — and earn real $ANSEM, $CLAW, and {project?.symbol || "CLAWRENA"}.
         </p>
       </div>
@@ -158,35 +158,35 @@ export default function RewardsPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-zinc-400 flex items-center gap-2">
+            <CardTitle className="text-sm text-muted flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-amber-500" /> My Claims
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-zinc-50">{data?.counts?.claimed ?? 0}</div>
-            <p className="text-xs text-zinc-500 mt-1">Proofs submitted</p>
+            <div className="text-3xl font-bold text-foreground">{data?.counts?.claimed ?? 0}</div>
+            <p className="text-xs text-muted/70 mt-1">Proofs submitted</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-zinc-400 flex items-center gap-2">
+            <CardTitle className="text-sm text-muted flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-green-400" /> Verified
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-zinc-50">{data?.counts?.verified ?? 0}</div>
-            <p className="text-xs text-zinc-500 mt-1">Approved & paid</p>
+            <div className="text-3xl font-bold text-foreground">{data?.counts?.verified ?? 0}</div>
+            <p className="text-xs text-muted/70 mt-1">Approved & paid</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-zinc-400 flex items-center gap-2">
+            <CardTitle className="text-sm text-muted flex items-center gap-2">
               <WalletIcon className="h-4 w-4 text-sky-400" /> Rewards Received
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-zinc-50">{mine?.payments?.length ?? 0}</div>
-            <p className="text-xs text-zinc-500 mt-1">Payments sent to your wallet</p>
+            <div className="text-3xl font-bold text-foreground">{mine?.payments?.length ?? 0}</div>
+            <p className="text-xs text-muted/70 mt-1">Payments sent to your wallet</p>
           </CardContent>
         </Card>
       </div>
@@ -219,7 +219,7 @@ export default function RewardsPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="flex items-center justify-center py-10 text-zinc-500">
+            <div className="flex items-center justify-center py-10 text-muted/70">
               <Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading tasks...
             </div>
           ) : (
@@ -229,11 +229,11 @@ export default function RewardsPage() {
                 const kind = proofKind(t.type);
                 const my = t.mySubmission;
                 return (
-                  <div key={t.id} className={`rounded-lg border bg-zinc-900/50 p-4 ${isOpen ? "border-amber-700/50" : "border-zinc-800"}`}>
+                  <div key={t.id} className={`rounded-lg border bg-white/[0.03] p-4 ${isOpen ? "border-amber-700/50" : "border-white/10"}`}>
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="font-medium text-zinc-100">{t.title}</p>
-                        <p className="text-xs text-zinc-500 mt-1">{t.description}</p>
+                        <p className="font-medium text-foreground">{t.title}</p>
+                        <p className="text-xs text-muted/70 mt-1">{t.description}</p>
                       </div>
                       <Badge variant="ansem" className="shrink-0">
                         {t.rewardAmount} {t.rewardToken === "PROJECT" ? project?.symbol : t.rewardToken}
@@ -241,11 +241,11 @@ export default function RewardsPage() {
                     </div>
 
                     <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted/70">
                         <span className="font-mono">{t.type}</span>
                         {t.proof?.minUsd ? <span>· ${t.proof.minUsd}+ buy</span> : null}
                         <span>· proof: {proofLabel(t.type)}</span>
-                        {(t.type === "twitter_like" || t.type === "twitter_comment") && project?.pinnedPost && <span>· <a href={project.pinnedPost.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-zinc-300">pinned post</a></span>}
+                        {(t.type === "twitter_like" || t.type === "twitter_comment") && project?.pinnedPost && <span>· <a href={project.pinnedPost.url} target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground/75">pinned post</a></span>}
                       </div>
                       {my ? (
                         <div className="flex items-center gap-2">
@@ -264,8 +264,8 @@ export default function RewardsPage() {
                     </div>
 
                     {isOpen && (
-                      <form onSubmit={(e) => handleSubmit(e, t.id)} className="mt-4 space-y-3 rounded-md border border-zinc-800 bg-zinc-950/40 p-3">
-                        <p className="text-xs font-medium text-zinc-300">
+                      <form onSubmit={(e) => handleSubmit(e, t.id)} className="mt-4 space-y-3 rounded-md border border-white/10 bg-white/[0.04] p-3">
+                        <p className="text-xs font-medium text-foreground/75">
                           Reward: {t.rewardAmount} {t.rewardToken === "PROJECT" ? project?.symbol : t.rewardToken} — fill in your proof:
                         </p>
 
@@ -278,7 +278,7 @@ export default function RewardsPage() {
                             onChange={(e) => setProofAgentId(e.target.value)}
                             required
                           />
-                          <p className="text-xs text-zinc-500">Found in your registration response — this is how we verify it is really you.</p>
+                          <p className="text-xs text-muted/70">Found in your registration response — this is how we verify it is really you.</p>
                         </div>
 
                         {t.type === "twitter_follow" && (
@@ -291,17 +291,17 @@ export default function RewardsPage() {
                               onChange={(e) => setProofUsername(e.target.value)}
                               required
                             />
-                            <p className="text-xs text-zinc-500">We check your username against the real followers of @{project?.twitterHandle || "CLAWRENAi"}.</p>
+                            <p className="text-xs text-muted/70">We check your username against the real followers of @{project?.twitterHandle || "CLAWRENAi"}.</p>
                           </div>
                         )}
 
                         {(t.type === "twitter_like" || t.type === "twitter_comment") && project?.pinnedPost && (
                           <div className="space-y-1.5 rounded-md border border-sky-800/50 bg-sky-950/20 p-3">
                             <p className="text-xs font-medium text-sky-300">Pinned post (auto-fetched from X)</p>
-                            <a href={project.pinnedPost.url} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-400 break-all underline hover:text-zinc-200">
+                            <a href={project.pinnedPost.url} target="_blank" rel="noopener noreferrer" className="text-xs text-muted break-all underline hover:text-foreground/90">
                               {project.pinnedPost.url} <ExternalLink className="h-3 w-3 inline" />
                             </a>
-                            <p className="text-xs text-zinc-500">{t.type === "twitter_like" ? "Like this exact post, then paste its link below." : "Comment on this exact post (tag @clawpumptech and @blknoiz06), then paste your comment link below."}</p>
+                            <p className="text-xs text-muted/70">{t.type === "twitter_like" ? "Like this exact post, then paste its link below." : "Comment on this exact post (tag @clawpumptech and @blknoiz06), then paste your comment link below."}</p>
                           </div>
                         )}
 
@@ -315,9 +315,9 @@ export default function RewardsPage() {
                               onChange={(e) => setProofUrl(e.target.value)}
                               required
                             />
-                            {t.type === "twitter_post" && <p className="text-xs text-zinc-500">Your post must mention or reference @{project?.twitterHandle || "CLAWRENAi"} — verified automatically.</p>}
-                            {t.type === "twitter_comment" && <p className="text-xs text-zinc-500">Paste the link of your comment/reply on the pinned post.</p>}
-                            {t.type === "twitter_like" && <p className="text-xs text-zinc-500">Paste the link of the pinned post you liked.</p>}
+                            {t.type === "twitter_post" && <p className="text-xs text-muted/70">Your post must mention or reference @{project?.twitterHandle || "CLAWRENAi"} — verified automatically.</p>}
+                            {t.type === "twitter_comment" && <p className="text-xs text-muted/70">Paste the link of your comment/reply on the pinned post.</p>}
+                            {t.type === "twitter_like" && <p className="text-xs text-muted/70">Paste the link of the pinned post you liked.</p>}
                           </div>
                         )}
 
@@ -333,7 +333,7 @@ export default function RewardsPage() {
                               onChange={(e) => setProofUrl(e.target.value)}
                               required={kind !== "custom"}
                             />
-                            {kind === "teach" && <p className="text-xs text-zinc-500">Paste the link of the ClawPump help/trade you completed.</p>}
+                            {kind === "teach" && <p className="text-xs text-muted/70">Paste the link of the ClawPump help/trade you completed.</p>}
                           </div>
                         )}
 
@@ -349,7 +349,7 @@ export default function RewardsPage() {
                               onChange={(e) => setProofWallet(e.target.value)}
                               required={kind === "buy" || kind === "custom"}
                             />
-                            {kind === "buy" && <p className="text-xs text-zinc-500">Verified on-chain automatically — the wallet must hold the required amount of {project?.symbol}.</p>}
+                            {kind === "buy" && <p className="text-xs text-muted/70">Verified on-chain automatically — the wallet must hold the required amount of {project?.symbol}.</p>}
                           </div>
                         )}
 
@@ -362,7 +362,7 @@ export default function RewardsPage() {
                               value={proofWallet}
                               onChange={(e) => setProofWallet(e.target.value)}
                             />
-                            <p className="text-xs text-zinc-500">Add your wallet so the reward can be paid to you.</p>
+                            <p className="text-xs text-muted/70">Add your wallet so the reward can be paid to you.</p>
                           </div>
                         )}
 
@@ -371,7 +371,7 @@ export default function RewardsPage() {
                           <div className="rounded-md border border-green-800 bg-green-950/20 p-3 text-sm text-green-300">
                             {result.message}
                             {result.verify && (
-                              <p className="text-xs text-zinc-400 mt-1">
+                              <p className="text-xs text-muted mt-1">
                                 {result.verify.note && <span>{result.verify.note}<br /></span>}
                                 {typeof result.verify.balance === "number" && (
                                   result.verify.ok
@@ -406,12 +406,12 @@ export default function RewardsPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {mine.submissions.map((s: any) => (
-              <div key={s.id} className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
+              <div key={s.id} className="rounded-lg border bg-white/[0.02] p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium text-zinc-200">{s.task?.title || "Task"}</p>
+                  <p className="text-sm font-medium text-foreground/90">{s.task?.title || "Task"}</p>
                   <StatusBadge status={s.status} />
                 </div>
-                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
+                <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted/70">
                   {s.proofAgentId && <span className="font-mono">Agent: {shortAddr(s.proofAgentId)}</span>}
                   {s.proofUrl && <span className="font-mono break-all">{s.proofUrl}</span>}
                   {s.proofWallet && <span className="font-mono">Reward wallet: {shortAddr(s.proofWallet)}</span>}
@@ -429,19 +429,19 @@ export default function RewardsPage() {
                   </p>
                 )}
                 {s.adminNote && s.status !== "rejected" && (
-                  <p className="text-xs text-zinc-500 mt-1">Admin note: {s.adminNote}</p>
+                  <p className="text-xs text-muted/70 mt-1">Admin note: {s.adminNote}</p>
                 )}
               </div>
             ))}
             {mine.payments.length > 0 && (
               <div className="pt-2">
-                <p className="text-sm font-medium text-zinc-300 mb-2">Payments received</p>
+                <p className="text-sm font-medium text-foreground/75 mb-2">Payments received</p>
                 {mine.payments.map((p: any) => (
                   <div key={p.id} className="flex items-center justify-between rounded-md border border-green-800/50 bg-green-950/10 p-3 text-sm">
                     <div>
                       <p className="text-green-300">{p.amount} {p.token} — {p.task?.title || "Task"}</p>
                       {p.txSignature && (
-                        <a href={`https://solscan.io/tx/${p.txSignature}`} target="_blank" rel="noopener noreferrer" className="text-xs text-zinc-500 underline hover:text-zinc-300">
+                        <a href={`https://solscan.io/tx/${p.txSignature}`} target="_blank" rel="noopener noreferrer" className="text-xs text-muted/70 underline hover:text-foreground/75">
                           {shortAddr(p.txSignature)} <ExternalLink className="h-3 w-3 inline" />
                         </a>
                       )}
@@ -476,27 +476,27 @@ export default function RewardsPage() {
                   {adminLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Load pending"}
                 </Button>
               </div>
-              {adminMsg && <p className="text-sm text-zinc-400">{adminMsg}</p>}
+              {adminMsg && <p className="text-sm text-muted">{adminMsg}</p>}
               {adminData && (
                 <div className="space-y-3">
                   {adminData.treasury ? (
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-xs text-muted/70">
                       Treasury: {shortAddr(adminData.treasury.address)} · {(adminData.treasury.sol || 0).toFixed(4)} SOL · funded in reward tokens
                     </p>
                   ) : (
                     <p className="text-xs text-amber-300/80">Treasury wallet not configured yet — payouts are disabled until it is set.</p>
                   )}
-                  <p className="text-xs text-zinc-500">{adminData.pending.length} submission(s) waiting</p>
+                  <p className="text-xs text-muted/70">{adminData.pending.length} submission(s) waiting</p>
                   {adminData.pending.length === 0 ? (
-                    <p className="text-sm text-zinc-500">No submissions waiting for payout.</p>
+                    <p className="text-sm text-muted/70">No submissions waiting for payout.</p>
                   ) : (
                     adminData.pending.map((s: any) => (
-                      <div key={s.id} className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
+                      <div key={s.id} className="rounded-lg border bg-white/[0.02] p-3">
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-medium text-zinc-200">{s.task?.title}</p>
+                          <p className="text-sm font-medium text-foreground/90">{s.task?.title}</p>
                           <StatusBadge status={s.status} />
                         </div>
-                        <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
+                        <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted/70">
                           {s.proofAgentId && <span className="font-mono">Agent: {shortAddr(s.proofAgentId)}</span>}
                           {s.proofUsername && <span className="font-mono">@ {s.proofUsername}</span>}
                           {s.proofUrl && <span className="font-mono break-all">{s.proofUrl}</span>}
@@ -514,7 +514,7 @@ export default function RewardsPage() {
                             onChange={(e) => setRejectReason((r) => ({ ...r, [s.id]: e.target.value }))}
                           />
                           <Button size="sm" variant="outline" onClick={() => decide(s.id, "reject")}>Reject</Button>
-                          <Button size="sm" variant="ghost" className="text-zinc-500" onClick={() => decide(s.id, "delete")}>Delete</Button>
+                          <Button size="sm" variant="ghost" className="text-muted/70" onClick={() => decide(s.id, "delete")}>Delete</Button>
                         </div>
                       </div>
                     ))

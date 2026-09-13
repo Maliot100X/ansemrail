@@ -206,8 +206,8 @@ export default function AgentsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-50">Agents</h1>
-          <p className="text-sm text-zinc-400">Create, manage, and chat with your ClawPump agents</p>
+          <h1 className="text-2xl font-bold text-foreground">Agents</h1>
+          <p className="text-sm text-muted">Create, manage, and chat with your ClawPump agents</p>
         </div>
         <Dialog open={createOpen} onOpenChange={setCreateOpen}>
           <DialogTrigger asChild>
@@ -233,7 +233,7 @@ export default function AgentsPage() {
                 <Label htmlFor="model">Model</Label>
                 <select
                   id="model"
-                  className="flex h-10 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+                  className="rail-input flex h-10 w-full rounded-xl px-3 py-2 text-sm text-foreground"
                   value={form.model}
                   onChange={(e) => setForm({ ...form, model: e.target.value })}
                 >
@@ -250,8 +250,8 @@ export default function AgentsPage() {
                       onClick={() => toggleSkill(skill)}
                       className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                         form.skills.includes(skill)
-                          ? "bg-amber-600 text-white"
-                          : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                          ? "border border-white/10 bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-[0_2px_12px_rgba(245,179,1,0.25)]"
+                          : "border border-white/10 bg-white/[0.04] text-muted hover:bg-white/10 hover:text-white"
                       }`}
                     >
                       {skill}
@@ -284,14 +284,14 @@ export default function AgentsPage() {
       ) : agents.length === 0 ? (
         <Card>
           <CardContent className="py-16 text-center">
-            <Bot className="mx-auto h-12 w-12 text-zinc-600 mb-4" />
-            <p className="text-zinc-400">No agents yet. Create your first agent to get started.</p>
+            <Bot className="mx-auto h-12 w-12 text-amber-400/40 mb-4" />
+            <p className="text-muted">No agents yet. Create your first agent to get started.</p>
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {agents.map((agent) => (
-            <Card key={agent.id}>
+            <Card key={agent.id} className={agent.status === "running" ? "rail-border-gold" : ""}>
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">{agent.name}</CardTitle>
@@ -303,13 +303,13 @@ export default function AgentsPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div>
-                  <p className="text-xs text-zinc-500">Agent ID</p>
+                  <p className="text-xs text-muted/70">Agent ID</p>
                   <div className="flex items-center gap-2">
-                    <p className="text-xs font-mono text-zinc-300 break-all">{agent.id}</p>
+                    <p className="text-xs font-mono text-foreground/75 break-all">{agent.id}</p>
                     <button
                       type="button"
                       onClick={() => copyId(agent.id)}
-                      className="text-zinc-500 hover:text-amber-400 transition-colors"
+                      className="text-muted/70 hover:text-amber-400 transition-colors"
                       title="Copy agent ID"
                     >
                       {copiedId === agent.id ? <Check className="h-3 w-3 text-green-400" /> : <Copy className="h-3 w-3" />}
@@ -317,18 +317,18 @@ export default function AgentsPage() {
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs text-zinc-500">Wallet</p>
-                  <p className="text-sm font-mono text-zinc-300">{shortAddress(agent.walletAddress)}</p>
+                  <p className="text-xs text-muted/70">Wallet</p>
+                  <p className="text-sm font-mono text-foreground/75">{shortAddress(agent.walletAddress)}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-zinc-500 mb-1">Skills ({agent.skills?.length || 0})</p>
+                  <p className="text-xs text-muted/70 mb-1">Skills ({agent.skills?.length || 0})</p>
                   <div className="flex flex-wrap gap-1">
                     {(agent.skills || []).slice(0, 5).map((s) => (
                       <Badge key={s} variant="outline" className="text-xs">{s}</Badge>
                     ))}
                   </div>
                 </div>
-                <p className="text-xs text-zinc-500">Created {timeAgo(agent.createdAt)}</p>
+                <p className="text-xs text-muted/70">Created {timeAgo(agent.createdAt)}</p>
                 <div className="flex flex-col gap-2 pt-2">
                   <div className="flex gap-2">
                     <Button
@@ -381,13 +381,13 @@ export default function AgentsPage() {
             <DialogDescription>{chatAgent?.model}</DialogDescription>
           </DialogHeader>
           {chatQuota && (
-            <p className="text-xs text-zinc-400 rounded-md border border-amber-900/40 bg-amber-950/20 px-3 py-2">
+            <p className="text-xs text-muted rounded-md border border-amber-900/40 bg-amber-950/20 px-3 py-2">
               {chatQuota}
             </p>
           )}
-          <div className="h-80 overflow-y-auto space-y-3 rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
+          <div className="h-80 overflow-y-auto space-y-3 rounded-lg border bg-white/[0.02] p-4">
             {chatMessages.length === 0 && (
-              <p className="text-sm text-zinc-500 text-center py-8">Send a message to start chatting with your agent</p>
+              <p className="text-sm text-muted/70 text-center py-8">Send a message to start chatting with your agent</p>
             )}
             {chatMessages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
@@ -395,7 +395,7 @@ export default function AgentsPage() {
                   className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
                     msg.role === "user"
                       ? "bg-amber-600 text-white"
-                      : "bg-zinc-800 text-zinc-200"
+                      : "bg-white/10 text-foreground/90"
                   }`}
                 >
                   {msg.content}
@@ -404,8 +404,8 @@ export default function AgentsPage() {
             ))}
             {chatLoading && (
               <div className="flex justify-start">
-                <div className="bg-zinc-800 rounded-lg px-3 py-2">
-                  <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
+                <div className="bg-white/10 rounded-lg px-3 py-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted" />
                 </div>
               </div>
             )}

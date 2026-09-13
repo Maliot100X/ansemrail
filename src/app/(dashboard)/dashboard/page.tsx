@@ -78,19 +78,19 @@ export default async function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-50">Dashboard</h1>
-        <p className="text-sm text-zinc-400">Your agents, balances, and Ansem signals at a glance</p>
+        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+        <p className="text-sm text-muted">Your agents, balances, and Ansem signals at a glance</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-zinc-400">Total Agents</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted">Total Agents</CardTitle>
             <Bot className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-zinc-50">{agents.length}</div>
-            <p className="text-xs text-zinc-500 mt-1">
+            <div className="text-3xl font-bold text-foreground">{agents.length}</div>
+            <p className="text-xs text-muted/70 mt-1">
               {agents.filter((a) => a.status === "running").length} running
             </p>
           </CardContent>
@@ -98,34 +98,34 @@ export default async function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-zinc-400">$ANSEM Price</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted">$ANSEM Price</CardTitle>
             <Coins className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-zinc-50">${ansemPrice.toFixed(6)}</div>
-            <p className="text-xs text-zinc-500 mt-1">MCap: {formatUsd(ansemMcap)}</p>
+            <div className="text-3xl font-bold text-foreground">${ansemPrice.toFixed(6)}</div>
+            <p className="text-xs text-muted/70 mt-1">MCap: {formatUsd(ansemMcap)}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-zinc-400">$CLAW Price</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted">$CLAW Price</CardTitle>
             <Coins className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-zinc-50">${clawPrice.toFixed(6)}</div>
-            <p className="text-xs text-zinc-500 mt-1">MCap: {formatUsd(clawMcap)}</p>
+            <div className="text-3xl font-bold text-foreground">${clawPrice.toFixed(6)}</div>
+            <p className="text-xs text-muted/70 mt-1">MCap: {formatUsd(clawMcap)}</p>
           </CardContent>
         </Card>
 
-        <Card className="border-emerald-800/50 bg-gradient-to-r from-emerald-950/20 to-zinc-900/50">
+        <Card className="border-emerald-800/50 bg-gradient-to-r from-emerald-950/20 to-black/50">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-emerald-400">$CLAWRENA Price</CardTitle>
             <Coins className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-zinc-50">${clawrenaPrice.toFixed(8)}</div>
-            <p className="text-xs text-zinc-500 mt-1">MCap: ${formatUsd(clawrenaMcap)}</p>
+            <div className="text-3xl font-bold text-foreground">${clawrenaPrice.toFixed(8)}</div>
+            <p className="text-xs text-muted/70 mt-1">MCap: ${formatUsd(clawrenaMcap)}</p>
             <p className={`text-xs mt-1 ${clawrenaChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
               {clawrenaChange >= 0 ? '+' : ''}{clawrenaChange.toFixed(1)}% 24h
             </p>
@@ -137,12 +137,12 @@ export default async function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-zinc-400">Trending Tokens</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted">Trending Tokens</CardTitle>
             <TrendingUp className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-zinc-50">{trending.length}</div>
-            <p className="text-xs text-zinc-500 mt-1">On Solana now</p>
+            <div className="text-3xl font-bold text-foreground">{trending.length}</div>
+            <p className="text-xs text-muted/70 mt-1">On Solana now</p>
           </CardContent>
         </Card>
       </div>
@@ -154,7 +154,7 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             {agents.length === 0 ? (
-              <p className="text-sm text-zinc-500 py-8 text-center">
+              <p className="text-sm text-muted/70 py-8 text-center">
                 No agents yet. Create one at the Agents page.
               </p>
             ) : (
@@ -170,14 +170,14 @@ export default async function DashboardPage() {
                 <TableBody>
                   {agents.slice(0, 10).map((agent) => (
                     <TableRow key={agent.id}>
-                      <TableCell className="font-medium text-zinc-200">{agent.name}</TableCell>
+                      <TableCell className="font-medium text-foreground/90">{agent.name}</TableCell>
                       <TableCell>
                         <Badge variant={agent.status === "running" ? "success" : "secondary"}>
                           {agent.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-zinc-400 text-xs">{agent.model}</TableCell>
-                      <TableCell className="text-zinc-400 text-xs font-mono">
+                      <TableCell className="text-muted text-xs">{agent.model}</TableCell>
+                      <TableCell className="text-muted text-xs font-mono">
                         {agent.walletAddress ? shortAddress(agent.walletAddress) : "--"}
                       </TableCell>
                     </TableRow>
@@ -194,7 +194,7 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             {trending.length === 0 ? (
-              <p className="text-sm text-zinc-500 py-8 text-center">No trending data available.</p>
+              <p className="text-sm text-muted/70 py-8 text-center">No trending data available.</p>
             ) : (
               <div className="space-y-3">
                 {trending.slice(0, 6).map((token) => {
@@ -202,7 +202,7 @@ export default async function DashboardPage() {
                   return (
                     <div
                       key={token.address}
-                      className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/50 p-3"
+                      className="flex items-center justify-between rounded-lg border bg-white/[0.02] p-3"
                     >
                       <div className="flex items-center gap-3">
                         {token.image && (
@@ -213,12 +213,12 @@ export default async function DashboardPage() {
                           />
                         )}
                         <div>
-                          <p className="text-sm font-medium text-zinc-200">${token.symbol}</p>
-                          <p className="text-xs text-zinc-500">{formatUsd(token.marketData?.marketCap ?? 0)}</p>
+                          <p className="text-sm font-medium text-foreground/90">${token.symbol}</p>
+                          <p className="text-xs text-muted/70">{formatUsd(token.marketData?.marketCap ?? 0)}</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-mono text-zinc-200">
+                        <p className="text-sm font-mono text-foreground/90">
                           ${token.marketData?.price?.toFixed(8)}
                         </p>
                         <p className={`text-xs ${change >= 0 ? "text-green-400" : "text-red-400"}`}>
@@ -255,7 +255,7 @@ export default async function DashboardPage() {
               <TableBody>
                 {ponsLaunches.map((launch, i) => (
                   <TableRow key={launch.tokenAddress || i}>
-                    <TableCell className="font-medium text-zinc-200">
+                    <TableCell className="font-medium text-foreground/90">
                       {launch.symbol || launch.name || "--"}
                     </TableCell>
                     <TableCell>
@@ -263,14 +263,14 @@ export default async function DashboardPage() {
                         {launch.status || "pending"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-zinc-400 text-xs font-mono">
+                    <TableCell className="text-muted text-xs font-mono">
                       {launch.tokenAddress ? (
                         <a href={`https://clawpump.tech/tokens/${launch.tokenAddress}`} target="_blank" rel="noopener noreferrer" className="text-amber-500 underline">
                           {shortAddress(launch.tokenAddress)}
                         </a>
                       ) : "--"}
                     </TableCell>
-                    <TableCell className="text-zinc-400 text-xs font-mono">
+                    <TableCell className="text-muted text-xs font-mono">
                       {launch.txHash ? shortAddress(launch.txHash) : "--"}
                     </TableCell>
                   </TableRow>
@@ -292,33 +292,33 @@ export default async function DashboardPage() {
           <CardContent>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {clawpumpTokens.map((token) => (
-                <div key={token.mintAddress} className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
+                <div key={token.mintAddress} className="rounded-lg border bg-white/[0.02] p-3">
                   <div className="flex items-center gap-3 mb-2">
                     {token.imageUrl && (
                       <img src={token.imageUrl} alt={token.symbol} className="h-8 w-8 rounded-full" />
                     )}
                     <div>
-                      <p className="text-sm font-medium text-zinc-200">${token.symbol}</p>
-                      <p className="text-xs text-zinc-500">{token.name}</p>
+                      <p className="text-sm font-medium text-foreground/90">${token.symbol}</p>
+                      <p className="text-xs text-muted/70">{token.name}</p>
                     </div>
                     {token.isGraduated && <Badge variant="success">Graduated</Badge>}
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
-                      <span className="text-zinc-500">MCap: </span>
-                      <span className="text-zinc-300">{formatUsd(token.marketCap)}</span>
+                      <span className="text-muted/70">MCap: </span>
+                      <span className="text-foreground/75">{formatUsd(token.marketCap)}</span>
                     </div>
                     <div>
-                      <span className="text-zinc-500">Price: </span>
-                      <span className="text-zinc-300">${token.price?.toFixed(8)}</span>
+                      <span className="text-muted/70">Price: </span>
+                      <span className="text-foreground/75">${token.price?.toFixed(8)}</span>
                     </div>
                     <div>
-                      <span className="text-zinc-500">24h Vol: </span>
-                      <span className="text-zinc-300">{formatUsd(token.volume24h)}</span>
+                      <span className="text-muted/70">24h Vol: </span>
+                      <span className="text-foreground/75">{formatUsd(token.volume24h)}</span>
                     </div>
                     <div>
-                      <span className="text-zinc-500">Liq: </span>
-                      <span className="text-zinc-300">{formatUsd(token.liquidity)}</span>
+                      <span className="text-muted/70">Liq: </span>
+                      <span className="text-foreground/75">{formatUsd(token.liquidity)}</span>
                     </div>
                   </div>
                   <a href={`https://clawpump.tech/tokens/${token.mintAddress}`} target="_blank" rel="noopener noreferrer" className="text-xs text-amber-500 underline mt-2 inline-block">
@@ -341,23 +341,23 @@ export default async function DashboardPage() {
           <CardContent>
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
               <div>
-                <p className="text-xs text-zinc-500">Price</p>
+                <p className="text-xs text-muted/70">Price</p>
                 <p className="text-lg font-bold text-amber-400">${ansemPrice.toFixed(6)}</p>
               </div>
               <div>
-                <p className="text-xs text-zinc-500">Market Cap</p>
-                <p className="text-lg font-bold text-zinc-200">{formatUsd(ansemMcap)}</p>
+                <p className="text-xs text-muted/70">Market Cap</p>
+                <p className="text-lg font-bold text-foreground/90">{formatUsd(ansemMcap)}</p>
               </div>
               <div>
-                <p className="text-xs text-zinc-500">Liquidity</p>
-                <p className="text-lg font-bold text-zinc-200">{formatUsd(ansemLiq)}</p>
+                <p className="text-xs text-muted/70">Liquidity</p>
+                <p className="text-lg font-bold text-foreground/90">{formatUsd(ansemLiq)}</p>
               </div>
               <div>
-                <p className="text-xs text-zinc-500">Mint</p>
-                <p className="text-sm font-mono text-zinc-400">{shortAddress(ansem.address)}</p>
+                <p className="text-xs text-muted/70">Mint</p>
+                <p className="text-sm font-mono text-muted">{shortAddress(ansem.address)}</p>
               </div>
             </div>
-            <p className="text-xs text-zinc-500 mt-3">
+            <p className="text-xs text-muted/70 mt-3">
               65% of supply sent to Ansem&apos;s wallet. All fees redirected to him. $ANSEM is preferred payment for inference.
             </p>
           </CardContent>
@@ -374,23 +374,23 @@ export default async function DashboardPage() {
           <CardContent>
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
               <div>
-                <p className="text-xs text-zinc-500">Price</p>
+                <p className="text-xs text-muted/70">Price</p>
                 <p className="text-lg font-bold text-blue-400">${clawPrice.toFixed(6)}</p>
               </div>
               <div>
-                <p className="text-xs text-zinc-500">Market Cap</p>
-                <p className="text-lg font-bold text-zinc-200">{formatUsd(clawMcap)}</p>
+                <p className="text-xs text-muted/70">Market Cap</p>
+                <p className="text-lg font-bold text-foreground/90">{formatUsd(clawMcap)}</p>
               </div>
               <div>
-                <p className="text-xs text-zinc-500">Liquidity</p>
-                <p className="text-lg font-bold text-zinc-200">{formatUsd(clawLiq)}</p>
+                <p className="text-xs text-muted/70">Liquidity</p>
+                <p className="text-lg font-bold text-foreground/90">{formatUsd(clawLiq)}</p>
               </div>
               <div>
-                <p className="text-xs text-zinc-500">Mint</p>
-                <p className="text-sm font-mono text-zinc-400">{shortAddress(claw.address)}</p>
+                <p className="text-xs text-muted/70">Mint</p>
+                <p className="text-sm font-mono text-muted">{shortAddress(claw.address)}</p>
               </div>
             </div>
-            <p className="text-xs text-zinc-500 mt-3">
+            <p className="text-xs text-muted/70 mt-3">
               The official ClawPump token. Beware of impersonator sites and tokens. Mint:{" "}
               <code className="text-blue-400">739dnZEG4yaBWFsY8L8ZwrfhGG6dhtCSercW8Umspump</code>
             </p>

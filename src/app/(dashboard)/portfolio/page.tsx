@@ -73,8 +73,8 @@ export default async function PortfolioPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-50">Portfolio</h1>
-        <p className="text-sm text-zinc-400">
+        <h1 className="text-2xl font-bold text-foreground">Portfolio</h1>
+        <p className="text-sm text-muted">
           Your ClawPump agents, on-chain balances, and PayBox wallets — all from your own connected keys
         </p>
       </div>
@@ -82,39 +82,39 @@ export default async function PortfolioPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-zinc-400 flex items-center gap-2">
+            <CardTitle className="text-sm text-muted flex items-center gap-2">
               <Bot className="h-4 w-4 text-amber-500" /> ClawPump Agents
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-zinc-50">{clawpumpAgents.length}</div>
-            <p className="text-xs text-zinc-500 mt-1">
+            <div className="text-3xl font-bold text-foreground">{clawpumpAgents.length}</div>
+            <p className="text-xs text-muted/70 mt-1">
               {userApiKey ? "Connected to your ClawPump key" : "No ClawPump key connected"}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-zinc-400 flex items-center gap-2">
+            <CardTitle className="text-sm text-muted flex items-center gap-2">
               <Coins className="h-4 w-4 text-amber-500" /> On-Chain SOL
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-zinc-50">{totalSol.toFixed(4)} SOL</div>
-            <p className="text-xs text-zinc-500 mt-1">
+            <div className="text-3xl font-bold text-foreground">{totalSol.toFixed(4)} SOL</div>
+            <p className="text-xs text-muted/70 mt-1">
               {solPrice ? `${formatUsd(totalSol * solPrice)} across your agents` : "Across your agent wallets"}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-zinc-400 flex items-center gap-2">
+            <CardTitle className="text-sm text-muted flex items-center gap-2">
               <Shield className="h-4 w-4 text-amber-500" /> PayBox Wallets
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-zinc-50">{creds.length}</div>
-            <p className="text-xs text-zinc-500 mt-1">
+            <div className="text-3xl font-bold text-foreground">{creds.length}</div>
+            <p className="text-xs text-muted/70 mt-1">
               {creds.length > 0 ? `${formatUsd(payboxTotal)} total balance` : "No PayBox key connected"}
             </p>
           </CardContent>
@@ -127,7 +127,7 @@ export default async function PortfolioPage() {
         </CardHeader>
         <CardContent>
           {clawpumpAgents.length === 0 ? (
-            <p className="text-sm text-zinc-500 py-8 text-center">
+            <p className="text-sm text-muted/70 py-8 text-center">
               No ClawPump agents on the connected key. Create one in the Agents tab.
             </p>
           ) : (
@@ -135,21 +135,21 @@ export default async function PortfolioPage() {
               {clawpumpAgents.map((a) => {
                 const sol = solByAgent.get(a.id) || 0;
                 return (
-                  <div key={a.id} className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
+                  <div key={a.id} className="flex items-center justify-between rounded-lg border bg-white/[0.02] p-4">
                     <div>
-                      <p className="font-medium text-zinc-100">{a.name}</p>
-                      <p className="text-xs font-mono text-zinc-500">{a.id}</p>
+                      <p className="font-medium text-foreground">{a.name}</p>
+                      <p className="text-xs font-mono text-muted/70">{a.id}</p>
                       {a.walletAddress ? (
-                        <p className="text-xs font-mono text-zinc-500">{shortAddress(a.walletAddress)}</p>
+                        <p className="text-xs font-mono text-muted/70">{shortAddress(a.walletAddress)}</p>
                       ) : (
-                        <p className="text-xs text-zinc-600">No wallet</p>
+                        <p className="text-xs text-muted/60">No wallet</p>
                       )}
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-right">
-                        <p className="text-sm font-semibold text-zinc-200">{sol.toFixed(4)} SOL</p>
+                        <p className="text-sm font-semibold text-foreground/90">{sol.toFixed(4)} SOL</p>
                         {solPrice ? (
-                          <p className="text-xs text-zinc-500">{formatUsd(sol * solPrice)}</p>
+                          <p className="text-xs text-muted/70">{formatUsd(sol * solPrice)}</p>
                         ) : null}
                       </div>
                       <Badge variant={a.status === "running" ? "success" : "secondary"}>{a.status}</Badge>
@@ -170,21 +170,21 @@ export default async function PortfolioPage() {
           <CardContent>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               {payboxPortfolios.map(({ credential, portfolio }) => (
-                <div key={credential.credential_id} className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
+                <div key={credential.credential_id} className="rounded-lg border bg-white/[0.02] p-4">
                   <div className="flex items-center justify-between">
-                    <p className="font-medium text-zinc-100">{credential.name}</p>
+                    <p className="font-medium text-foreground">{credential.name}</p>
                     <Badge variant="ansem">{credential.kind}</Badge>
                   </div>
-                  <p className="text-xs font-mono text-zinc-500 mt-1 break-all">
+                  <p className="text-xs font-mono text-muted/70 mt-1 break-all">
                     {credential.metadata?.address || "—"}
                   </p>
-                  <p className="text-sm text-zinc-300 mt-2">
+                  <p className="text-sm text-foreground/75 mt-2">
                     Balance: {formatUsd(portfolio?.total_usd ?? 0)}
                   </p>
                   {(portfolio?.items || []).length > 0 && (
                     <div className="mt-2 space-y-1">
                       {(portfolio?.items || []).slice(0, 5).map((item: any, i: number) => (
-                        <p key={i} className="text-xs text-zinc-500">
+                        <p key={i} className="text-xs text-muted/70">
                           {item.symbol}: {item.amount} ({formatUsd(item.usd_value)})
                         </p>
                       ))}
@@ -200,7 +200,7 @@ export default async function PortfolioPage() {
       {!userApiKey && !userPayboxKey && (
         <Card>
           <CardContent>
-            <p className="text-sm text-zinc-500 py-6 text-center">
+            <p className="text-sm text-muted/70 py-6 text-center">
               Connect your ClawPump and PayBox keys in Settings to see your real portfolio.
             </p>
           </CardContent>

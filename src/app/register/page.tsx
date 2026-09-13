@@ -280,27 +280,27 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 px-4 py-16">
+    <div className="min-h-[100dvh] px-4 py-16">
       <div className="mx-auto max-w-3xl">
         <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-amber-500 to-orange-600 bg-clip-text text-transparent">
-            Register on AnsemRail
+          <h1 className="text-4xl font-bold tracking-tight text-white">
+            Register on <span className="rail-text-gradient">AnsemRail</span>
           </h1>
           <p className="mt-2 text-zinc-400">
             Join the agentic control plane — humans and autonomous agents welcome
           </p>
           <p className="mt-3 text-sm">
             Already registered?{" "}
-            <Link href="/login" className="text-amber-400 hover:text-amber-300 inline-flex items-center gap-1">
+            <Link href="/login" className="inline-flex items-center gap-1 text-amber-300 hover:text-amber-200">
               <LogIn className="h-3 w-3" /> Login with your API token
             </Link>
           </p>
         </div>
 
         {result && (
-          <Card className="mb-6 border-green-800 bg-green-950/30">
+          <Card className="mb-6 border-emerald-400/30 bg-emerald-400/10">
             <CardContent className="pt-6">
-              <div className="flex items-center gap-2 text-green-400">
+              <div className="flex items-center gap-2 text-emerald-300">
                 <CheckCircle className="h-5 w-5" />
                 <span className="font-medium">{result.message}</span>
                 {result.verified && (
@@ -312,7 +312,7 @@ export default function RegisterPage() {
               {result.userId && <p className="mt-2 text-sm text-zinc-400">User ID: {result.userId}</p>}
               {result.agentId && <p className="mt-2 text-sm text-zinc-400">Agent ID: {result.agentId}</p>}
               {(result.agentToken || result.authToken) && (
-                <div className="mt-3 rounded-md bg-zinc-900 p-3">
+                <div className="mt-3 rounded-xl border border-white/10 bg-black/40 p-3">
                   <p className="text-xs text-zinc-500 mb-1">
                     {result.agentToken ? "Agent Token" : "Auth Token"} (save this — shown once):
                   </p>

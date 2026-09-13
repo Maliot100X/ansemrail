@@ -35,35 +35,35 @@ export default async function AnalyticsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-50">Analytics</h1>
-        <p className="text-sm text-zinc-400">Agent performance and market overview</p>
+        <h1 className="text-2xl font-bold text-foreground">Analytics</h1>
+        <p className="text-sm text-muted">Agent performance and market overview</p>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-zinc-400 flex items-center gap-2">
+            <CardTitle className="text-sm text-muted flex items-center gap-2">
               <Activity className="h-4 w-4 text-amber-500" /> Agents
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-zinc-50">{agents.length}</div>
-            <p className="text-xs text-zinc-500 mt-1">{running} running</p>
+            <div className="text-3xl font-bold text-foreground">{agents.length}</div>
+            <p className="text-xs text-muted/70 mt-1">{running} running</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-zinc-400 flex items-center gap-2">
+            <CardTitle className="text-sm text-muted flex items-center gap-2">
               <Coins className="h-4 w-4 text-amber-500" /> Skills Deployed
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-zinc-50">{totalSkills}</div>
+            <div className="text-3xl font-bold text-foreground">{totalSkills}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-zinc-400">$ANSEM 24h</CardTitle>
+            <CardTitle className="text-sm text-muted">$ANSEM 24h</CardTitle>
           </CardHeader>
           <CardContent>
             <div className={`text-3xl font-bold ${ansemChange >= 0 ? "text-green-400" : "text-red-400"}`}>
@@ -73,12 +73,12 @@ export default async function AnalyticsPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-zinc-400 flex items-center gap-2">
+            <CardTitle className="text-sm text-muted flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-amber-500" /> Hot Tokens
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-zinc-50">{tokens.length}</div>
+            <div className="text-3xl font-bold text-foreground">{tokens.length}</div>
           </CardContent>
         </Card>
       </div>
@@ -89,14 +89,14 @@ export default async function AnalyticsPage() {
         </CardHeader>
         <CardContent>
           {agents.length === 0 ? (
-            <p className="text-sm text-zinc-500 py-8 text-center">No agents to analyze yet.</p>
+            <p className="text-sm text-muted/70 py-8 text-center">No agents to analyze yet.</p>
           ) : (
             <div className="space-y-3">
               {agents.map((a) => (
-                <div key={a.id} className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
+                <div key={a.id} className="flex items-center justify-between rounded-lg border bg-white/[0.02] p-4">
                   <div>
-                    <p className="font-medium text-zinc-100">{a.name}</p>
-                    <p className="text-xs text-zinc-500">{a.model} · {a.skills?.length || 0} skills</p>
+                    <p className="font-medium text-foreground">{a.name}</p>
+                    <p className="text-xs text-muted/70">{a.model} · {a.skills?.length || 0} skills</p>
                   </div>
                   <Badge variant={a.status === "running" ? "success" : "secondary"}>{a.status}</Badge>
                 </div>

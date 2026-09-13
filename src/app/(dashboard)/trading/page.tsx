@@ -51,8 +51,8 @@ export default function TradingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-50">Trading Terminal</h1>
-        <p className="text-sm text-zinc-400">Real Jupiter swap quotes — SOL, USDC, $ANSEM, $CLAW</p>
+        <h1 className="text-2xl font-bold text-foreground">Trading Terminal</h1>
+        <p className="text-sm text-muted">Real Jupiter swap quotes — SOL, USDC, $ANSEM, $CLAW</p>
       </div>
 
       <Card className="max-w-2xl">
@@ -65,7 +65,7 @@ export default function TradingPage() {
             <div className="space-y-2">
               <Label>From</Label>
               <select
-                className="flex h-10 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+                className="flex h-10 w-full rounded-md border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-foreground"
                 value={inputMint}
                 onChange={(e) => setInputMint(e.target.value)}
               >
@@ -77,7 +77,7 @@ export default function TradingPage() {
             <div className="space-y-2">
               <Label>To</Label>
               <select
-                className="flex h-10 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+                className="flex h-10 w-full rounded-md border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-foreground"
                 value={outputMint}
                 onChange={(e) => setOutputMint(e.target.value)}
               >
@@ -111,10 +111,10 @@ export default function TradingPage() {
           {quote && (
             <div className="rounded-md border border-green-800 bg-green-950/30 p-4 space-y-2">
               <p className="text-sm font-medium text-green-400">Quote Ready</p>
-              <p className="text-sm text-zinc-300">
+              <p className="text-sm text-foreground/75">
                 {quote.input?.amount} {quote.input?.token} → {quote.output?.amount} {quote.output?.token}
               </p>
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-muted/70">
                 Route: {(quote.route || []).join(" → ") || "N/A"} | Slippage: {quote.slippageBps / 100}% | Impact: {quote.priceImpactPct}%
               </p>
               <Badge variant="success">Venue: {quote.venue}</Badge>

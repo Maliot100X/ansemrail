@@ -281,8 +281,8 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-50">Settings</h1>
-        <p className="text-sm text-zinc-400">Manage API keys, OWS policies, payout wallets, and preferences</p>
+        <h1 className="text-2xl font-bold text-foreground">Settings</h1>
+        <p className="text-sm text-muted">Manage API keys, OWS policies, payout wallets, and preferences</p>
       </div>
 
       <Tabs defaultValue="apikeys">
@@ -335,7 +335,7 @@ export default function SettingsPage() {
                   value={settings.clawpumpApiKey}
                   onChange={(e) => setSettings({ ...settings, clawpumpApiKey: e.target.value })}
                 />
-                <p className="text-xs text-zinc-500">Get yours at clawpump.tech/dashboard/api</p>
+                <p className="text-xs text-muted/70">Get yours at clawpump.tech/dashboard/api</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="paybox">PayBox API Key</Label>
@@ -356,7 +356,7 @@ export default function SettingsPage() {
                     {payboxConnecting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply PayBox Key"}
                   </Button>
                 </div>
-                <p className="text-xs text-zinc-500">Get yours at app.paybox.sh — powers OWS policies and signing</p>
+                <p className="text-xs text-muted/70">Get yours at app.paybox.sh — powers OWS policies and signing</p>
                 {payboxConnectResult && (
                   <p className={`text-xs ${payboxConnectResult.includes("connected") ? "text-green-400" : "text-red-400"}`}>
                     {payboxConnectResult}
@@ -374,7 +374,7 @@ export default function SettingsPage() {
                 />
               </div>
               <div className="flex flex-wrap items-center gap-2 pt-1">
-                <span className="text-xs text-zinc-500">Status:</span>
+                <span className="text-xs text-muted/70">Status:</span>
                 {hasClawpumpKey ? (
                   <Badge variant="success">
                     <CheckCircle className="h-3 w-3 mr-1" /> ClawPump Connected
@@ -408,11 +408,11 @@ export default function SettingsPage() {
               <CardDescription>Link external accounts for unlimited agent chat and trading</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 space-y-3">
+              <div className="rounded-lg border bg-white/[0.02] p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-zinc-200">ClawPump</p>
-                    <p className="text-xs text-zinc-500">Connect your own API key for unlimited agent chat (bypasses shared quota)</p>
+                    <p className="text-sm font-medium text-foreground/90">ClawPump</p>
+                    <p className="text-xs text-muted/70">Connect your own API key for unlimited agent chat (bypasses shared quota)</p>
                   </div>
                   {hasClawpumpKey ? (
                     <Badge variant="success">
@@ -424,7 +424,7 @@ export default function SettingsPage() {
                 </div>
                 {hasClawpumpKey ? (
                   <div className="space-y-1">
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-xs text-muted/70">
                       Your ClawPump API key is encrypted at rest. Agent chat will use your key automatically.
                     </p>
                     {clawpumpProfile?.agents && (
@@ -455,11 +455,11 @@ export default function SettingsPage() {
                 )}
               </div>
 
-              <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 space-y-3">
+              <div className="rounded-lg border bg-white/[0.02] p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-zinc-200">PayBox</p>
-                    <p className="text-xs text-zinc-500">Connect your own PayBox key for OWS policies, signing, and swaps</p>
+                    <p className="text-sm font-medium text-foreground/90">PayBox</p>
+                    <p className="text-xs text-muted/70">Connect your own PayBox key for OWS policies, signing, and swaps</p>
                   </div>
                   {hasPayboxKey ? (
                     <Badge variant="success">
@@ -480,7 +480,7 @@ export default function SettingsPage() {
                     {payboxConnecting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Link2 className="h-3 w-3" />}
                     {hasPayboxKey ? "Apply New PayBox Key" : "Apply PayBox Key"}
                   </Button>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-muted/70">
                     Your saved PayBox API key is encrypted at rest. OWS policy creation and PayBox actions use it automatically.
                   </p>
                   <div className="space-y-2 pt-2">
@@ -494,7 +494,7 @@ export default function SettingsPage() {
                       {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Link2 className="h-3 w-3" />}
                       {hasPayboxSigningKey ? "Apply New Signing Credential" : "Apply Signing Credential"}
                     </Button>
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-xs text-muted/70">
                       The pbxk1 credential is encrypted at rest and used by the official PayBox SDK for in-process signing.
                     </p>
                   </div>
@@ -534,12 +534,12 @@ export default function SettingsPage() {
                   value={settings.owsWalletName}
                   onChange={(e) => setSettings({ ...settings, owsWalletName: e.target.value })}
                 />
-                <p className="text-xs text-zinc-500">Open Wallet Standard local encrypted vault</p>
+                <p className="text-xs text-muted/70">Open Wallet Standard local encrypted vault</p>
               </div>
-              <div className="flex items-center justify-between rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
+              <div className="flex items-center justify-between rounded-lg border bg-white/[0.02] p-4">
                 <div>
-                  <p className="text-sm font-medium text-zinc-200">$ANSEM Preference</p>
-                  <p className="text-xs text-zinc-500">Use $ANSEM as preferred payment for inference</p>
+                  <p className="text-sm font-medium text-foreground/90">$ANSEM Preference</p>
+                  <p className="text-xs text-muted/70">Use $ANSEM as preferred payment for inference</p>
                 </div>
                 <Switch checked={ansemPreference} onCheckedChange={setAnsemPreference} />
               </div>
@@ -564,9 +564,9 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               {/* PayBox status */}
-              <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
+              <div className="rounded-lg border bg-white/[0.02] p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-sm font-medium text-zinc-200">PayBox MCP Status</p>
+                  <p className="text-sm font-medium text-foreground/90">PayBox MCP Status</p>
                   {payboxInfo?.available ? (
                     <Badge variant="success">Connected</Badge>
                   ) : (
@@ -574,27 +574,27 @@ export default function SettingsPage() {
                   )}
                 </div>
                 {payboxInfo?.available && payboxInfo.tools && (
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-muted/70">
                     {payboxInfo.tools.length} tools available · using your connected key
                   </p>
                 )}
                 {!payboxInfo?.available && (
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-muted/70">
                     PayBox MCP endpoint at app.paybox.sh may not be live yet. Policy creation will attempt to connect.
                   </p>
                 )}
               </div>
 
               {/* Ansem-Only Policy */}
-              <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 space-y-3">
+              <div className="rounded-lg border bg-white/[0.02] p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-zinc-200">Ansem-Only Mode</p>
-                    <p className="text-xs text-zinc-500">Restrict agent to Solana chain with $ANSEM, $CLAW, SOL, USDC only</p>
+                    <p className="text-sm font-medium text-foreground/90">Ansem-Only Mode</p>
+                    <p className="text-xs text-muted/70">Restrict agent to Solana chain with $ANSEM, $CLAW, SOL, USDC only</p>
                   </div>
                   <Badge variant="success">Active</Badge>
                 </div>
-                <div className="text-xs text-zinc-500">
+                <div className="text-xs text-muted/70">
                   <p>Rules: allowed_chains: [solana], allowed_tokens: [$ANSEM, $CLAW, SOL, USDC]</p>
                   <p>Action: deny if outside allowed chains/tokens</p>
                   <p>Max spend: 100 USDC</p>
@@ -611,11 +611,11 @@ export default function SettingsPage() {
               </div>
 
               {/* Spend Limit Policy */}
-              <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 space-y-3">
+              <div className="rounded-lg border bg-white/[0.02] p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-zinc-200">Spend Limit</p>
-                    <p className="text-xs text-zinc-500">Max USDC per transaction and per day</p>
+                    <p className="text-sm font-medium text-foreground/90">Spend Limit</p>
+                    <p className="text-xs text-muted/70">Max USDC per transaction and per day</p>
                   </div>
                   <Badge variant="secondary">Configurable</Badge>
                 </div>
@@ -651,11 +651,11 @@ export default function SettingsPage() {
               </div>
 
               {/* Chain Allowlist */}
-              <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 space-y-3">
+              <div className="rounded-lg border bg-white/[0.02] p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-zinc-200">Chain Allowlist</p>
-                    <p className="text-xs text-zinc-500">Click to toggle — restrict operations to specific chains</p>
+                    <p className="text-sm font-medium text-foreground/90">Chain Allowlist</p>
+                    <p className="text-xs text-muted/70">Click to toggle — restrict operations to specific chains</p>
                   </div>
                   <Badge variant={enabledChains.size > 0 ? "success" : "secondary"}>
                     {enabledChains.size} enabled
@@ -670,7 +670,7 @@ export default function SettingsPage() {
                       className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                         enabledChains.has(chain)
                           ? "bg-amber-600 text-white"
-                          : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                          : "bg-white/10 text-muted hover:bg-white/10"
                       }`}
                     >
                       {enabledChains.has(chain) && <CheckCircle className="h-3 w-3 inline mr-1" />}
@@ -678,23 +678,23 @@ export default function SettingsPage() {
                     </button>
                   ))}
                 </div>
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-muted/70">
                   Enabled: {Array.from(enabledChains).join(", ") || "None"}
                 </p>
               </div>
 
               {/* Saved policies */}
               {payboxPolicies.length > 0 && (
-                <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 space-y-2">
-                  <p className="text-sm font-medium text-zinc-200">Your Saved Policies ({payboxPolicies.length})</p>
+                <div className="rounded-lg border bg-white/[0.02] p-4 space-y-2">
+                  <p className="text-sm font-medium text-foreground/90">Your Saved Policies ({payboxPolicies.length})</p>
                   {payboxPolicies.map((pol: any) => (
                     <div
                       key={pol.id}
-                      className="flex items-center justify-between rounded-md border border-zinc-800 bg-zinc-950/40 px-3 py-2"
+                      className="flex items-center justify-between rounded-md border border-white/10 bg-white/[0.04] px-3 py-2"
                     >
                       <div className="min-w-0">
-                        <p className="text-xs font-medium text-zinc-200 truncate">{pol.name}</p>
-                        <p className="text-xs text-zinc-500">
+                        <p className="text-xs font-medium text-foreground/90 truncate">{pol.name}</p>
+                        <p className="text-xs text-muted/70">
                           {pol.rules?.length ?? 0} rules · action: {pol.action} · priority: {pol.priority}
                         </p>
                       </div>
@@ -726,7 +726,7 @@ export default function SettingsPage() {
                   <p className="text-sm text-green-400 flex items-center gap-1">
                     <CheckCircle className="h-4 w-4" /> Policy Created
                   </p>
-                  <pre className="text-xs text-zinc-300 overflow-auto max-h-32">
+                  <pre className="text-xs text-foreground/75 overflow-auto max-h-32">
                     {JSON.stringify(payboxResult.data, null, 2)}
                   </pre>
                 </div>
@@ -755,13 +755,13 @@ export default function SettingsPage() {
                   value={settings.telegramChatId}
                   onChange={(e) => setSettings({ ...settings, telegramChatId: e.target.value })}
                 />
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-muted/70">
                   Message @userinfobot on Telegram to get your chat ID
                 </p>
               </div>
-              <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 space-y-2">
-                <p className="text-sm text-zinc-300 mb-2">Bot Commands:</p>
-                <div className="grid grid-cols-2 gap-1 text-xs text-zinc-500">
+              <div className="rounded-lg border bg-white/[0.02] p-4 space-y-2">
+                <p className="text-sm text-foreground/75 mb-2">Bot Commands:</p>
+                <div className="grid grid-cols-2 gap-1 text-xs text-muted/70">
                   <span>/start — Welcome</span>
                   <span>/link &lt;code&gt; — Connect account</span>
                   <span>/myagents — Your agents</span>
@@ -778,10 +778,10 @@ export default function SettingsPage() {
                   <p className="text-sm text-green-400 flex items-center gap-1">
                     <CheckCircle className="h-4 w-4" /> Telegram Linked
                   </p>
-                  <p className="text-xs text-zinc-400">
+                  <p className="text-xs text-muted">
                     Chat ID: <code>{settings.telegramChatId}</code>
                   </p>
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-muted/70">
                     Bot: <a href="https://t.me/AnsemClawBot" target="_blank" className="text-amber-400 underline">@AnsemClawBot</a>
                   </p>
                   <Button variant="destructive" size="sm" onClick={async () => {
@@ -792,17 +792,17 @@ export default function SettingsPage() {
               ) : (
                 <div className="rounded-lg border border-amber-800 bg-amber-950/30 p-4 space-y-3">
                   <p className="text-sm font-medium text-amber-300">Link Your Telegram</p>
-                  <ol className="text-xs text-zinc-400 space-y-1 list-decimal list-inside">
+                  <ol className="text-xs text-muted space-y-1 list-decimal list-inside">
                     <li>Open <a href="https://t.me/AnsemClawBot" target="_blank" className="text-amber-400 underline">@AnsemClawBot</a> on Telegram</li>
                     <li>Send <code>/start</code> to the bot</li>
                     <li>Click the button below to get a link code</li>
                     <li>Send <code>/link &lt;code&gt;</code> to the bot</li>
                   </ol>
                   {linkCode ? (
-                    <div className="rounded-md bg-zinc-900 border border-amber-700 p-3 space-y-2">
+                    <div className="rounded-md bg-white/[0.05] border border-amber-700 p-3 space-y-2">
                       <p className="text-xs text-amber-400">Your link code (expires in 10 minutes):</p>
                       <code className="text-xl font-bold text-amber-300 block tracking-wider">{linkCode}</code>
-                      <p className="text-xs text-zinc-500">Send to bot: <code>/link {linkCode}</code></p>
+                      <p className="text-xs text-muted/70">Send to bot: <code>/link {linkCode}</code></p>
                     </div>
                   ) : (
                     <Button variant="ansem" size="sm" onClick={handleGenerateLinkCode} disabled={linkLoading}>

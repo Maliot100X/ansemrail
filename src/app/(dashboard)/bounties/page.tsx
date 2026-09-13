@@ -179,8 +179,8 @@ export default function BountiesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-50">Bounties</h1>
-          <p className="text-sm text-zinc-400">Post tasks, earn rewards. Tag @CLAWRENAi + @clawpumptech in your proof.</p>
+          <h1 className="text-2xl font-bold text-foreground">Bounties</h1>
+          <p className="text-sm text-muted">Post tasks, earn rewards. Tag @CLAWRENAi + @clawpumptech in your proof.</p>
         </div>
         <Button onClick={() => setShowCreate(!showCreate)} className="bg-amber-600 hover:bg-amber-700">
           <Plus className="h-4 w-4 mr-2" /> Create Bounty
@@ -212,7 +212,7 @@ export default function BountiesPage() {
             <Input placeholder="Deliverable — what you expect from the bounty hunter" value={form.deliverable} onChange={(e) => setForm({ ...form, deliverable: e.target.value })} />
             <div className="grid grid-cols-2 gap-3">
               <Input placeholder="Reward amount (e.g. 10)" value={form.rewardAmount} onChange={(e) => setForm({ ...form, rewardAmount: e.target.value })} />
-              <select className="rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-sm text-zinc-100" value={form.rewardToken} onChange={(e) => setForm({ ...form, rewardToken: e.target.value })}>
+              <select className="rounded-md border border-white/10 bg-white/10 px-3 py-2 text-sm text-foreground" value={form.rewardToken} onChange={(e) => setForm({ ...form, rewardToken: e.target.value })}>
                 <option value="CLAWRENA">CLAWRENA</option>
                 <option value="ANSEM">ANSEM</option>
                 <option value="CLAW">CLAW</option>
@@ -231,58 +231,58 @@ export default function BountiesPage() {
 
       {/* Bounty List */}
       {loading ? (
-        <p className="text-sm text-zinc-500">Loading bounties...</p>
+        <p className="text-sm text-muted/70">Loading bounties...</p>
       ) : bounties.length === 0 ? (
-        <Card><CardContent className="py-8 text-center text-sm text-zinc-500">No bounties yet. Create the first one!</CardContent></Card>
+        <Card><CardContent className="py-8 text-center text-sm text-muted/70">No bounties yet. Create the first one!</CardContent></Card>
       ) : (
         <div className="space-y-3">
           {bounties.map((b) => (
-            <Card key={b.id} className={`border-zinc-800 bg-zinc-900/50 cursor-pointer transition-colors hover:border-zinc-700 ${selectedId === b.id ? "border-amber-700/50" : ""}`}
+            <Card key={b.id} className={`bg-white/[0.02] cursor-pointer transition-colors hover:border-white/10 ${selectedId === b.id ? "border-amber-700/50" : ""}`}
               onClick={() => setSelectedId(selectedId === b.id ? null : b.id)}>
               <CardContent className="p-5">
                 <div className="flex items-start justify-between">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       {statusIcon(b.status)}
-                      <h3 className="font-semibold text-zinc-100">{b.title}</h3>
+                      <h3 className="font-semibold text-foreground">{b.title}</h3>
                       <Badge variant={statusColor(b.status)}>{b.status.replace("_", " ")}</Badge>
                     </div>
-                    <p className="text-sm text-zinc-400 mb-1">{b.description}</p>
-                    {b.deliverable && <p className="text-xs text-zinc-500"><span className="text-zinc-400">Deliverable:</span> {b.deliverable}</p>}
+                    <p className="text-sm text-muted mb-1">{b.description}</p>
+                    {b.deliverable && <p className="text-xs text-muted/70"><span className="text-muted">Deliverable:</span> {b.deliverable}</p>}
                   </div>
                   <div className="text-right shrink-0 ml-4">
                     <p className="text-lg font-bold text-amber-400">{b.rewardAmount}</p>
-                    <p className="text-xs text-zinc-500">{b.rewardToken}</p>
+                    <p className="text-xs text-muted/70">{b.rewardToken}</p>
                   </div>
                 </div>
 
                 {/* Expanded Detail */}
                 {selectedId === b.id && (
-                  <div className="mt-4 pt-4 border-t border-zinc-800 space-y-3" onClick={(e) => e.stopPropagation()}>
+                  <div className="mt-4 pt-4 border-t border-white/10 space-y-3" onClick={(e) => e.stopPropagation()}>
                     <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div><p className="text-xs text-zinc-500 mb-1">Bounty ID</p><p className="font-mono text-xs text-zinc-400 break-all">{b.id}</p></div>
-                      <div><p className="text-xs text-zinc-500 mb-1">Created</p><p className="text-zinc-300">{new Date(b.createdAt).toLocaleDateString()}</p></div>
+                      <div><p className="text-xs text-muted/70 mb-1">Bounty ID</p><p className="font-mono text-xs text-muted break-all">{b.id}</p></div>
+                      <div><p className="text-xs text-muted/70 mb-1">Created</p><p className="text-foreground/75">{new Date(b.createdAt).toLocaleDateString()}</p></div>
                     </div>
 
                     {b.deliverable && (
-                      <div className="rounded-lg bg-zinc-800/50 p-3">
-                        <p className="text-xs text-zinc-500 mb-1">What you must deliver</p>
-                        <p className="text-sm text-zinc-200">{b.deliverable}</p>
+                      <div className="rounded-lg bg-white/10 p-3">
+                        <p className="text-xs text-muted/70 mb-1">What you must deliver</p>
+                        <p className="text-sm text-foreground/90">{b.deliverable}</p>
                       </div>
                     )}
 
                     {/* Proof requirement guide */}
                     <div className="rounded-lg bg-blue-950/20 border border-blue-900/30 p-3">
                       <p className="text-xs text-blue-400 font-medium mb-1">Proof requirements</p>
-                      <p className="text-xs text-zinc-400">
+                      <p className="text-xs text-muted">
                         Post on X tagging <span className="text-blue-300">@CLAWRENAi</span> and <span className="text-blue-300">@clawpumptech</span>.
                         Include your AnsemRail agent ID in the post. Submit the post link as proof below.
                       </p>
                     </div>
 
                     {b.proofUrl && (
-                      <div className="rounded-lg bg-zinc-800/50 p-3">
-                        <p className="text-xs text-zinc-500 mb-1">Proof of completion</p>
+                      <div className="rounded-lg bg-white/10 p-3">
+                        <p className="text-xs text-muted/70 mb-1">Proof of completion</p>
                         <a href={b.proofUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-amber-400 underline break-all hover:text-amber-300">
                           {b.proofUrl} <ExternalLink className="inline h-3 w-3" />
                         </a>
@@ -299,13 +299,13 @@ export default function BountiesPage() {
                       )}
                       {b.status === "in_progress" && (
                         <div className="w-full space-y-2">
-                          <Label className="text-xs text-zinc-400">Submit proof (X post link with @CLAWRENAi + @clawpumptech + your agent ID)</Label>
+                          <Label className="text-xs text-muted">Submit proof (X post link with @CLAWRENAi + @clawpumptech + your agent ID)</Label>
                           <div className="space-y-2">
-                            <Label className="text-xs text-zinc-400">Solana Wallet Address (for reward payout)</Label>
+                            <Label className="text-xs text-muted">Solana Wallet Address (for reward payout)</Label>
                             <Input placeholder="Your Solana wallet address (e.g. 4exzw...TaNdxRJ)" value={payoutWallet} onChange={(e) => setPayoutWallet(e.target.value)} className="font-mono text-xs" />
                           </div>
                           <div className="space-y-2">
-                            <Label className="text-xs text-zinc-400">Proof URL (your tweet link)</Label>
+                            <Label className="text-xs text-muted">Proof URL (your tweet link)</Label>
                             <Input placeholder="https://x.com/.../status/123" value={proofUrl} onChange={(e) => setProofUrl(e.target.value)} className="flex-1" />
                           </div>
                           <Button size="sm" className="bg-green-600 hover:bg-green-700" disabled={completing || !proofUrl || !payoutWallet} onClick={() => completeBounty(b.id)}>
@@ -316,7 +316,7 @@ export default function BountiesPage() {
                       {b.status === "completed" && <Badge variant="secondary"><Clock className="h-3 w-3 mr-1" /> Waiting for admin payout</Badge>}
                       {b.status === "paid" && <Badge variant="success"><CheckCircle className="h-3 w-3 mr-1" /> Paid out</Badge>}
                       {b.status === "disputed" && <Badge variant="destructive"><AlertTriangle className="h-3 w-3 mr-1" /> Disputed</Badge>}
-                      <Button size="sm" variant="ghost" className="text-zinc-500 hover:text-red-400 ml-auto" onClick={() => deleteBounty(b.id)}>
+                      <Button size="sm" variant="ghost" className="text-muted/70 hover:text-red-400 ml-auto" onClick={() => deleteBounty(b.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -350,17 +350,17 @@ export default function BountiesPage() {
                   {adminLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Load bounties"}
                 </Button>
               </div>
-              {adminMsg && <p className="text-sm text-zinc-400">{adminMsg}</p>}
+              {adminMsg && <p className="text-sm text-muted">{adminMsg}</p>}
               {adminData && (
                 <div className="space-y-3">
-                  <p className="text-xs text-zinc-500">{adminData.bounties?.length || 0} bounty(ies) total</p>
+                  <p className="text-xs text-muted/70">{adminData.bounties?.length || 0} bounty(ies) total</p>
                   {(adminData.bounties || []).map((b: any) => (
-                    <div key={b.id} className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
+                    <div key={b.id} className="rounded-lg border bg-white/[0.02] p-3">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-medium text-zinc-200">{b.title}</p>
+                        <p className="text-sm font-medium text-foreground/90">{b.title}</p>
                         <Badge variant={b.status === "completed" ? "ansem" : b.status === "paid" ? "success" : "secondary"}>{b.status}</Badge>
                       </div>
-                      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
+                      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted/70">
                         <span className="font-mono">{b.rewardAmount} {b.rewardToken}</span>
                         <span className="font-mono">Creator: {b.creatorUserId?.slice(0, 8)}...</span>
                         {b.assigneeUserId && <span className="font-mono">Assignee: {b.assigneeUserId?.slice(0, 8)}...</span>}
@@ -380,7 +380,7 @@ export default function BountiesPage() {
                           value={rejectReasons[b.id] || ""}
                           onChange={(event) => setRejectReasons({ ...rejectReasons, [b.id]: event.target.value })}
                         />
-                        <Button size="sm" variant="ghost" className="text-zinc-500 hover:text-red-400" onClick={async () => {
+                        <Button size="sm" variant="ghost" className="text-muted/70 hover:text-red-400" onClick={async () => {
                           await fetch(`/api/bounties?id=${b.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${adminSecret}` } });
                           loadAdmin();
                         }}>

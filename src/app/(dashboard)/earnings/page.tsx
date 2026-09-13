@@ -43,8 +43,8 @@ export default async function EarningsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-50">Earnings</h1>
-        <p className="text-sm text-zinc-400">
+        <h1 className="text-2xl font-bold text-foreground">Earnings</h1>
+        <p className="text-sm text-muted">
           65% creator fees from your ClawPump agents — your agents, on-chain balances, and launches
         </p>
       </div>
@@ -52,35 +52,35 @@ export default async function EarningsPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm text-zinc-400">
+            <CardTitle className="flex items-center gap-2 text-sm text-muted">
               <Coins className="h-4 w-4 text-amber-500" /> Active Agents
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-zinc-50">{agents.length}</div>
-            <p className="text-xs text-zinc-500 mt-1">Owned by your connected ClawPump key</p>
+            <div className="text-3xl font-bold text-foreground">{agents.length}</div>
+            <p className="text-xs text-muted/70 mt-1">Owned by your connected ClawPump key</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm text-zinc-400">
+            <CardTitle className="flex items-center gap-2 text-sm text-muted">
               <TrendingUp className="h-4 w-4 text-amber-500" /> Fee Share
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-amber-400">65%</div>
-            <p className="text-xs text-zinc-500 mt-1">Creator fees redirected to you</p>
+            <p className="text-xs text-muted/70 mt-1">Creator fees redirected to you</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="flex items-center gap-2 text-sm text-zinc-400">
+            <CardTitle className="flex items-center gap-2 text-sm text-muted">
               <Rocket className="h-4 w-4 text-amber-500" /> Token Launches
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-zinc-50">{totalLaunches}</div>
-            <p className="text-xs text-zinc-500 mt-1">PONS launches across your agents</p>
+            <div className="text-3xl font-bold text-foreground">{totalLaunches}</div>
+            <p className="text-xs text-muted/70 mt-1">PONS launches across your agents</p>
           </CardContent>
         </Card>
       </div>
@@ -91,22 +91,22 @@ export default async function EarningsPage() {
         </CardHeader>
         <CardContent>
           {agents.length === 0 ? (
-            <p className="text-sm text-zinc-500 py-8 text-center">
+            <p className="text-sm text-muted/70 py-8 text-center">
               No agents found on the connected key. Create one in the Agents tab.
             </p>
           ) : (
             <div className="space-y-4">
               {agentDetails.map(({ agent: a, sol, launches }) => (
-                <div key={a.id} className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4">
+                <div key={a.id} className="rounded-lg border bg-white/[0.02] p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium text-zinc-100">{a.name}</p>
-                      <p className="text-xs text-zinc-500">{a.model}</p>
+                      <p className="font-medium text-foreground">{a.name}</p>
+                      <p className="text-xs text-muted/70">{a.model}</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-right">
-                        <p className="text-sm font-semibold text-zinc-200">{sol.toFixed(4)} SOL</p>
-                        <p className="text-xs text-zinc-500">{launches.length} launches</p>
+                        <p className="text-sm font-semibold text-foreground/90">{sol.toFixed(4)} SOL</p>
+                        <p className="text-xs text-muted/70">{launches.length} launches</p>
                       </div>
                       <Badge variant={a.status === "running" ? "success" : "secondary"}>
                         {a.status}
@@ -114,11 +114,11 @@ export default async function EarningsPage() {
                     </div>
                   </div>
                   {launches.length > 0 && (
-                    <div className="mt-3 space-y-2 border-t border-zinc-800 pt-3">
+                    <div className="mt-3 space-y-2 border-t border-white/10 pt-3">
                       {launches.slice(0, 3).map((launch) => (
                         <div key={launch.id} className="flex items-center justify-between gap-2 text-xs">
                           <div className="min-w-0">
-                            <span className="font-medium text-zinc-200">
+                            <span className="font-medium text-foreground/90">
                               {launch.symbol || launch.name || "Untitled"}
                             </span>
                             {launch.tokenAddress ? (
@@ -131,7 +131,7 @@ export default async function EarningsPage() {
                                 token {launch.tokenAddress.slice(0, 6)}…
                               </a>
                             ) : (
-                              <span className="ml-2 text-zinc-600">token pending</span>
+                              <span className="ml-2 text-muted/60">token pending</span>
                             )}
                           </div>
                           <Badge variant={launch.status === "finalized" ? "success" : "secondary"}>
@@ -150,7 +150,7 @@ export default async function EarningsPage() {
 
       <Card>
         <CardContent>
-          <p className="text-xs text-zinc-500 py-4">
+          <p className="text-xs text-muted/70 py-4">
             {totalSol > 0
               ? `${totalSol.toFixed(4)} SOL on-chain across your agent wallets — fee settlements appear here as your agents earn.`
               : "ClawPump does not expose earnings totals via REST yet — showing your agents' on-chain balances and launches instead."}

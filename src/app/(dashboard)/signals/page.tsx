@@ -29,8 +29,8 @@ export default async function SignalsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-50">Signals</h1>
-        <p className="text-sm text-zinc-400">Live trending tokens and $ANSEM price action on Solana</p>
+        <h1 className="text-2xl font-bold text-foreground">Signals</h1>
+        <p className="text-sm text-muted">Live trending tokens and $ANSEM price action on Solana</p>
       </div>
 
       {error && (
@@ -55,34 +55,34 @@ export default async function SignalsPage() {
           <CardContent>
             <div className="grid grid-cols-2 gap-4 md:grid-cols-5">
               <div>
-                <p className="text-xs text-zinc-500">Price</p>
+                <p className="text-xs text-muted/70">Price</p>
                 <p className="text-xl font-bold text-amber-400">${ansem.marketData?.price?.toFixed(6)}</p>
               </div>
               <div>
-                <p className="text-xs text-zinc-500">1h Change</p>
+                <p className="text-xs text-muted/70">1h Change</p>
                 <p className={`text-lg font-bold ${ansemChange1h >= 0 ? "text-green-400" : "text-red-400"}`}>
                   {ansemChange1h >= 0 ? "+" : ""}{(ansemChange1h * 100).toFixed(2)}%
                 </p>
               </div>
               <div>
-                <p className="text-xs text-zinc-500">6h Change</p>
+                <p className="text-xs text-muted/70">6h Change</p>
                 <p className={`text-lg font-bold ${ansemChange6h >= 0 ? "text-green-400" : "text-red-400"}`}>
                   {ansemChange6h >= 0 ? "+" : ""}{(ansemChange6h * 100).toFixed(2)}%
                 </p>
               </div>
               <div>
-                <p className="text-xs text-zinc-500">24h Change</p>
+                <p className="text-xs text-muted/70">24h Change</p>
                 <p className={`text-lg font-bold ${ansemChange >= 0 ? "text-green-400" : "text-red-400"}`}>
                   {ansemChange >= 0 ? "+" : ""}{(ansemChange * 100).toFixed(2)}%
                 </p>
               </div>
               <div>
-                <p className="text-xs text-zinc-500">Market Cap</p>
-                <p className="text-lg font-bold text-zinc-200">{formatUsd(ansem.marketData?.marketCap)}</p>
+                <p className="text-xs text-muted/70">Market Cap</p>
+                <p className="text-lg font-bold text-foreground/90">{formatUsd(ansem.marketData?.marketCap)}</p>
               </div>
             </div>
-            <div className="mt-4 rounded-lg bg-zinc-900/50 p-3">
-              <p className="text-xs text-zinc-500 mb-1">Mint Address</p>
+            <div className="mt-4 rounded-lg bg-white/[0.03] p-3">
+              <p className="text-xs text-muted/70 mb-1">Mint Address</p>
               <code className="text-sm text-amber-400">{ansem.address}</code>
             </div>
           </CardContent>
@@ -96,7 +96,7 @@ export default async function SignalsPage() {
         </CardHeader>
         <CardContent>
           {trending.length === 0 ? (
-            <p className="text-sm text-zinc-500 py-8 text-center">No trending data available.</p>
+            <p className="text-sm text-muted/70 py-8 text-center">No trending data available.</p>
           ) : (
             <div className="space-y-3">
               {trending.map((token, i) => {
@@ -105,21 +105,21 @@ export default async function SignalsPage() {
                 return (
                   <div
                     key={token.address}
-                    className="flex items-center gap-4 rounded-lg border border-zinc-800 bg-zinc-900/50 p-4"
+                    className="flex items-center gap-4 rounded-lg border bg-white/[0.02] p-4"
                   >
-                    <span className="text-lg font-bold text-zinc-600 w-8">#{i + 1}</span>
+                    <span className="text-lg font-bold text-muted/60 w-8">#{i + 1}</span>
                     {token.image && (
                       <img src={token.image} alt={token.symbol} className="h-10 w-10 rounded-full" />
                     )}
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-zinc-100">${token.symbol}</p>
-                      <p className="text-xs text-zinc-500 truncate">{token.name}</p>
+                      <p className="font-bold text-foreground">${token.symbol}</p>
+                      <p className="text-xs text-muted/70 truncate">{token.name}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-mono text-zinc-200">
+                      <p className="text-sm font-mono text-foreground/90">
                         ${token.marketData?.price?.toFixed(8)}
                       </p>
-                      <p className="text-xs text-zinc-500">{formatUsd(vol)} vol</p>
+                      <p className="text-xs text-muted/70">{formatUsd(vol)} vol</p>
                     </div>
                     <div className="text-right">
                       <div className={`flex items-center gap-1 ${change >= 0 ? "text-green-400" : "text-red-400"}`}>
@@ -128,7 +128,7 @@ export default async function SignalsPage() {
                           {change >= 0 ? "+" : ""}{(change * 100).toFixed(2)}%
                         </span>
                       </div>
-                      <p className="text-xs text-zinc-500">{shortAddress(token.address)}</p>
+                      <p className="text-xs text-muted/70">{shortAddress(token.address)}</p>
                     </div>
                   </div>
                 );

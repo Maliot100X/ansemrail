@@ -72,12 +72,12 @@ export default function ChatPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-50 flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
           <Bot className="h-6 w-6 text-amber-500" /> Agent Chat
         </h1>
-        <p className="text-sm text-zinc-400">Chat with your ClawPump agents</p>
+        <p className="text-sm text-muted">Chat with your ClawPump agents</p>
         {quotaMsg && (
-          <p className="text-xs text-zinc-400 rounded-md border border-amber-900/40 bg-amber-950/20 px-3 py-2 mt-3">
+          <p className="text-xs text-muted rounded-md border border-amber-900/40 bg-amber-950/20 px-3 py-2 mt-3">
             {quotaMsg}
           </p>
         )}
@@ -95,7 +95,7 @@ export default function ChatPage() {
             <div className="space-y-2">
               <Label>Agent</Label>
               <select
-                className="flex h-10 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+                className="rail-input flex h-10 w-full rounded-xl px-3 py-2 text-sm text-foreground"
                 value={agentId}
                 onChange={(e) => setAgentId(e.target.value)}
               >
@@ -115,15 +115,15 @@ export default function ChatPage() {
           <CardTitle>Conversation</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-96 overflow-y-auto space-y-3 rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 mb-4">
+          <div className="rail-scroll h-96 overflow-y-auto space-y-3 rounded-2xl border border-rail-line bg-black/30 p-4 mb-4 backdrop-blur">
             {messages.length === 0 && (
-              <p className="text-sm text-zinc-500 text-center py-16">Send a message to start chatting</p>
+              <p className="text-sm text-muted text-center py-16">Send a message to start chatting with your agent</p>
             )}
             {messages.map((m, i) => (
               <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div
                   className={`max-w-[80%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap ${
-                    m.role === "user" ? "bg-amber-600 text-white" : "bg-zinc-800 text-zinc-200"
+                    m.role === "user" ? "bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-[0_4px_18px_rgba(245,179,1,0.25)]" : "border border-white/10 bg-white/[0.06] text-foreground"
                   }`}
                 >
                   {m.content}
@@ -132,8 +132,8 @@ export default function ChatPage() {
             ))}
             {loading && (
               <div className="flex justify-start">
-                <div className="bg-zinc-800 rounded-lg px-3 py-2">
-                  <Loader2 className="h-4 w-4 animate-spin text-zinc-400" />
+                <div className="rounded-lg border border-white/10 bg-white/[0.06] px-3 py-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
                 </div>
               </div>
             )}

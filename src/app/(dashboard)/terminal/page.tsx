@@ -39,7 +39,7 @@ function LaunchStatusBadge({ status }: { status: string }) {
     failed: { label: "Failed", cls: "bg-red-950 text-red-300 border-red-700" },
     error: { label: "Error", cls: "bg-red-950 text-red-300 border-red-700" },
   };
-  const s = map[status] || { label: status, cls: "bg-zinc-900 text-zinc-300 border-zinc-700" };
+  const s = map[status] || { label: status, cls: "bg-white/[0.05] text-foreground/75 border-white/10" };
   return (
     <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium ${s.cls}`}>
       {status === "failed" || status === "error" ? <XCircle className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
@@ -69,7 +69,7 @@ function TokenSelect({
   return (
     <select
       id={id}
-      className="flex h-10 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+      className="flex h-10 w-full rounded-md border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-foreground"
       value={value}
       onChange={(e) => onChange(e.target.value)}
     >
@@ -356,8 +356,8 @@ export default function TerminalPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-50">Trading Terminal</h1>
-        <p className="text-sm text-zinc-400">Swap, DCA, perps, and multi-chain bridges via ClawPump + MoonPay</p>
+        <h1 className="text-2xl font-bold text-foreground">Trading Terminal</h1>
+        <p className="text-sm text-muted">Swap, DCA, perps, and multi-chain bridges via ClawPump + MoonPay</p>
       </div>
 
       <Tabs defaultValue="swap">
@@ -400,7 +400,7 @@ export default function TerminalPage() {
                 </div>
 
                 <div className="flex items-center justify-center">
-                  <ArrowRight className="h-5 w-5 text-zinc-600" />
+                  <ArrowRight className="h-5 w-5 text-muted/60" />
                 </div>
 
                 <div className="space-y-2">
@@ -419,7 +419,7 @@ export default function TerminalPage() {
                     onChange={(e) => setSwapForm({ ...swapForm, amount: e.target.value })}
                     placeholder="1000000000 (1 SOL)"
                   />
-                  <p className="text-xs text-zinc-500">1 SOL = 1,000,000,000 lamports · 1 USDC = 1,000,000 units</p>
+                  <p className="text-xs text-muted/70">1 SOL = 1,000,000,000 lamports · 1 USDC = 1,000,000 units</p>
                 </div>
 
                 <Button type="submit" variant="ansem" className="w-full" disabled={quoteLoading}>
@@ -438,7 +438,7 @@ export default function TerminalPage() {
                   <p className="text-sm font-medium text-green-400 flex items-center gap-1">
                     <Zap className="h-4 w-4" /> Quote Received
                   </p>
-                  <pre className="text-xs text-zinc-300 overflow-auto max-h-48">
+                  <pre className="text-xs text-foreground/75 overflow-auto max-h-48">
                     {JSON.stringify(quote, null, 2)}
                   </pre>
                   <div className="flex gap-2">
@@ -451,7 +451,7 @@ export default function TerminalPage() {
                   <div className="space-y-2 pt-2 border-t border-green-900">
                     <Label htmlFor="exec-agent">Execute with agent</Label>
                     {agentsLoading ? (
-                      <div className="flex items-center gap-2 text-sm text-zinc-500">
+                      <div className="flex items-center gap-2 text-sm text-muted/70">
                         <Loader2 className="h-4 w-4 animate-spin" /> Loading your agents...
                       </div>
                     ) : myAgents.length === 0 ? (
@@ -462,7 +462,7 @@ export default function TerminalPage() {
                     ) : (
                       <select
                         id="exec-agent"
-                        className="flex h-10 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+                        className="flex h-10 w-full rounded-md border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-foreground"
                         value={executeAgentId}
                         onChange={(e) => setExecuteAgentId(e.target.value)}
                       >
@@ -485,7 +485,7 @@ export default function TerminalPage() {
                       {executing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
                       Execute Swap via Agent Wallet
                     </Button>
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-xs text-muted/70">
                       Executes through the selected ClawPump agent&apos;s own wallet with your connected key. The agent must own SOL/SPL balance for the swap.
                     </p>
                   </div>
@@ -503,7 +503,7 @@ export default function TerminalPage() {
                   <p className="text-sm font-medium text-green-400 flex items-center gap-1">
                     <Zap className="h-4 w-4" /> Swap Executed
                   </p>
-                  <pre className="text-xs text-zinc-300 overflow-auto max-h-48">
+                  <pre className="text-xs text-foreground/75 overflow-auto max-h-48">
                     {JSON.stringify(executeResult, null, 2)}
                   </pre>
                 </div>
@@ -524,7 +524,7 @@ export default function TerminalPage() {
                 <div className="space-y-2">
                   <Label>Token to DCA</Label>
                   <select
-                    className="flex h-10 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+                    className="flex h-10 w-full rounded-md border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-foreground"
                     value={dcaForm.tokenMint}
                     onChange={(e) => setDcaForm({ ...dcaForm, tokenMint: e.target.value })}
                   >
@@ -545,7 +545,7 @@ export default function TerminalPage() {
                   <div className="space-y-2">
                     <Label>Frequency</Label>
                     <select
-                      className="flex h-10 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+                      className="flex h-10 w-full rounded-md border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-foreground"
                       value={dcaForm.frequency}
                       onChange={(e) => setDcaForm({ ...dcaForm, frequency: e.target.value })}
                     >
@@ -573,21 +573,21 @@ export default function TerminalPage() {
                   </p>
                   <div className="grid grid-cols-3 gap-3 text-sm">
                     <div>
-                      <p className="text-xs text-zinc-500">Schedule</p>
-                      <p className="text-zinc-200 capitalize">{dcaResult.schedule}</p>
+                      <p className="text-xs text-muted/70">Schedule</p>
+                      <p className="text-foreground/90 capitalize">{dcaResult.schedule}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-zinc-500">Amount</p>
-                      <p className="text-zinc-200">${dcaResult.amountUsd}</p>
+                      <p className="text-xs text-muted/70">Amount</p>
+                      <p className="text-foreground/90">${dcaResult.amountUsd}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-zinc-500">Token</p>
-                      <p className="text-zinc-200">{dcaResult.token}</p>
+                      <p className="text-xs text-muted/70">Token</p>
+                      <p className="text-foreground/90">{dcaResult.token}</p>
                     </div>
                   </div>
-                  <p className="text-xs text-zinc-400">{dcaResult.message}</p>
+                  <p className="text-xs text-muted">{dcaResult.message}</p>
                   {dcaResult.quote && (
-                    <pre className="text-xs text-zinc-300 overflow-auto max-h-32">
+                    <pre className="text-xs text-foreground/75 overflow-auto max-h-32">
                       {JSON.stringify(dcaResult.quote, null, 2)}
                     </pre>
                   )}
@@ -609,7 +609,7 @@ export default function TerminalPage() {
                 <div className="space-y-2">
                   <Label>Market</Label>
                   <select
-                    className="flex h-10 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+                    className="flex h-10 w-full rounded-md border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-foreground"
                     value={perpsForm.market}
                     onChange={(e) => setPerpsForm({ ...perpsForm, market: e.target.value })}
                   >
@@ -627,7 +627,7 @@ export default function TerminalPage() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        className={`flex-1 ${perpsForm.side === "long" ? "border-green-600 text-green-400 bg-green-950/30" : "border-zinc-700 text-zinc-400"}`}
+                        className={`flex-1 ${perpsForm.side === "long" ? "border-green-600 text-green-400 bg-green-950/30" : "border-white/10 text-muted"}`}
                         onClick={() => setPerpsForm({ ...perpsForm, side: "long" })}
                       >
                         Long
@@ -636,7 +636,7 @@ export default function TerminalPage() {
                         type="button"
                         variant="outline"
                         size="sm"
-                        className={`flex-1 ${perpsForm.side === "short" ? "border-red-600 text-red-400 bg-red-950/30" : "border-zinc-700 text-zinc-400"}`}
+                        className={`flex-1 ${perpsForm.side === "short" ? "border-red-600 text-red-400 bg-red-950/30" : "border-white/10 text-muted"}`}
                         onClick={() => setPerpsForm({ ...perpsForm, side: "short" })}
                       >
                         Short
@@ -656,7 +656,7 @@ export default function TerminalPage() {
                   <div className="space-y-2">
                     <Label>Leverage</Label>
                     <select
-                      className="flex h-10 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+                      className="flex h-10 w-full rounded-md border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-foreground"
                       value={perpsForm.leverage}
                       onChange={(e) => setPerpsForm({ ...perpsForm, leverage: e.target.value })}
                     >
@@ -694,28 +694,28 @@ export default function TerminalPage() {
                   </p>
                   <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
                     <div>
-                      <p className="text-xs text-zinc-500">Market</p>
-                      <p className="text-zinc-200">{perpsResult.market}</p>
+                      <p className="text-xs text-muted/70">Market</p>
+                      <p className="text-foreground/90">{perpsResult.market}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-zinc-500">Side</p>
+                      <p className="text-xs text-muted/70">Side</p>
                       <p className={perpsResult.side === "long" ? "text-green-400" : "text-red-400"}>
                         {perpsResult.side.toUpperCase()}
                       </p>
                     </div>
                     <div>
-                      <p className="text-xs text-zinc-500">Leverage</p>
-                      <p className="text-zinc-200">{perpsResult.leverage}</p>
+                      <p className="text-xs text-muted/70">Leverage</p>
+                      <p className="text-foreground/90">{perpsResult.leverage}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-zinc-500">Notional</p>
-                      <p className="text-zinc-200">${perpsResult.notionalValue.toFixed(2)}</p>
+                      <p className="text-xs text-muted/70">Notional</p>
+                      <p className="text-foreground/90">${perpsResult.notionalValue.toFixed(2)}</p>
                     </div>
                   </div>
-                  <p className="text-xs text-zinc-400">{perpsResult.message}</p>
+                  <p className="text-xs text-muted">{perpsResult.message}</p>
                   <div className="flex items-center gap-2">
                     <Badge variant="warning">High Risk</Badge>
-                    <span className="text-xs text-zinc-500">{perpsResult.warning}</span>
+                    <span className="text-xs text-muted/70">{perpsResult.warning}</span>
                   </div>
                 </div>
               )}
@@ -736,7 +736,7 @@ export default function TerminalPage() {
                   <div className="space-y-2">
                     <Label>From Chain</Label>
                     <select
-                      className="flex h-10 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+                      className="flex h-10 w-full rounded-md border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-foreground"
                       value={bridgeForm.fromChain}
                       onChange={(e) => setBridgeForm({ ...bridgeForm, fromChain: e.target.value })}
                     >
@@ -751,7 +751,7 @@ export default function TerminalPage() {
                   <div className="space-y-2">
                     <Label>To Chain</Label>
                     <select
-                      className="flex h-10 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+                      className="flex h-10 w-full rounded-md border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-foreground"
                       value={bridgeForm.toChain}
                       onChange={(e) => setBridgeForm({ ...bridgeForm, toChain: e.target.value })}
                     >
@@ -768,7 +768,7 @@ export default function TerminalPage() {
                   <div className="space-y-2">
                     <Label>Token</Label>
                     <select
-                      className="flex h-10 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+                      className="flex h-10 w-full rounded-md border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-foreground"
                       value={bridgeForm.token}
                       onChange={(e) => setBridgeForm({ ...bridgeForm, token: e.target.value })}
                     >
@@ -805,29 +805,29 @@ export default function TerminalPage() {
                   </p>
                   <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
                     <div>
-                      <p className="text-xs text-zinc-500">From</p>
-                      <p className="text-zinc-200 capitalize">{bridgeResult.fromChain}</p>
+                      <p className="text-xs text-muted/70">From</p>
+                      <p className="text-foreground/90 capitalize">{bridgeResult.fromChain}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-zinc-500">To</p>
-                      <p className="text-zinc-200 capitalize">{bridgeResult.toChain}</p>
+                      <p className="text-xs text-muted/70">To</p>
+                      <p className="text-foreground/90 capitalize">{bridgeResult.toChain}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-zinc-500">Token</p>
-                      <p className="text-zinc-200">{bridgeResult.token}</p>
+                      <p className="text-xs text-muted/70">Token</p>
+                      <p className="text-foreground/90">{bridgeResult.token}</p>
                     </div>
                     <div>
-                      <p className="text-xs text-zinc-500">Amount</p>
-                      <p className="text-zinc-200">{bridgeResult.amount}</p>
+                      <p className="text-xs text-muted/70">Amount</p>
+                      <p className="text-foreground/90">{bridgeResult.amount}</p>
                     </div>
                   </div>
                   {bridgeResult.fromChainInfo && bridgeResult.toChainInfo && (
-                    <div className="text-xs text-zinc-500">
+                    <div className="text-xs text-muted/70">
                       <p>From: {bridgeResult.fromChainInfo.name} (ID: {bridgeResult.fromChainInfo.id})</p>
                       <p>To: {bridgeResult.toChainInfo.name} (ID: {bridgeResult.toChainInfo.id})</p>
                     </div>
                   )}
-                  <p className="text-xs text-zinc-400">{bridgeResult.message}</p>
+                  <p className="text-xs text-muted">{bridgeResult.message}</p>
                 </div>
               )}
             </CardContent>
@@ -853,7 +853,7 @@ export default function TerminalPage() {
                 <div className="space-y-2">
                   <Label htmlFor="pons-agent">ClawPump Agent</Label>
                   {agentsLoading ? (
-                    <div className="flex items-center gap-2 text-sm text-zinc-500">
+                    <div className="flex items-center gap-2 text-sm text-muted/70">
                       <Loader2 className="h-4 w-4 animate-spin" /> Loading your agents...
                     </div>
                   ) : myAgents.length === 0 ? (
@@ -864,7 +864,7 @@ export default function TerminalPage() {
                   ) : (
                     <select
                       id="pons-agent"
-                      className="flex h-10 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+                      className="flex h-10 w-full rounded-md border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-foreground"
                       value={ponsForm.agentId}
                       onChange={(e) => setPonsForm({ ...ponsForm, agentId: e.target.value })}
                     >
@@ -875,7 +875,7 @@ export default function TerminalPage() {
                       ))}
                     </select>
                   )}
-                  <p className="text-xs text-zinc-500">
+                  <p className="text-xs text-muted/70">
                     Launches only work with agents owned by your connected ClawPump key
                   </p>
                 </div>
@@ -916,7 +916,7 @@ export default function TerminalPage() {
                     value={ponsForm.payoutWallet}
                     onChange={(e) => setPonsForm({ ...ponsForm, payoutWallet: e.target.value })}
                   />
-                  <p className="text-xs text-zinc-500">Your Robinhood Chain payout address — where ETH/WETH creator fees land</p>
+                  <p className="text-xs text-muted/70">Your Robinhood Chain payout address — where ETH/WETH creator fees land</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="pons-logo">Logo URL (optional, https)</Label>
@@ -939,26 +939,26 @@ export default function TerminalPage() {
               )}
 
               {ponsResult?.launch && (
-                <div className="mt-4 space-y-4 rounded-xl border border-amber-700/50 bg-zinc-950 p-5">
+                <div className="mt-4 space-y-4 rounded-xl border border-amber-700/50 bg-[#0b0c11] p-5">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-lg font-bold text-zinc-50">{ponsResult.launch.name || ponsForm.name}</p>
-                      <p className="text-sm text-zinc-400">
+                      <p className="text-lg font-bold text-foreground">{ponsResult.launch.name || ponsForm.name}</p>
+                      <p className="text-sm text-muted">
                         {ponsResult.launch.symbol || ponsForm.symbol} · Robinhood Chain (4663)
                       </p>
                     </div>
                     <LaunchStatusBadge status={ponsResult.launch.status} />
                   </div>
 
-                  <div className="flex items-center gap-2 text-xs text-zinc-400">
+                  <div className="flex items-center gap-2 text-xs text-muted">
                     {LAUNCH_STEPS.map((step, i) => {
                       const cur = LAUNCH_STEPS.indexOf(ponsResult.launch.status);
                       const done = cur >= i;
                       const isErr = ponsResult.launch.status === "failed" || ponsResult.launch.status === "error";
                       return (
                         <div key={step} className="flex items-center gap-2">
-                          {i > 0 && <span className={`h-px w-6 ${done ? "bg-green-600" : "bg-zinc-700"}`} />}
-                          <span className={`flex items-center gap-1 ${isErr ? "text-red-400" : done ? "text-green-400" : "text-zinc-500"}`}>
+                          {i > 0 && <span className={`h-px w-6 ${done ? "bg-green-600" : "bg-white/10"}`} />}
+                          <span className={`flex items-center gap-1 ${isErr ? "text-red-400" : done ? "text-green-400" : "text-muted/70"}`}>
                             {isErr ? <XCircle className="h-3 w-3" /> : done ? <CheckCircle2 className="h-3 w-3" /> : <Circle className="h-3 w-3" />}
                             {step === "soft_confirmed" ? "Soft Confirmed" : step[0].toUpperCase() + step.slice(1)}
                           </span>
@@ -967,13 +967,13 @@ export default function TerminalPage() {
                     })}
                   </div>
 
-                  <div className="space-y-2 rounded-md border border-zinc-800 bg-zinc-900/60 p-3 text-xs">
+                  <div className="space-y-2 rounded-md border border-white/10 bg-white/[0.05] p-3 text-xs">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-zinc-500">Launch ID</span>
-                      <span className="font-mono text-zinc-300">{shortAddr(ponsResult.launch.id, 10)}</span>
+                      <span className="text-muted/70">Launch ID</span>
+                      <span className="font-mono text-foreground/75">{shortAddr(ponsResult.launch.id, 10)}</span>
                     </div>
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-zinc-500">Transaction</span>
+                      <span className="text-muted/70">Transaction</span>
                       <a
                         href={`https://robinhoodchain.blockscout.com/tx/${ponsResult.launch.txHash}`}
                         target="_blank"
@@ -984,7 +984,7 @@ export default function TerminalPage() {
                       </a>
                     </div>
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-zinc-500">Token Address</span>
+                      <span className="text-muted/70">Token Address</span>
                       {ponsResult.launch.tokenAddress ? (
                         <span className="flex items-center gap-1">
                           <a
@@ -998,35 +998,35 @@ export default function TerminalPage() {
                           <button
                             type="button"
                             onClick={() => navigator.clipboard.writeText(ponsResult.launch.tokenAddress)}
-                            className="text-zinc-500 hover:text-amber-400"
+                            className="text-muted/70 hover:text-amber-400"
                             title="Copy token address"
                           >
                             <Copy className="h-3 w-3" />
                           </button>
                         </span>
                       ) : (
-                        <span className="text-zinc-400 italic">Minting… check back shortly</span>
+                        <span className="text-muted italic">Minting… check back shortly</span>
                       )}
                     </div>
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-zinc-500">Payout Wallet</span>
-                      <span className="font-mono text-zinc-300">{shortAddr(ponsResult.launch.payoutWallet, 8)}</span>
+                      <span className="text-muted/70">Payout Wallet</span>
+                      <span className="font-mono text-foreground/75">{shortAddr(ponsResult.launch.payoutWallet, 8)}</span>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div className="rounded-md border border-zinc-800 bg-zinc-900/60 p-3">
-                      <p className="text-zinc-500">Launch Fee</p>
-                      <p className="text-sm font-medium text-zinc-200">{weiToEth(ponsResult.launch.launchFeeWei)} ETH</p>
+                    <div className="rounded-md border border-white/10 bg-white/[0.05] p-3">
+                      <p className="text-muted/70">Launch Fee</p>
+                      <p className="text-sm font-medium text-foreground/90">{weiToEth(ponsResult.launch.launchFeeWei)} ETH</p>
                     </div>
-                    <div className="rounded-md border border-zinc-800 bg-zinc-900/60 p-3">
-                      <p className="text-zinc-500">Sponsorship Cost</p>
-                      <p className="text-sm font-medium text-zinc-200">{weiToEth(ponsResult.launch.sponsorshipCostWei)} ETH</p>
+                    <div className="rounded-md border border-white/10 bg-white/[0.05] p-3">
+                      <p className="text-muted/70">Sponsorship Cost</p>
+                      <p className="text-sm font-medium text-foreground/90">{weiToEth(ponsResult.launch.sponsorshipCostWei)} ETH</p>
                     </div>
                   </div>
 
                   {ponsResult.launch.splitPolicy && (
-                    <div className="text-xs text-zinc-400">
+                    <div className="text-xs text-muted">
                       Fee split:{" "}
                       <span className="text-green-400">
                         {((ponsResult.launch.splitPolicy.agentGrossBps ?? 0) / 100).toFixed(0)}% to you
@@ -1058,11 +1058,11 @@ export default function TerminalPage() {
 
               <div className="mt-5">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-zinc-300">Your PONS Launches</p>
-                  {ponsLaunchesLoading && <Loader2 className="h-3 w-3 animate-spin text-zinc-500" />}
+                  <p className="text-sm font-medium text-foreground/75">Your PONS Launches</p>
+                  {ponsLaunchesLoading && <Loader2 className="h-3 w-3 animate-spin text-muted/70" />}
                 </div>
                 {ponsLaunches.length === 0 ? (
-                  <p className="mt-2 text-xs text-zinc-600">
+                  <p className="mt-2 text-xs text-muted/60">
                     {ponsForm.agentId
                       ? "No launches yet for this agent. Submit the form above to launch your first token."
                       : "Select an agent to see its launch history."}
@@ -1070,12 +1070,12 @@ export default function TerminalPage() {
                 ) : (
                   <div className="mt-2 space-y-2">
                     {ponsLaunches.map((launch, i) => (
-                      <div key={launch.id || i} className="rounded-md border border-zinc-800 bg-zinc-900/50 p-3">
+                      <div key={launch.id || i} className="rounded-md border bg-white/[0.02] p-3">
                         <div className="flex items-center justify-between gap-2">
                           <div className="min-w-0">
-                            <p className="text-sm font-medium text-zinc-200">
+                            <p className="text-sm font-medium text-foreground/90">
                               {launch.symbol || launch.name || "Untitled"}
-                              <span className="ml-2 text-xs font-mono text-zinc-500">{shortAddr(launch.id, 8)}</span>
+                              <span className="ml-2 text-xs font-mono text-muted/70">{shortAddr(launch.id, 8)}</span>
                             </p>
                             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
                               {launch.txHash && (
@@ -1083,7 +1083,7 @@ export default function TerminalPage() {
                                   href={`https://robinhoodchain.blockscout.com/tx/${launch.txHash}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="font-mono text-zinc-400 underline hover:text-amber-400"
+                                  className="font-mono text-muted underline hover:text-amber-400"
                                 >
                                   tx {shortAddr(launch.txHash, 6)}
                                 </a>
@@ -1098,9 +1098,9 @@ export default function TerminalPage() {
                                   token {shortAddr(launch.tokenAddress, 6)}
                                 </a>
                               ) : (
-                                <span className="text-zinc-600">token pending</span>
+                                <span className="text-muted/60">token pending</span>
                               )}
-                              <span className="text-zinc-600">
+                              <span className="text-muted/60">
                                 {launch.createdAt ? new Date(launch.createdAt).toLocaleString() : ""}
                               </span>
                             </div>

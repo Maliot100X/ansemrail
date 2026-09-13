@@ -20,8 +20,8 @@ export default async function MarketplacePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-50">Marketplace</h1>
-        <p className="text-sm text-zinc-400">Browse ClawPump tokens — hot, new, and trending on Solana</p>
+        <h1 className="text-2xl font-bold text-foreground">Marketplace</h1>
+        <p className="text-sm text-muted">Browse ClawPump tokens — hot, new, and trending on Solana</p>
       </div>
 
       {error && (
@@ -35,8 +35,8 @@ export default async function MarketplacePage() {
       {tokens.length === 0 && !error ? (
         <Card>
           <CardContent className="py-16 text-center">
-            <Flame className="mx-auto h-12 w-12 text-zinc-600 mb-4" />
-            <p className="text-zinc-400">No tokens found in marketplace.</p>
+            <Flame className="mx-auto h-12 w-12 text-muted/60 mb-4" />
+            <p className="text-muted">No tokens found in marketplace.</p>
           </CardContent>
         </Card>
       ) : (
@@ -45,7 +45,7 @@ export default async function MarketplacePage() {
             {tokens.slice(0, 8).map((token) => (
               <Card key={token.mintAddress} className="overflow-hidden">
                 {token.imageUrl && (
-                  <div className="aspect-square w-full overflow-hidden bg-zinc-800">
+                  <div className="aspect-square w-full overflow-hidden bg-white/10">
                     <img
                       src={token.imageUrl}
                       alt={token.name}
@@ -56,35 +56,35 @@ export default async function MarketplacePage() {
                 <CardContent className="p-4 space-y-2">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-bold text-zinc-100">${token.symbol}</p>
-                      <p className="text-xs text-zinc-500">{token.name}</p>
+                      <p className="font-bold text-foreground">${token.symbol}</p>
+                      <p className="text-xs text-muted/70">{token.name}</p>
                     </div>
                     {token.isGraduated && <Badge variant="success">Graduated</Badge>}
                     {token.verified && <Badge variant="ansem">Verified</Badge>}
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
-                      <p className="text-zinc-500">Market Cap</p>
-                      <p className="text-zinc-200">{formatUsd(token.marketCap)}</p>
+                      <p className="text-muted/70">Market Cap</p>
+                      <p className="text-foreground/90">{formatUsd(token.marketCap)}</p>
                     </div>
                     <div>
-                      <p className="text-zinc-500">Liquidity</p>
-                      <p className="text-zinc-200">{formatUsd(token.liquidity)}</p>
+                      <p className="text-muted/70">Liquidity</p>
+                      <p className="text-foreground/90">{formatUsd(token.liquidity)}</p>
                     </div>
                     <div>
-                      <p className="text-zinc-500">Vol 24h</p>
-                      <p className="text-zinc-200">{formatUsd(token.volume24h)}</p>
+                      <p className="text-muted/70">Vol 24h</p>
+                      <p className="text-foreground/90">{formatUsd(token.volume24h)}</p>
                     </div>
                     <div>
-                      <p className="text-zinc-500">Price</p>
-                      <p className="text-zinc-200">${token.price?.toFixed(8)}</p>
+                      <p className="text-muted/70">Price</p>
+                      <p className="text-foreground/90">${token.price?.toFixed(8)}</p>
                     </div>
                   </div>
-                  <div className="pt-2 border-t border-zinc-800">
-                    <p className="text-xs text-zinc-500">
-                      Agent: <span className="text-zinc-300">{token.agentName}</span>
+                  <div className="pt-2 border-t border-white/10">
+                    <p className="text-xs text-muted/70">
+                      Agent: <span className="text-foreground/75">{token.agentName}</span>
                     </p>
-                    <p className="text-xs text-zinc-500 font-mono">{shortAddress(token.mintAddress)}</p>
+                    <p className="text-xs text-muted/70 font-mono">{shortAddress(token.mintAddress)}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -111,10 +111,10 @@ export default async function MarketplacePage() {
                   {tokens.map((token) => (
                     <TableRow key={token.mintAddress}>
                       <TableCell className="font-bold text-amber-400">${token.symbol}</TableCell>
-                      <TableCell className="text-zinc-300">{token.name}</TableCell>
-                      <TableCell className="text-zinc-400">{formatUsd(token.marketCap)}</TableCell>
-                      <TableCell className="text-zinc-400">{formatUsd(token.volume24h)}</TableCell>
-                      <TableCell className="text-zinc-400">{formatUsd(token.liquidity)}</TableCell>
+                      <TableCell className="text-foreground/75">{token.name}</TableCell>
+                      <TableCell className="text-muted">{formatUsd(token.marketCap)}</TableCell>
+                      <TableCell className="text-muted">{formatUsd(token.volume24h)}</TableCell>
+                      <TableCell className="text-muted">{formatUsd(token.liquidity)}</TableCell>
                       <TableCell>
                         {token.isGraduated ? (
                           <Badge variant="success">Graduated</Badge>

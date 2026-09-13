@@ -26,8 +26,8 @@ function ResultField({ label, value }: { label: string; value?: string | number 
   if (value === undefined || value === null || value === "") return null;
   return (
     <div>
-      <p className="text-[11px] uppercase tracking-wide text-zinc-500">{label}</p>
-      <p className="text-sm font-mono text-zinc-200 break-all">{String(value)}</p>
+      <p className="text-[11px] uppercase tracking-wide text-muted/70">{label}</p>
+      <p className="text-sm font-mono text-foreground/90 break-all">{String(value)}</p>
     </div>
   );
 }
@@ -158,13 +158,13 @@ export default function ClawLaunchTab() {
           className={`flex-1 rounded-lg border p-3 text-left transition-colors ${
             mode === "gasless"
               ? "border-amber-600 bg-amber-950/30"
-              : "border-zinc-800 bg-zinc-900/50 hover:border-zinc-700"
+              : "bg-white/[0.02] hover:border-white/10"
           }`}
         >
-          <p className="text-sm font-medium text-zinc-100 flex items-center gap-2">
+          <p className="text-sm font-medium text-foreground flex items-center gap-2">
             <Rocket className="h-4 w-4 text-amber-500" /> Gasless Launch
           </p>
-          <p className="text-xs text-zinc-500 mt-1">
+          <p className="text-xs text-muted/70 mt-1">
             Tokenizes the selected agent once using gasless sponsorship — no bonding-curve buy.
           </p>
         </button>
@@ -174,13 +174,13 @@ export default function ClawLaunchTab() {
           className={`flex-1 rounded-lg border p-3 text-left transition-colors ${
             mode === "self-funded"
               ? "border-amber-600 bg-amber-950/30"
-              : "border-zinc-800 bg-zinc-900/50 hover:border-zinc-700"
+              : "bg-white/[0.02] hover:border-white/10"
           }`}
         >
-          <p className="text-sm font-medium text-zinc-100 flex items-center gap-2">
+          <p className="text-sm font-medium text-foreground flex items-center gap-2">
             <Wallet className="h-4 w-4 text-amber-500" /> Self-Funded
           </p>
-          <p className="text-xs text-zinc-500 mt-1">
+          <p className="text-xs text-muted/70 mt-1">
             Agent wallet pays creation (+ optional dev buy); tokens from the buy go to the agent wallet.
           </p>
         </button>
@@ -190,7 +190,7 @@ export default function ClawLaunchTab() {
         <div className="space-y-2">
           <Label htmlFor="claw-agent">ClawPump Agent</Label>
           {agentsLoading ? (
-            <div className="flex items-center gap-2 text-sm text-zinc-500">
+            <div className="flex items-center gap-2 text-sm text-muted/70">
               <Loader2 className="h-4 w-4 animate-spin" /> Loading your agents...
             </div>
           ) : myAgents.length === 0 ? (
@@ -201,7 +201,7 @@ export default function ClawLaunchTab() {
           ) : (
             <select
               id="claw-agent"
-              className="flex h-10 w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+              className="flex h-10 w-full rounded-md border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-foreground"
               value={form.agentId}
               onChange={(e) => setForm({ ...form, agentId: e.target.value })}
             >
@@ -212,7 +212,7 @@ export default function ClawLaunchTab() {
               ))}
             </select>
           )}
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-muted/70">
             Launches only work with agents owned by your connected ClawPump key
           </p>
         </div>
@@ -276,7 +276,7 @@ export default function ClawLaunchTab() {
             </Button>
           </div>
           {form.imageUrl && (
-            <p className="text-[11px] text-zinc-500 break-all">
+            <p className="text-[11px] text-muted/70 break-all">
               Image URL: <span className="font-mono">{form.imageUrl}</span>
             </p>
           )}
@@ -312,7 +312,7 @@ export default function ClawLaunchTab() {
               value={form.devBuy}
               onChange={(e) => setForm({ ...form, devBuy: e.target.value })}
             />
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-muted/70">
               Optional initial buy from the agent wallet. Leave empty for no dev buy.
             </p>
           </div>
@@ -325,24 +325,24 @@ export default function ClawLaunchTab() {
         )}
 
         {mode === "self-funded" && (
-          <div className="space-y-3 rounded-lg border border-zinc-800 bg-zinc-900/60 p-4">
-            <p className="text-sm font-medium text-zinc-200">Cost Breakdown</p>
-            <div className="space-y-1 text-xs text-zinc-400">
+          <div className="space-y-3 rounded-lg border border-white/10 bg-white/[0.05] p-4">
+            <p className="text-sm font-medium text-foreground/90">Cost Breakdown</p>
+            <div className="space-y-1 text-xs text-muted">
               <div className="flex justify-between"><span>~0.0350 SOL from agent wallet</span></div>
               <div className="flex justify-between"><span>~0.0250 SOL mint and network fees</span></div>
               <div className="flex justify-between"><span>ClawPump mints on your behalf — you keep 65% of creator fees</span></div>
             </div>
-            <div className="border-t border-zinc-800 pt-3 space-y-2">
-              <p className="text-xs text-zinc-500">I agree to the Terms and understand what happens next:</p>
-              <ul className="text-[11px] text-zinc-500 space-y-1 list-disc list-inside">
+            <div className="border-t border-white/10 pt-3 space-y-2">
+              <p className="text-xs text-muted/70">I agree to the Terms and understand what happens next:</p>
+              <ul className="text-[11px] text-muted/70 space-y-1 list-disc list-inside">
                 <li>The mint is permanent — cannot be renamed, edited or undone once live.</li>
                 <li>Trading opens immediately on the bonding curve. Price is set by the market.</li>
                 <li>You keep 65% of creator fees, ClawPump takes 35%. Fees pay into the agent wallet.</li>
                 <li>ClawPump never custodies your funds. Every transaction is signed by the agent wallet.</li>
               </ul>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="rounded border-zinc-700 bg-zinc-800" />
-                <span className="text-xs text-zinc-300">I understand and agree</span>
+                <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="rounded border-white/10 bg-white/10" />
+                <span className="text-xs text-foreground/75">I understand and agree</span>
               </label>
             </div>
           </div>
@@ -367,16 +367,16 @@ export default function ClawLaunchTab() {
       )}
 
       {funding && (
-        <div className="space-y-3 rounded-xl border border-amber-700/50 bg-zinc-950 p-5">
+        <div className="space-y-3 rounded-xl border border-amber-700/50 bg-[#0b0c11] p-5">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-zinc-200 flex items-center gap-2">
+            <p className="text-sm font-medium text-foreground/90 flex items-center gap-2">
               <Wallet className="h-4 w-4 text-amber-500" /> Agent Wallet Needs Funding
             </p>
             <Badge variant="secondary">
               {funding.code === "MAX_GASLESS_LAUNCHES_PER_USER_EXCEEDED" ? "gasless limit reached" : "needs funding"}
             </Badge>
           </div>
-          <p className="text-sm text-zinc-400">
+          <p className="text-sm text-muted">
             {funding.code === "MAX_GASLESS_LAUNCHES_PER_USER_EXCEEDED"
               ? funding.message ||
                 "You have used your sponsored gasless launches. Fund the agent wallet, then retry as Self-Funded — ClawPump still mints on your behalf and you keep 65% of creator fees."
@@ -385,10 +385,10 @@ export default function ClawLaunchTab() {
               : funding.message || funding.error || "The agent wallet needs SOL to cover the launch. Fund it from an external wallet, then retry."}
           </p>
           {funding.selfFunded?.fundWallet && (
-            <div className="flex items-center justify-between rounded-md border border-zinc-800 bg-zinc-900/60 p-3">
+            <div className="flex items-center justify-between rounded-md border border-white/10 bg-white/[0.05] p-3">
               <div className="min-w-0">
-                <p className="text-[11px] uppercase tracking-wide text-zinc-500">Fund wallet</p>
-                <p className="text-sm font-mono text-zinc-200 break-all">{funding.selfFunded.fundWallet}</p>
+                <p className="text-[11px] uppercase tracking-wide text-muted/70">Fund wallet</p>
+                <p className="text-sm font-mono text-foreground/90 break-all">{funding.selfFunded.fundWallet}</p>
               </div>
               <Button
                 type="button"
@@ -403,7 +403,7 @@ export default function ClawLaunchTab() {
             </div>
           )}
           {funding.selfFunded?.requiredSol && (
-            <p className="text-xs text-zinc-500">
+            <p className="text-xs text-muted/70">
               Required: ~{funding.selfFunded.requiredSol} SOL · {funding.selfFunded.platformMintsOnYourBehalf ? "ClawPump mints on your behalf" : ""}
             </p>
           )}
@@ -422,9 +422,9 @@ export default function ClawLaunchTab() {
       )}
 
       {result && (
-        <div className="space-y-3 rounded-xl border border-amber-700/50 bg-zinc-950 p-5">
+        <div className="space-y-3 rounded-xl border border-amber-700/50 bg-[#0b0c11] p-5">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-zinc-200 flex items-center gap-2">
+            <p className="text-sm font-medium text-foreground/90 flex items-center gap-2">
               <Rocket className="h-4 w-4 text-amber-500" /> Launch Result
             </p>
             <Badge variant="ansem">{launch?.status || "submitted"}</Badge>
@@ -469,15 +469,15 @@ export default function ClawLaunchTab() {
               href={`https://solscan.io/tx/${launch.txHash}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs text-zinc-400 underline hover:text-zinc-300"
+              className="inline-flex items-center gap-1 text-xs text-muted underline hover:text-foreground/75"
             >
               Transaction {shortAddr(launch.txHash, 8)} <ExternalLink className="h-3 w-3" />
             </a>
           )}
 
           <details className="mt-2">
-            <summary className="cursor-pointer text-xs text-zinc-500">Full response</summary>
-            <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-zinc-900 p-3 text-[11px] text-zinc-400">
+            <summary className="cursor-pointer text-xs text-muted/70">Full response</summary>
+            <pre className="mt-2 max-h-64 overflow-auto rounded-md bg-white/[0.05] p-3 text-[11px] text-muted">
               {JSON.stringify(result, null, 2)}
             </pre>
           </details>

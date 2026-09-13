@@ -241,17 +241,17 @@ export default function PayBoxSigningWindow({ requestId, apiKey, signingKey, onC
         <AlertTriangle className="mt-0.5 h-4 w-4 text-red-400" />
         <div className="space-y-1">
           <p className="text-sm font-medium text-red-300">PayBox signing window failed</p>
-          <p className="text-xs text-zinc-400">{error}</p>
+          <p className="text-xs text-muted">{error}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950">
+    <div className="overflow-hidden rounded-xl border border-white/10 bg-[#0b0c11]">
       {!sandboxOrigin && null}
       {!ready && (
-        <div className="flex items-center gap-2 p-4 text-sm text-zinc-400">
+        <div className="flex items-center gap-2 p-4 text-sm text-muted">
           <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
           Loading secure PayBox signing window…
         </div>
@@ -263,8 +263,8 @@ export default function PayBoxSigningWindow({ requestId, apiKey, signingKey, onC
         sandbox="allow-scripts allow-same-origin"
         className="h-[520px] w-full bg-transparent"
       />
-      <div className="flex items-center justify-between border-t border-zinc-800 px-3 py-2">
-        <p className="text-xs text-zinc-500">PayBox signs inside this isolated MCP Apps view.</p>
+      <div className="flex items-center justify-between border-t border-white/10 px-3 py-2">
+        <p className="text-xs text-muted/70">PayBox signs inside this isolated MCP Apps view.</p>
         <a
           href="https://app.paybox.sh"
           target="_blank"

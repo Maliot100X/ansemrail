@@ -176,8 +176,8 @@ export function SkillsClient({ clawpumpSkills, moonpaySkills, solanaSkills, erro
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-50">Skills</h1>
-        <p className="text-sm text-zinc-400">Registry of ClawPump, MoonPay, and Solana Foundation skills — install with one click</p>
+        <h1 className="text-2xl font-bold text-foreground">Skills</h1>
+        <p className="text-sm text-muted">Registry of ClawPump, MoonPay, and Solana Foundation skills — install with one click</p>
       </div>
 
       {error && (
@@ -194,12 +194,12 @@ export function SkillsClient({ clawpumpSkills, moonpaySkills, solanaSkills, erro
 
       {/* ClawPump Skills */}
       <div>
-        <h2 className="text-lg font-semibold text-zinc-200 mb-4 flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-foreground/90 mb-4 flex items-center gap-2">
           <Zap className="h-5 w-5 text-amber-500" /> ClawPump Skills ({clawpumpSkills.length})
         </h2>
         {clawpumpSkills.length === 0 ? (
           <Card>
-            <CardContent className="py-6 text-center text-sm text-zinc-500">
+            <CardContent className="py-6 text-center text-sm text-muted/70">
               {hasOwnKey ? "No ClawPump skills found." : "Connect your ClawPump API key in Settings to see available skills."}
             </CardContent>
           </Card>
@@ -245,7 +245,7 @@ export function SkillsClient({ clawpumpSkills, moonpaySkills, solanaSkills, erro
 
       {/* MoonPay Skills */}
       <div>
-        <h2 className="text-lg font-semibold text-zinc-200 mb-4 flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-foreground/90 mb-4 flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-amber-500" /> MoonPay Skills ({moonpaySkills.length})
         </h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -254,8 +254,8 @@ export function SkillsClient({ clawpumpSkills, moonpaySkills, solanaSkills, erro
               <CardContent className="pt-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-zinc-200">{skill}</p>
-                    <p className="text-xs text-zinc-500 mt-1">
+                    <p className="font-medium text-foreground/90">{skill}</p>
+                    <p className="text-xs text-muted/70 mt-1">
                       {skill.replace("moonpay-", "").replace(/-/g, " ")}
                     </p>
                   </div>
@@ -286,7 +286,7 @@ export function SkillsClient({ clawpumpSkills, moonpaySkills, solanaSkills, erro
 
       {/* Solana Foundation Skills */}
       <div>
-        <h2 className="text-lg font-semibold text-zinc-200 mb-4 flex items-center gap-2">
+        <h2 className="text-lg font-semibold text-foreground/90 mb-4 flex items-center gap-2">
           <Shield className="h-5 w-5 text-blue-500" /> Solana Foundation Skills ({solanaSkills.length})
         </h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -365,13 +365,13 @@ export function SkillsClient({ clawpumpSkills, moonpaySkills, solanaSkills, erro
                 onChange={handleFileUpload}
                 ref={fileInputRef}
               />
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-muted/70">
                 YAML frontmatter required: name, description, version, tags
               </p>
             </div>
             {skillMdContent && (
-              <div className="rounded-md bg-zinc-900 border border-zinc-800 p-3 max-h-48 overflow-auto">
-                <pre className="text-xs text-zinc-400 whitespace-pre-wrap">
+              <div className="rounded-md bg-white/[0.05] border border-white/10 p-3 max-h-48 overflow-auto">
+                <pre className="text-xs text-muted whitespace-pre-wrap">
                   {skillMdContent.slice(0, 500)}
                   {skillMdContent.length > 500 && "..."}
                 </pre>
@@ -385,9 +385,9 @@ export function SkillsClient({ clawpumpSkills, moonpaySkills, solanaSkills, erro
           {uploadResult && (
             <div className="mt-4 rounded-lg border border-green-800/50 bg-green-950/20 p-4 space-y-2">
               <p className="text-sm text-green-300 font-medium">✅ Agent Registered</p>
-              {uploadResult.agentId && <p className="text-xs text-zinc-400">ID: <code className="text-green-400">{uploadResult.agentId}</code></p>}
-              {uploadResult.agentToken && <p className="text-xs text-zinc-400">Token: <code className="text-green-400">{uploadResult.agentToken}</code></p>}
-              {uploadResult.message && <p className="text-xs text-zinc-500">{uploadResult.message}</p>}
+              {uploadResult.agentId && <p className="text-xs text-muted">ID: <code className="text-green-400">{uploadResult.agentId}</code></p>}
+              {uploadResult.agentToken && <p className="text-xs text-muted">Token: <code className="text-green-400">{uploadResult.agentToken}</code></p>}
+              {uploadResult.message && <p className="text-xs text-muted/70">{uploadResult.message}</p>}
             </div>
           )}
         </CardContent>

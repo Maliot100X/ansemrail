@@ -41,16 +41,16 @@ export default function PaymentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-50">x402 Payments</h1>
-        <p className="text-sm text-zinc-400">Internet-native payments. No accounts, no API keys, zero friction.</p>
+        <h1 className="text-2xl font-bold text-foreground">x402 Payments</h1>
+        <p className="text-sm text-muted">Internet-native payments. No accounts, no API keys, zero friction.</p>
       </div>
 
       {loading ? (
-        <p className="text-sm text-zinc-500">Loading...</p>
+        <p className="text-sm text-muted/70">Loading...</p>
       ) : (
         <>
           {/* Protocol Overview */}
-          <Card className="border-amber-800/50 bg-gradient-to-r from-amber-950/20 to-zinc-900/50">
+          <Card className="border-amber-800/50 bg-gradient-to-r from-amber-950/20 to-black/50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-sm text-amber-400">
                 <Zap className="h-4 w-4" /> x402 Protocol
@@ -59,23 +59,23 @@ export default function PaymentsPage() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                  <p className="text-xs text-zinc-500">Network</p>
-                  <p className="text-sm font-medium text-zinc-100">{info?.network}</p>
+                  <p className="text-xs text-muted/70">Network</p>
+                  <p className="text-sm font-medium text-foreground">{info?.network}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-zinc-500">Protocol</p>
-                  <p className="text-sm font-medium text-zinc-100">{info?.protocol}</p>
+                  <p className="text-xs text-muted/70">Protocol</p>
+                  <p className="text-sm font-medium text-foreground">{info?.protocol}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-zinc-500">Total Payments</p>
+                  <p className="text-xs text-muted/70">Total Payments</p>
                   <p className="text-sm font-medium text-amber-400">{stats?.totalPayments || 0}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-zinc-500">Total Volume</p>
+                  <p className="text-xs text-muted/70">Total Volume</p>
                   <p className="text-sm font-medium text-amber-400">{stats?.totalVolume || "0"} SOL</p>
                 </div>
               </div>
-              <p className="text-xs text-zinc-400">{info?.note}</p>
+              <p className="text-xs text-muted">{info?.note}</p>
             </CardContent>
           </Card>
 
@@ -89,7 +89,7 @@ export default function PaymentsPage() {
             <CardContent>
               <div className="flex gap-2 flex-wrap">
                 {info?.supportedTokens.map((token) => (
-                  <Badge key={token} variant="outline" className="text-zinc-300">{token}</Badge>
+                  <Badge key={token} variant="outline" className="text-foreground/75">{token}</Badge>
                 ))}
               </div>
             </CardContent>
@@ -105,8 +105,8 @@ export default function PaymentsPage() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {info?.pricePerCall && Object.entries(info.pricePerCall).map(([endpoint, price]) => (
-                  <div key={endpoint} className="flex items-center justify-between rounded-lg bg-zinc-800/50 px-4 py-2.5">
-                    <code className="text-xs text-zinc-300">{endpoint}</code>
+                  <div key={endpoint} className="flex items-center justify-between rounded-lg bg-white/10 px-4 py-2.5">
+                    <code className="text-xs text-foreground/75">{endpoint}</code>
                     <span className="text-sm font-medium text-amber-400">{price}</span>
                   </div>
                 ))}
@@ -122,7 +122,7 @@ export default function PaymentsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3 text-sm text-zinc-400">
+              <div className="space-y-3 text-sm text-muted">
                 <div className="flex gap-3">
                   <span className="text-amber-400 font-bold shrink-0">1.</span>
                   <p>Agent sends HTTP request to AnsemRail API</p>

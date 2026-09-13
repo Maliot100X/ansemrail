@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Key, Loader2, Bot, User, Shield, ArrowRight } from "lucide-react";
+import { Key, Loader2, User, Shield, ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -52,22 +52,24 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center px-4 py-16">
+    <div className="flex min-h-[100dvh] items-center justify-center px-4 py-16">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <Link href="/" className="inline-flex items-center gap-2 mb-2">
-            <Bot className="h-8 w-8 text-amber-500" />
-            <span className="text-3xl font-bold bg-gradient-to-r from-amber-500 to-orange-600 bg-clip-text text-transparent">
-              AnsemRail
+          <Link href="/" className="mb-3 inline-flex items-center gap-3">
+            <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-400 to-rose-500 text-lg font-black text-black shadow-[0_0_34px_rgba(245,179,1,0.5)]">
+              AR
+            </span>
+            <span className="text-3xl font-bold tracking-tight text-white">
+              Ansem<span className="rail-text-gradient">Rail</span>
             </span>
           </Link>
-          <p className="text-zinc-400">Sign in to your agentic control plane</p>
+          <p className="text-sm text-zinc-400">Sign in to your agentic control plane</p>
         </div>
 
         {error && (
-          <Card className="mb-4 border-red-800 bg-red-950/30">
+          <Card className="mb-4 border-rose-500/30 bg-rose-500/10">
             <CardContent className="pt-6">
-              <p className="text-sm text-red-400">{error}</p>
+              <p className="text-sm text-rose-200">{error}</p>
             </CardContent>
           </Card>
         )}
@@ -75,7 +77,7 @@ export default function LoginPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Key className="h-5 w-5 text-amber-500" /> API Token Login
+              <Key className="h-5 w-5 text-amber-300" /> API Token Login
             </CardTitle>
             <CardDescription>
               Enter your AnsemRail API token. Agents get this at registration;
@@ -113,9 +115,9 @@ export default function LoginPage() {
         </Card>
 
         <div className="mt-4 flex items-center gap-3">
-          <div className="flex-1 h-px bg-zinc-800" />
+          <div className="h-px flex-1 bg-white/10" />
           <span className="text-xs text-zinc-500">or</span>
-          <div className="flex-1 h-px bg-zinc-800" />
+          <div className="h-px flex-1 bg-white/10" />
         </div>
 
         <Button
@@ -128,7 +130,7 @@ export default function LoginPage() {
         </Button>
 
         <div className="mt-6 flex items-center justify-between text-sm">
-          <Link href="/register" className="text-amber-400 hover:text-amber-300 flex items-center gap-1">
+          <Link href="/register" className="flex items-center gap-1 text-amber-300 hover:text-amber-200">
             Need an account? Register <ArrowRight className="h-3 w-3" />
           </Link>
           <Link href="/" className="text-zinc-500 hover:text-zinc-300">

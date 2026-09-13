@@ -22,7 +22,7 @@ interface Reputation {
 }
 
 const TIER_COLORS: Record<string, string> = {
-  unrated: "text-zinc-400",
+  unrated: "text-muted",
   bronze: "text-amber-600",
   silver: "text-gray-300",
   gold: "text-yellow-400",
@@ -30,7 +30,7 @@ const TIER_COLORS: Record<string, string> = {
 };
 
 const TIER_BG: Record<string, string> = {
-  unrated: "bg-zinc-800",
+  unrated: "bg-white/10",
   bronze: "bg-amber-900/30 border-amber-800/50",
   silver: "bg-gray-800/30 border-gray-700/50",
   gold: "bg-yellow-900/30 border-yellow-700/50",
@@ -67,8 +67,8 @@ export default function RegistryPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-50">Agent Registry</h1>
-          <p className="text-sm text-zinc-400">On-chain reputation system. Trust tiers earned through verified activity.</p>
+          <h1 className="text-2xl font-bold text-foreground">Agent Registry</h1>
+          <p className="text-sm text-muted">On-chain reputation system. Trust tiers earned through verified activity.</p>
         </div>
         <Button onClick={registerAgent} disabled={registering} className="bg-amber-600 hover:bg-amber-700">
           <Shield className="h-4 w-4 mr-2" /> {registering ? "Registering..." : "Register Agent"}
@@ -88,7 +88,7 @@ export default function RegistryPage() {
             <CardContent className="p-3 text-center">
               <p className="text-2xl">{t.icon}</p>
               <p className={`text-sm font-semibold capitalize ${TIER_COLORS[t.tier]}`}>{t.tier}</p>
-              <p className="text-xs text-zinc-500">{t.min}+ pts</p>
+              <p className="text-xs text-muted/70">{t.min}+ pts</p>
             </CardContent>
           </Card>
         ))}
@@ -103,14 +103,14 @@ export default function RegistryPage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-sm text-zinc-500">Loading...</p>
+            <p className="text-sm text-muted/70">Loading...</p>
           ) : agents.length === 0 ? (
-            <p className="text-sm text-zinc-500">No agents registered yet. Be the first!</p>
+            <p className="text-sm text-muted/70">No agents registered yet. Be the first!</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-zinc-800 text-left text-xs text-zinc-500">
+                  <tr className="border-b border-white/10 text-left text-xs text-muted/70">
                     <th className="pb-2 pr-4">#</th>
                     <th className="pb-2 pr-4">Agent</th>
                     <th className="pb-2 pr-4">Trust Tier</th>
@@ -123,9 +123,9 @@ export default function RegistryPage() {
                 </thead>
                 <tbody>
                   {agents.map((a, i) => (
-                    <tr key={a.id} className="border-b border-zinc-800/60 text-zinc-300">
-                      <td className="py-2.5 pr-4 text-zinc-500">{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}</td>
-                      <td className="py-2.5 pr-4 font-medium text-zinc-100">{a.email || a.userId.slice(0, 8)}</td>
+                    <tr key={a.id} className="border-b border-white/10 text-foreground/75">
+                      <td className="py-2.5 pr-4 text-muted/70">{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}</td>
+                      <td className="py-2.5 pr-4 font-medium text-foreground">{a.email || a.userId.slice(0, 8)}</td>
                       <td className="py-2.5 pr-4"><Badge className={TIER_COLORS[a.trustTier]}>{a.trustTier}</Badge></td>
                       <td className="py-2.5 pr-4 font-mono text-amber-400">{a.reputationScore}</td>
                       <td className="py-2.5 pr-4">{a.successfulTrades}/{a.totalTrades}</td>

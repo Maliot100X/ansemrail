@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
+import { Badge } from "@/components/ui/badge";
+import { AnsemOrb } from "@/components/three/ansem-orb";
 import {
   LayoutDashboard,
   Bot,
@@ -65,8 +67,11 @@ export default function DashboardLayout({
 
   if (status === "loading") {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950">
-        <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+      <div className="flex min-h-screen items-center justify-center bg-[#050507]">
+        <div className="flex items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-amber-400" />
+          <span className="text-sm text-zinc-400">Loading AnsemRail…</span>
+        </div>
       </div>
     );
   }
@@ -74,8 +79,11 @@ export default function DashboardLayout({
   if (status === "unauthenticated") {
     router.push("/login");
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950">
-        <Loader2 className="h-8 w-8 animate-spin text-amber-500" />
+      <div className="flex min-h-screen items-center justify-center bg-[#050507]">
+        <div className="flex items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-amber-400" />
+          <span className="text-sm text-zinc-400">Redirecting…</span>
+        </div>
       </div>
     );
   }
@@ -90,46 +98,53 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-zinc-950">
+    <div className="flex min-h-screen bg-[#050507]">
       {/* Desktop Sidebar */}
-      <aside className="hidden w-64 flex-col border-r border-zinc-800 bg-zinc-900/50 md:flex">
-        <div className="flex h-16 items-center gap-2 border-b border-zinc-800 px-6">
-          <Bot className="h-6 w-6 text-amber-500" />
-          <span className="text-xl font-bold bg-gradient-to-r from-amber-500 to-orange-600 bg-clip-text text-transparent">
-            AnsemRail
+      <aside className="hidden w-64 flex-col border-r border-white/10 bg-[#08090d]/85 backdrop-blur-xl md:flex">
+        <div className="flex h-16 items-center gap-3 border-b border-white/10 px-5">
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-amber-400 to-rose-500 text-sm font-black text-black shadow-[0_0_22px_rgba(245,179,1,0.4)]">
+            AR
           </span>
+          <div>
+            <span className="block text-lg font-bold leading-tight text-white">
+              Ansem<span className="rail-text-gradient">Rail</span>
+            </span>
+            <span className="block text-[9px] uppercase tracking-[0.2em] text-zinc-500">
+              Control Plane
+            </span>
+          </div>
         </div>
         <nav className="flex-1 space-y-1 p-3 overflow-y-auto">
           {navItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+              className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                 isActive(item.href)
-                  ? "bg-amber-600/15 text-amber-400 border-l-2 border-amber-500"
-                  : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+                  ? "border border-amber-300/20 bg-gradient-to-r from-amber-400/15 to-orange-500/10 text-amber-200 shadow-[0_0_22px_rgba(245,179,1,0.12)]"
+                  : "border border-transparent text-zinc-400 hover:border-white/10 hover:bg-white/[0.05] hover:text-zinc-100"
               }`}
             >
-              <item.icon className="h-5 w-5" />
+              <item.icon className={`h-5 w-5 transition-colors ${isActive(item.href) ? "text-amber-300" : "text-zinc-500 group-hover:text-amber-200"}`} />
               {item.label}
             </Link>
           ))}
         </nav>
-        <div className="border-t border-zinc-800 p-4 space-y-3">
-          <div className="flex items-center gap-2 rounded-lg bg-zinc-800/50 p-3">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-r from-amber-500 to-orange-600 flex items-center justify-center text-xs font-bold text-white">
-              {userName.charAt(0).toUpperCase()}
+        <div className="space-y-3 border-t border-white/10 p-4">
+          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.07] to-transparent p-3 backdrop-blur">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-amber-300/40 bg-black shadow-[0_0_18px_rgba(245,179,1,0.4)]">
+              <AnsemOrb />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-zinc-200 truncate">{userName}</p>
-              <p className="text-xs text-zinc-500 truncate">
+              <p className="truncate text-xs font-semibold text-zinc-100">{userName}</p>
+              <p className="truncate text-[11px] text-zinc-500">
                 {userType === "agent" ? "Autonomous Agent" : userEmail || "Human User"}
               </p>
             </div>
           </div>
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-zinc-400 transition-colors hover:bg-red-950/40 hover:text-red-400"
+            className="flex w-full items-center gap-2 rounded-xl border border-white/5 bg-white/[0.03] px-3 py-2 text-xs font-medium text-zinc-400 transition-colors hover:border-rose-400/30 hover:bg-rose-500/10 hover:text-rose-300"
           >
             <LogOut className="h-4 w-4" /> Sign Out
           </button>
@@ -138,26 +153,26 @@ export default function DashboardLayout({
 
       {/* Mobile Header + Drawer */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="flex h-16 items-center justify-between border-b border-zinc-800 bg-zinc-900/50 px-4 backdrop-blur md:px-6">
+        <header className="flex h-16 items-center justify-between border-b border-white/10 bg-black/30 px-4 backdrop-blur-xl md:px-6">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setMobileOpen(true)}
-              className="md:hidden text-zinc-400 hover:text-zinc-100"
+              className="rounded-lg border border-white/10 bg-white/[0.04] p-2 text-zinc-300 hover:text-white md:hidden"
             >
               <Menu className="h-6 w-6" />
             </button>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-zinc-500">Bull Mode</span>
-              <span className="inline-flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+              <Badge variant="ansem">Bull Mode</Badge>
+              <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.9)] animate-pulse" />
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-zinc-500 hidden sm:inline">
+            <span className="hidden text-xs text-zinc-400 sm:inline">
               {userType === "agent" ? "Agent" : "Human"} · {userName}
             </span>
             <button
               onClick={() => signOut({ callbackUrl: "/login" })}
-              className="flex items-center gap-1 rounded-md bg-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:bg-zinc-700"
+              className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs font-medium text-zinc-300 backdrop-blur hover:border-rose-400/30 hover:text-rose-300"
             >
               <LogOut className="h-3 w-3" /> Logout
             </button>
@@ -176,8 +191,8 @@ export default function DashboardLayout({
             className="absolute inset-0 bg-black/60"
             onClick={() => setMobileOpen(false)}
           />
-          <aside className="absolute left-0 top-0 h-full w-72 bg-zinc-900 border-r border-zinc-800 flex flex-col">
-            <div className="flex h-16 items-center justify-between border-b border-zinc-800 px-6">
+          <aside className="absolute left-0 top-0 flex h-full w-72 flex-col border-r border-white/10 bg-[#08090d]/95 backdrop-blur-xl">
+            <div className="flex h-16 items-center justify-between border-b border-white/10 px-6">
               <div className="flex items-center gap-2">
                 <Bot className="h-6 w-6 text-amber-500" />
                 <span className="text-lg font-bold bg-gradient-to-r from-amber-500 to-orange-600 bg-clip-text text-transparent">
@@ -196,8 +211,8 @@ export default function DashboardLayout({
                   onClick={() => setMobileOpen(false)}
                   className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                     isActive(item.href)
-                      ? "bg-amber-600/15 text-amber-400"
-                      : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+                      ? "border border-amber-300/20 bg-gradient-to-r from-amber-400/15 to-orange-500/10 text-amber-200"
+                      : "border border-transparent text-zinc-400 hover:border-white/10 hover:bg-white/[0.05] hover:text-zinc-100"
                   }`}
                 >
                   <item.icon className="h-5 w-5" />

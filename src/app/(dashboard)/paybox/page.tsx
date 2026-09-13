@@ -253,8 +253,8 @@ const [copied, setCopied] = useState(false);
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-50">PayBox Agent</h1>
-        <p className="text-sm text-zinc-400">Your non-custodial wallet for agents — trade, swap, transfer across chains. Connect your PayBox API key in Settings → Accounts.</p>
+        <h1 className="text-2xl font-bold text-foreground">PayBox Agent</h1>
+        <p className="text-sm text-muted">Your non-custodial wallet for agents — trade, swap, transfer across chains. Connect your PayBox API key in Settings → Accounts.</p>
       </div>
 
       {error && (
@@ -292,8 +292,8 @@ const [copied, setCopied] = useState(false);
 
               {credentials.length > 0 && (
                 <div className="space-y-2">
-                  <Label className="text-xs text-zinc-400">Select Wallet</Label>
-                  <select className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100" value={selectedCred} onChange={e => { setSelectedCred(e.target.value); setPortfolio(null); }}>
+                  <Label className="text-xs text-muted">Select Wallet</Label>
+                  <select className="w-full rounded-md border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-foreground" value={selectedCred} onChange={e => { setSelectedCred(e.target.value); setPortfolio(null); }}>
                     {credentials.map((c: any) => (
                       <option key={c.credential_id} value={c.credential_id}>
                         {c.name || c.kind} — {shortAddr(c.metadata?.address, 8)} ({c.metadata?.chains?.join(", ") || "solana"})
@@ -307,31 +307,31 @@ const [copied, setCopied] = useState(false);
                 const cred = credentials.find((c: any) => c.credential_id === selectedCred);
                 if (!cred) return null;
                 return (
-                  <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 space-y-2">
+                  <div className="rounded-lg border bg-white/[0.02] p-4 space-y-2">
                     <div className="flex items-center justify-between">
-                      <p className="text-sm font-medium text-zinc-200">{cred.name || cred.kind}</p>
+                      <p className="text-sm font-medium text-foreground/90">{cred.name || cred.kind}</p>
                       <Badge variant="outline">{cred.approval_mode}</Badge>
                     </div>
                     <div className="flex items-center gap-2">
-                      <p className="text-xs text-zinc-500">Address:</p>
-                      <p className="text-xs font-mono text-zinc-300">{cred.metadata?.address}</p>
-                      <button onClick={() => copyAddr(cred.metadata?.address)} className="text-zinc-500 hover:text-zinc-300">
+                      <p className="text-xs text-muted/70">Address:</p>
+                      <p className="text-xs font-mono text-foreground/75">{cred.metadata?.address}</p>
+                      <button onClick={() => copyAddr(cred.metadata?.address)} className="text-muted/70 hover:text-foreground/75">
                         {copied ? <CheckCircle2 className="h-3 w-3 text-green-400" /> : <Copy className="h-3 w-3" />}
                       </button>
                     </div>
-                    <p className="text-xs text-zinc-500">Chains: {cred.metadata?.chains?.join(", ")}</p>
+                    <p className="text-xs text-muted/70">Chains: {cred.metadata?.chains?.join(", ")}</p>
                   </div>
                 );
               })()}
 
               {portfolio && (
-                <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 space-y-3">
-                  <p className="text-sm font-medium text-zinc-200">Portfolio — ${portfolio.total_usd?.toFixed(2) || "0.00"} USD</p>
+                <div className="rounded-lg border bg-white/[0.02] p-4 space-y-3">
+                  <p className="text-sm font-medium text-foreground/90">Portfolio — ${portfolio.total_usd?.toFixed(2) || "0.00"} USD</p>
                   {(portfolio.items || []).map((item: any, i: number) => (
                     <div key={i} className="flex justify-between items-center text-xs">
-                      <span className="text-zinc-300">{item.symbol || shortAddr(item.token, 6)}</span>
-                      <span className="font-mono text-zinc-400">{Number(item.amount).toFixed(4)}</span>
-                      <span className="text-zinc-500">${item.usd_value?.toFixed(2) || "0"}</span>
+                      <span className="text-foreground/75">{item.symbol || shortAddr(item.token, 6)}</span>
+                      <span className="font-mono text-muted">{Number(item.amount).toFixed(4)}</span>
+                      <span className="text-muted/70">${item.usd_value?.toFixed(2) || "0"}</span>
                     </div>
                   ))}
                 </div>
@@ -342,13 +342,13 @@ const [copied, setCopied] = useState(false);
 
         {/* TRANSFER */}
         <TabsContent value="transfer" className="space-y-4">
-              <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3 space-y-2">
+              <div className="rounded-lg border bg-white/[0.02] p-3 space-y-2">
                 <div className="flex items-center justify-between gap-2">
-                  <Label className="text-xs text-zinc-400">Registered platform agent</Label>
+                  <Label className="text-xs text-muted">Registered platform agent</Label>
                   <Button type="button" size="sm" variant="outline" onClick={loadRegisteredAgents} disabled={loading}>Load agents</Button>
                 </div>
                 <select
-                  className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+                  className="w-full rounded-md border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-foreground"
                   value={selectedAgentId}
                   onChange={(event) => {
                     const agentId = event.target.value;
@@ -367,7 +367,7 @@ const [copied, setCopied] = useState(false);
                     </option>
                   ))}
                 </select>
-                <p className="text-xs text-zinc-500">Selecting an agent fills the recipient with its profile wallet. Clear the selector to send to any address.</p>
+                <p className="text-xs text-muted/70">Selecting an agent fills the recipient with its profile wallet. Clear the selector to send to any address.</p>
               </div>
 
           <Card>
@@ -376,19 +376,19 @@ const [copied, setCopied] = useState(false);
               <CardDescription>Send tokens from your PayBox wallet to any address</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {!selectedCred && <p className="text-xs text-zinc-500">Load wallets in the Wallet tab first.</p>}
+              {!selectedCred && <p className="text-xs text-muted/70">Load wallets in the Wallet tab first.</p>}
               <div className="space-y-2">
-                <Label className="text-xs text-zinc-400">Recipient Address</Label>
+                <Label className="text-xs text-muted">Recipient Address</Label>
                 <Input placeholder="Solana address (e.g. 4exzw...TaNdxRJ)" value={transfer.to} onChange={e => setTransfer({ ...transfer, to: e.target.value })} className="font-mono text-xs" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label className="text-xs text-zinc-400">Amount</Label>
+                  <Label className="text-xs text-muted">Amount</Label>
                   <Input placeholder="0.1" value={transfer.amount} onChange={e => setTransfer({ ...transfer, amount: e.target.value })} />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs text-zinc-400">Token</Label>
-                  <select className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100" value={transfer.token} onChange={e => setTransfer({ ...transfer, token: e.target.value })}>
+                  <Label className="text-xs text-muted">Token</Label>
+                  <select className="w-full rounded-md border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-foreground" value={transfer.token} onChange={e => setTransfer({ ...transfer, token: e.target.value })}>
                     <option value="SOL">SOL</option>
                     <option value="USDC">USDC</option>
                     <option value="ANSEM">$ANSEM</option>
@@ -405,13 +405,13 @@ const [copied, setCopied] = useState(false);
 
         {/* SWAP */}
         <TabsContent value="swap" className="space-y-4">
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3 space-y-2">
+          <div className="rounded-lg border bg-white/[0.02] p-3 space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <Label className="text-xs text-zinc-400">Registered platform agent</Label>
+              <Label className="text-xs text-muted">Registered platform agent</Label>
               <Button type="button" size="sm" variant="outline" onClick={loadRegisteredAgents} disabled={loading}>Load agents</Button>
             </div>
             <select
-              className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100"
+              className="w-full rounded-md border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-foreground"
               value={selectedAgentId}
               onChange={(event) => setSelectedAgentId(event.target.value)}
             >
@@ -422,7 +422,7 @@ const [copied, setCopied] = useState(false);
                 </option>
               ))}
             </select>
-            <label className="flex items-center gap-2 text-xs text-zinc-400">
+            <label className="flex items-center gap-2 text-xs text-muted">
               <input
                 type="checkbox"
                 checked={sendToAgentWallet}
@@ -438,23 +438,23 @@ const [copied, setCopied] = useState(false);
               <CardDescription>Swap tokens via PayBox MCP across chains</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {!selectedCred && <p className="text-xs text-zinc-500">Load wallets in the Wallet tab first.</p>}
+              {!selectedCred && <p className="text-xs text-muted/70">Load wallets in the Wallet tab first.</p>}
               <div className="grid grid-cols-3 gap-3 items-end">
                 <div className="space-y-2">
-                  <Label className="text-xs text-zinc-400">From</Label>
-                  <select className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100" value={swap.src} onChange={e => setSwap({ ...swap, src: e.target.value })}>
+                  <Label className="text-xs text-muted">From</Label>
+                  <select className="w-full rounded-md border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-foreground" value={swap.src} onChange={e => setSwap({ ...swap, src: e.target.value })}>
                     <option value="SOL">SOL</option>
                     <option value="USDC">USDC</option>
                     <option value="ANSEM">$ANSEM</option>
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs text-zinc-400">Amount</Label>
+                  <Label className="text-xs text-muted">Amount</Label>
                   <Input placeholder="0.1" value={swap.amount} onChange={e => setSwap({ ...swap, amount: e.target.value })} />
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-xs text-zinc-400">To</Label>
-                  <select className="w-full rounded-md border border-zinc-700 bg-zinc-900 px-3 py-2 text-sm text-zinc-100" value={swap.dst} onChange={e => setSwap({ ...swap, dst: e.target.value })}>
+                  <Label className="text-xs text-muted">To</Label>
+                  <select className="w-full rounded-md border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-foreground" value={swap.dst} onChange={e => setSwap({ ...swap, dst: e.target.value })}>
                     <option value="USDC">USDC</option>
                     <option value="SOL">SOL</option>
                     <option value="ANSEM">$ANSEM</option>
@@ -481,16 +481,16 @@ const [copied, setCopied] = useState(false);
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}Discover Services
               </Button>
               {services.length > 0 && services.map((s: any, i: number) => (
-                <div key={i} className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 space-y-1">
+                <div key={i} className="rounded-lg border bg-white/[0.02] p-4 space-y-1">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-zinc-200">{s.name || s.id}</p>
+                    <p className="text-sm font-medium text-foreground/90">{s.name || s.id}</p>
                     {s.url && <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:text-amber-300"><ExternalLink className="h-4 w-4" /></a>}
                   </div>
-                  <p className="text-xs text-zinc-500">{s.description}</p>
+                  <p className="text-xs text-muted/70">{s.description}</p>
                   {s.pricing && <p className="text-xs text-amber-400">{s.pricing}</p>}
                 </div>
               ))}
-              {services.length === 0 && !loading && <p className="text-xs text-zinc-500">Click "Discover Services" to load.</p>}
+              {services.length === 0 && !loading && <p className="text-xs text-muted/70">Click "Discover Services" to load.</p>}
             </CardContent>
           </Card>
         </TabsContent>
@@ -507,12 +507,12 @@ const [copied, setCopied] = useState(false);
                 {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <RefreshCw className="h-4 w-4 mr-1" />}Load credentials
               </Button>
               {credentials.map((credential: any) => (
-                <div key={credential.credential_id} className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 space-y-3">
+                <div key={credential.credential_id} className="rounded-lg border bg-white/[0.02] p-4 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <p className="text-sm font-medium text-zinc-200">{credential.name || credential.kind}</p>
-                      <p className="text-xs font-mono text-zinc-500">{credential.metadata?.address}</p>
-                      <p className="text-xs text-zinc-500">Mode: {credential.approval_mode || "unknown"} · {credential.granted ? "granted" : "ungranted"}</p>
+                      <p className="text-sm font-medium text-foreground/90">{credential.name || credential.kind}</p>
+                      <p className="text-xs font-mono text-muted/70">{credential.metadata?.address}</p>
+                      <p className="text-xs text-muted/70">Mode: {credential.approval_mode || "unknown"} · {credential.granted ? "granted" : "ungranted"}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {!credential.granted ? (
@@ -531,7 +531,7 @@ const [copied, setCopied] = useState(false);
               <Button size="sm" variant="outline" onClick={() => changeAccount({ create: [{ kind: "wallet", chain: "solana", name: "AnsemRail Solana wallet" }], note: "Create a new PayBox wallet for AnsemRail" })}>
                 Create Solana wallet
               </Button>
-              <p className="text-xs text-zinc-500">
+              <p className="text-xs text-muted/70">
                 Saved local policy templates remain auxiliary metadata. Enforcement comes from these real PayBox account grants and approval modes.
               </p>
             </CardContent>
@@ -547,16 +547,16 @@ const [copied, setCopied] = useState(false);
               <Loader2 className="h-4 w-4 animate-spin text-amber-400" />
               <p className="text-sm font-medium text-amber-300">PayBox request active</p>
             </div>
-            <p className="text-xs text-zinc-400">Status: <span className="text-zinc-200">{pendingStatus || "processing"}</span></p>
-            <p className="text-xs text-zinc-500">Request: {shortAddr(pendingRequestId, 8)}</p>
+            <p className="text-xs text-muted">Status: <span className="text-foreground/90">{pendingStatus || "processing"}</span></p>
+            <p className="text-xs text-muted/70">Request: {shortAddr(pendingRequestId, 8)}</p>
             {pendingStatus === "pending_signature" && keySetupUrl && (
               <a href={keySetupUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-amber-400 hover:text-amber-300">
                 Get signing key for automatic confirmation <ExternalLink className="h-3 w-3" />
               </a>
             )}
             {pendingStatus === "pending_signature" && (
-              <div className="rounded-lg border border-zinc-800 bg-zinc-900/70 p-3 space-y-2">
-                <Label className="text-xs text-zinc-300">Submit signing key</Label>
+              <div className="rounded-lg border border-white/10 bg-white/[0.05] p-3 space-y-2">
+                <Label className="text-xs text-foreground/75">Submit signing key</Label>
                 <div className="flex flex-col sm:flex-row gap-2">
                   <Input
                     type="password"
@@ -570,7 +570,7 @@ const [copied, setCopied] = useState(false);
                     Submit &amp; Confirm
                   </Button>
                 </div>
-                <p className="text-xs text-zinc-500">
+                <p className="text-xs text-muted/70">
                   Paste the pbxk1 key PayBox showed you. It is encrypted and saved only to this account.
                 </p>
                 {keyMessage && <p className="text-xs text-amber-300">{keyMessage}</p>}
@@ -587,7 +587,7 @@ const [copied, setCopied] = useState(false);
 
       {/* Result */}
       {result && !pendingRequestId && (
-        <Card className={`border ${result.status === "success" || resultTxHash ? "border-green-800/50" : "border-zinc-700"}`}>
+        <Card className={`border ${result.status === "success" || resultTxHash ? "border-green-800/50" : "border-white/10"}`}>
           <CardContent className="p-4 space-y-3">
             <div className="flex items-center gap-2">
               {result.status === "success" || resultTxHash ? (
@@ -603,22 +603,22 @@ const [copied, setCopied] = useState(false);
               )}
             </div>
             <div className="grid gap-1 text-xs">
-              <p className="text-zinc-400">Status: <span className="text-zinc-200">{result.status || "unknown"}</span></p>
-              {result.request_id && <p className="text-zinc-400">Request: <span className="font-mono text-zinc-200">{result.request_id}</span></p>}
+              <p className="text-muted">Status: <span className="text-foreground/90">{result.status || "unknown"}</span></p>
+              {result.request_id && <p className="text-muted">Request: <span className="font-mono text-foreground/90">{result.request_id}</span></p>}
               {(result.error || result.reason || result.output?.value?.error) && (
-                <p className="text-zinc-400">Reason: <span className="text-red-300">{result.error || result.reason || result.output?.value?.error}</span></p>
+                <p className="text-muted">Reason: <span className="text-red-300">{result.error || result.reason || result.output?.value?.error}</span></p>
               )}
-              {result.output?.output_type && <p className="text-zinc-400">Result type: <span className="text-zinc-200">{result.output.output_type}</span></p>}
+              {result.output?.output_type && <p className="text-muted">Result type: <span className="text-foreground/90">{result.output.output_type}</span></p>}
               {resultTxHash && (
-                <p className="text-zinc-400">
+                <p className="text-muted">
                   Transaction: <a href={`https://solscan.io/tx/${resultTxHash}`} target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:underline break-all">{resultTxHash}</a>
                 </p>
               )}
               {result.output?.value?.signature && (
-                <p className="text-zinc-400">Signature: <span className="font-mono text-zinc-200 break-all">{result.output.value.signature}</span></p>
+                <p className="text-muted">Signature: <span className="font-mono text-foreground/90 break-all">{result.output.value.signature}</span></p>
               )}
             </div>
-            <pre className="text-xs text-zinc-500 overflow-auto max-h-64 bg-zinc-900 rounded-md p-3">{JSON.stringify(result, null, 2)}</pre>
+            <pre className="text-xs text-muted/70 overflow-auto max-h-64 bg-white/[0.05] rounded-md p-3">{JSON.stringify(result, null, 2)}</pre>
           </CardContent>
         </Card>
       )}

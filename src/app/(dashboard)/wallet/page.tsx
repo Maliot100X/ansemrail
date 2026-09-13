@@ -41,8 +41,8 @@ export default function WalletPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-zinc-50">Wallet</h1>
-        <p className="text-sm text-zinc-400">Check SOL, EVM, and token balances for any address</p>
+        <h1 className="text-2xl font-bold text-foreground">Wallet</h1>
+        <p className="text-sm text-muted">Check SOL, EVM, and token balances for any address</p>
       </div>
 
       <Card className="max-w-2xl">
@@ -80,8 +80,8 @@ export default function WalletPage() {
               <div className="rounded-md border border-green-800 bg-green-950/30 p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-xs text-zinc-500">Chain: {balance.chain}</p>
-                    <p className="font-mono text-sm text-zinc-300 break-all">{balance.address}</p>
+                    <p className="text-xs text-muted/70">Chain: {balance.chain}</p>
+                    <p className="font-mono text-sm text-foreground/75 break-all">{balance.address}</p>
                   </div>
                   <Button variant="ghost" size="icon" onClick={() => copy(balance.address)}>
                     {copied ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
@@ -91,23 +91,23 @@ export default function WalletPage() {
                   {balance.chain === "solana" ? (
                     <>
                       <div>
-                        <p className="text-xs text-zinc-500">SOL Balance</p>
+                        <p className="text-xs text-muted/70">SOL Balance</p>
                         <p className="text-lg font-bold text-amber-400">{balance.solBalance?.toFixed(4)} SOL</p>
                       </div>
                       <div>
-                        <p className="text-xs text-zinc-500">Tokens</p>
-                        <p className="text-lg font-bold text-zinc-200">{balance.tokens?.length || 0}</p>
+                        <p className="text-xs text-muted/70">Tokens</p>
+                        <p className="text-lg font-bold text-foreground/90">{balance.tokens?.length || 0}</p>
                       </div>
                     </>
                   ) : (
                     <>
                       <div>
-                        <p className="text-xs text-zinc-500">ETH Balance</p>
+                        <p className="text-xs text-muted/70">ETH Balance</p>
                         <p className="text-lg font-bold text-amber-400">{balance.ethBalance?.toFixed(4)} ETH</p>
                       </div>
                       <div>
-                        <p className="text-xs text-zinc-500">Tokens</p>
-                        <p className="text-lg font-bold text-zinc-200">{balance.tokens?.length || 0}</p>
+                        <p className="text-xs text-muted/70">Tokens</p>
+                        <p className="text-lg font-bold text-foreground/90">{balance.tokens?.length || 0}</p>
                       </div>
                     </>
                   )}
@@ -116,10 +116,10 @@ export default function WalletPage() {
 
               {balance.tokens && balance.tokens.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-zinc-300">Token Holdings</p>
+                  <p className="text-sm font-medium text-foreground/75">Token Holdings</p>
                   {balance.tokens.slice(0, 10).map((t: any, i: number) => (
-                    <div key={i} className="flex items-center justify-between rounded-md border border-zinc-800 bg-zinc-900/50 px-3 py-2">
-                      <span className="text-xs font-mono text-zinc-400">{t.mint?.slice(0, 8)}...{t.mint?.slice(-6)}</span>
+                    <div key={i} className="flex items-center justify-between rounded-md border bg-white/[0.02] px-3 py-2">
+                      <span className="text-xs font-mono text-muted">{t.mint?.slice(0, 8)}...{t.mint?.slice(-6)}</span>
                       <Badge variant="secondary">{t.amount?.toFixed ? t.amount.toFixed(4) : t.amount}</Badge>
                     </div>
                   ))}
