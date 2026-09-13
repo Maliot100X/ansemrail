@@ -31,20 +31,23 @@ export function AgentAvatar({
   name,
   className = "",
   showStatus = true,
+  bare = false,
 }: {
   seed: string;
   status?: string;
   name?: string;
   className?: string;
   showStatus?: boolean;
+  bare?: boolean;
 }) {
   const palette = agentPalette(seed || "ansem", status);
   const label = showStatus ? statusLabel(status) : null;
+  const frame = bare
+    ? "relative overflow-hidden"
+    : "relative overflow-hidden rounded-2xl border border-white/10 bg-black/30";
 
   return (
-    <div
-      className={`relative overflow-hidden rounded-2xl border border-white/10 bg-black/30 ${className}`}
-    >
+    <div className={`${frame} ${className}`}>
       <div aria-hidden className="rail-avatar-bg pointer-events-none absolute inset-0" />
       <div
         aria-hidden

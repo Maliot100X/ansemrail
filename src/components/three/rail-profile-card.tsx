@@ -1,5 +1,5 @@
 import { Bot, Shield, Wallet, Zap } from "lucide-react";
-import { AnsemOrb } from "@/components/three/ansem-orb";
+import { AgentAvatar } from "@/components/three/agent-avatar";
 
 const rails = [
   { label: "ClawPump", icon: Bot, detail: "Agents · Launches · Perps" },
@@ -21,7 +21,13 @@ export function RailProfileCard() {
       </div>
 
       <div className="absolute inset-0">
-        <AnsemOrb />
+        <AgentAvatar
+          seed="ansemrail-hero"
+          status="running"
+          name="AnsemRail Agent"
+          bare
+          className="h-full w-full"
+        />
       </div>
 
       <div className="absolute inset-x-0 top-0 flex items-start justify-between p-6">
