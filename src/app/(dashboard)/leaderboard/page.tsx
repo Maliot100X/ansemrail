@@ -1,11 +1,14 @@
 import { db } from "@/db/client";
 import { agents, users, registrations } from "@/db/schema";
-import { desc, eq, count, sql as drizzleSql } from "drizzle-orm";
+import { desc, eq, count } from "drizzle-orm";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Reveal } from "@/components/ui/reveal";
+import { AgentAvatar } from "@/components/three/agent-avatar";
+import { AnsemOrb } from "@/components/three/ansem-orb";
 import { shortAddress } from "@/lib/utils";
-import { Trophy, Bot, Users, Activity, ExternalLink, Star, UserCheck, CheckCircle } from "lucide-react";
+import { Trophy, Bot, Users, Activity, ExternalLink, Star, UserCheck, CheckCircle, Sparkles } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -48,186 +51,192 @@ export default async function LeaderboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Leaderboard</h1>
-        <p className="text-sm text-muted">
-          Registered users and agents on AnsemRail — tracking growth
-        </p>
-      </div>
+      <Reveal>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Leaderboard</h1>
+          <p className="text-sm text-muted">
+            Registered users and agents on AnsemRail — tracking growth
+          </p>
+        </div>
+      </Reveal>
 
       {/* Stats */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-sm text-muted">
-              <Users className="h-4 w-4 text-amber-500" /> Total Users
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-foreground">{allUsers.length}</p>
-            <p className="text-xs text-muted/70">{agentCount[0]?.count || 0} agents · {humanCount[0]?.count || 0} humans</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-sm text-muted">
-              <Bot className="h-4 w-4 text-amber-500" /> Platform Agents
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-foreground">{localAgents.length}</p>
-            <p className="text-xs text-muted/70">created via AnsemRail</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-sm text-muted">
-              <Activity className="h-4 w-4 text-amber-500" /> Registrations
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-foreground">
-              {registrationCount[0]?.count ?? 0}
-            </p>
-            <p className="text-xs text-muted/70">via skill.md / Ed25519</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-sm text-muted">
-              <Trophy className="h-4 w-4 text-amber-500" /> Ranked
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold text-foreground">{allUsers.length}</p>
-            <p className="text-xs text-muted/70">newest first</p>
-          </CardContent>
-        </Card>
+        {[
+          { title: "Total Users", value: allUsers.length, sub: `${agentCount[0]?.count || 0} agents · ${humanCount[0]?.count || 0} humans`, icon: Users },
+          { title: "Platform Agents", value: localAgents.length, sub: "created via AnsemRail", icon: Bot },
+          { title: "Registrations", value: registrationCount[0]?.count ?? 0, sub: "via skill.md / Ed25519", icon: Activity },
+          { title: "Ranked", value: allUsers.length, sub: "newest first", icon: Trophy },
+        ].map((stat, i) => (
+          <Reveal key={stat.title} delay={0.05 + i * 0.05}>
+            <Card className="transition-colors hover:border-amber-300/25">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-sm text-muted">
+                  <stat.icon className="h-4 w-4 text-amber-400" /> {stat.title}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-foreground">{stat.value}</p>
+                <p className="text-xs text-muted/70">{stat.sub}</p>
+              </CardContent>
+            </Card>
+          </Reveal>
+        ))}
       </div>
 
       {/* Featured Platform Agent */}
       {platformUser && (
-        <Card className="border-amber-800/50 bg-gradient-to-r from-amber-950/30 to-black/50">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm text-amber-400">
-              <Star className="h-4 w-4" /> Official Platform Agent
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4">
-              <div className="shrink-0 h-14 w-14 rounded-lg bg-amber-900/30 flex items-center justify-center border border-amber-800/50">
-                <Bot className="h-7 w-7 text-amber-400" />
-              </div>
+        <Reveal delay={0.25}>
+          <section className="rail-profile-hero rounded-[1.75rem] p-5 sm:p-7">
+            <div className="flex flex-col items-start gap-5 sm:flex-row sm:items-center">
+              <AgentAvatar
+                seed={platformUser.id}
+                status="running"
+                name="ClawrenAi Project Team"
+                className="h-24 w-24 shrink-0 sm:h-28 sm:w-28"
+              />
               <div className="min-w-0 flex-1">
-                <Link href={`/agents/${PLATFORM_AGENT_ID}`} className="group">
-                  <p className="text-lg font-bold text-foreground group-hover:text-amber-400 transition-colors">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rail-micro-label inline-flex items-center gap-1.5 text-amber-400">
+                    <Star className="h-3.5 w-3.5" /> Official Platform Agent
+                  </span>
+                  <Badge variant="success" className="shrink-0">active</Badge>
+                </div>
+                <Link href={`/agents/${PLATFORM_AGENT_ID}`} className="group mt-1.5 block">
+                  <p className="text-xl font-bold text-foreground group-hover:text-amber-400 transition-colors sm:text-2xl">
                     ClawrenAi Project Team
                   </p>
                 </Link>
-                <p className="text-xs text-muted/70">
+                <p className="mt-1 text-xs text-muted/70">
                   Official AnsemRail platform agent · Registered {platformUser.createdAt.toLocaleDateString()}
                 </p>
-                {platformUser.twitterHandle && (
-                  <a
-                    href={`https://x.com/${platformUser.twitterHandle.replace(/^@/, "")}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-muted hover:text-amber-400 transition-colors"
-                  >
-                    {platformUser.twitterHandle} <ExternalLink className="inline h-2.5 w-2.5" />
-                  </a>
-                )}
-                {platformUser.walletAddress && (
-                  <a
-                    href={`https://solscan.io/account/${platformUser.walletAddress}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-muted/70 hover:text-amber-400 transition-colors"
-                  >
-                    Wallet: {shortAddress(platformUser.walletAddress, 6)} <ExternalLink className="inline h-2.5 w-2.5" />
-                  </a>
-                )}
+                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                  {platformUser.twitterHandle && (
+                    <a
+                      href={`https://x.com/${platformUser.twitterHandle.replace(/^@/, "")}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-muted hover:text-amber-400 transition-colors"
+                    >
+                      {platformUser.twitterHandle} <ExternalLink className="inline h-2.5 w-2.5" />
+                    </a>
+                  )}
+                  {platformUser.walletAddress && (
+                    <a
+                      href={`https://solscan.io/account/${platformUser.walletAddress}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-muted/70 hover:text-amber-400 transition-colors"
+                    >
+                      Wallet: {shortAddress(platformUser.walletAddress, 6)} <ExternalLink className="inline h-2.5 w-2.5" />
+                    </a>
+                  )}
+                </div>
               </div>
-              <Badge variant="success" className="shrink-0">active</Badge>
             </div>
-          </CardContent>
-        </Card>
+          </section>
+        </Reveal>
       )}
 
       {/* Registered Users */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserCheck className="h-5 w-5 text-amber-500" /> Registered Users
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {otherUsers.length === 0 ? (
-            <p className="text-sm text-muted/70">No users registered yet — be the first!</p>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-white/10 text-left text-xs text-muted/70">
-                    <th className="pb-2 pr-4">#</th>
-                    <th className="pb-2 pr-4">User</th>
-                    <th className="pb-2 pr-4">Type</th>
-                    <th className="pb-2 pr-4">Wallet</th>
-                    <th className="pb-2 pr-4">Registered</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {otherUsers.map((user, i) => (
-                    <tr
-                      key={user.id}
-                      className="border-b border-white/10 text-foreground/75 hover:bg-white/10 transition-colors"
-                    >
-                      <td className="py-2.5 pr-4 text-muted/70">
-                        {i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 4}
-                      </td>
-                      <td className="py-2.5 pr-4">
-                        <Link href={`/agents/${user.id}`} className="group">
-                          <p className="font-medium text-foreground group-hover:text-amber-400 transition-colors">
-                            {user.email || "Agent"}
-                            {user.verified && (
-                              <CheckCircle className="inline h-3.5 w-3.5 text-green-400 ml-1" />
-                            )}
-                          </p>
-                          <p className="text-xs text-muted/60 group-hover:text-muted transition-colors">
-                            {shortAddress(user.id, 8)}
-                          </p>
-                        </Link>
-                      </td>
-                      <td className="py-2.5 pr-4">
-                        <Badge variant={user.type === "agent" ? "ansem" : "secondary"}>
-                          {user.type}
-                        </Badge>
-                      </td>
-                      <td className="py-2.5 pr-4">
-                        {user.walletAddress ? (
-                          <a
-                            href={`https://solscan.io/account/${user.walletAddress}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-muted/70 hover:text-amber-400 transition-colors"
-                          >
-                            {shortAddress(user.walletAddress, 6)} <ExternalLink className="inline h-2.5 w-2.5" />
-                          </a>
-                        ) : (
-                          <span className="text-xs text-muted/60">—</span>
-                        )}
-                      </td>
-                      <td className="py-2.5 pr-4 text-xs text-muted/70">
-                        {user.createdAt.toLocaleDateString()}
-                      </td>
+      <Reveal delay={0.3}>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-amber-400" /> Registered Users
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {otherUsers.length === 0 ? (
+              <p className="text-sm text-muted/70">No users registered yet — be the first!</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-white/10 text-left text-xs text-muted/70">
+                      <th className="pb-2 pr-4">#</th>
+                      <th className="pb-2 pr-4">User</th>
+                      <th className="pb-2 pr-4">Type</th>
+                      <th className="pb-2 pr-4">Wallet</th>
+                      <th className="pb-2 pr-4">Registered</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  </thead>
+                  <tbody>
+                    {otherUsers.map((user, i) => {
+                      const rank = i + 1;
+                      const medal =
+                        rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null;
+                      return (
+                        <tr
+                          key={user.id}
+                          style={{ animationDelay: `${Math.min(i * 35, 700)}ms` }}
+                          className="rail-row-rise border-b border-white/10 text-foreground/75 transition-colors hover:bg-white/[0.06]"
+                        >
+                          <td className="py-2.5 pr-4">
+                            <div className="rail-rank-medal flex items-center gap-1.5 text-muted/70">
+                              {medal ? (
+                                <span className="text-base">{medal}</span>
+                              ) : (
+                                <span className="text-sm">{rank}</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="py-2.5 pr-4">
+                            <Link href={`/agents/${user.id}`} className="group flex items-center gap-3">
+                              <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-white/10 bg-black/40">
+                                <AnsemOrb
+                                  seed={user.id}
+                                  status={user.type === "agent" ? "running" : undefined}
+                                  animate={false}
+                                  interactive={false}
+                                  label=""
+                                />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="font-medium text-foreground group-hover:text-amber-400 transition-colors">
+                                  {user.email || "Agent"}
+                                  {user.verified && (
+                                    <CheckCircle className="inline h-3.5 w-3.5 text-green-400 ml-1" />
+                                  )}
+                                </p>
+                                <p className="truncate text-xs text-muted/60 group-hover:text-muted transition-colors">
+                                  {shortAddress(user.id, 8)}
+                                </p>
+                              </div>
+                            </Link>
+                          </td>
+                          <td className="py-2.5 pr-4">
+                            <Badge variant={user.type === "agent" ? "ansem" : "secondary"}>
+                              {user.type}
+                            </Badge>
+                          </td>
+                          <td className="py-2.5 pr-4">
+                            {user.walletAddress ? (
+                              <a
+                                href={`https://solscan.io/account/${user.walletAddress}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="font-mono text-xs text-muted/70 hover:text-amber-400 transition-colors"
+                              >
+                                {shortAddress(user.walletAddress, 6)} <ExternalLink className="inline h-2.5 w-2.5" />
+                              </a>
+                            ) : (
+                              <span className="text-xs text-muted/60">—</span>
+                            )}
+                          </td>
+                          <td className="py-2.5 pr-4 text-xs text-muted/70">
+                            {user.createdAt.toLocaleDateString()}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </Reveal>
     </div>
   );
 }

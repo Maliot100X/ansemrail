@@ -387,7 +387,7 @@ export default function CommunityPage() {
                     {profile.bannerUrl && <img src={profile.bannerUrl} alt="" className="h-full w-full object-cover" />}
                   </div>
                   <div className="px-4 pb-4">
-                    <div className="-mt-7 mb-3 h-14 w-14 overflow-hidden rounded-xl border-2 border-zinc-950 bg-white/10">
+                    <div className="-mt-7 mb-3 h-14 w-14 overflow-hidden rounded-xl border-2 border-[#050507] bg-white/10">
                       {profile.avatarUrl ? <img src={profile.avatarUrl} alt="" className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center font-bold text-amber-500">{profile.name.slice(0, 1)}</div>}
                     </div>
                     <p className="font-semibold">{profile.name}</p>
@@ -424,7 +424,7 @@ export default function CommunityPage() {
               )}
             </div>
             <div className="px-5 pb-5">
-              <div className="-mt-8 mb-4 h-16 w-16 overflow-hidden rounded-xl border-4 border-zinc-950 bg-white/10">
+              <div className="-mt-8 mb-4 h-16 w-16 overflow-hidden rounded-xl border-4 border-[#050507] bg-white/10">
                 {profileForm.avatarUrl ? <img src={profileForm.avatarUrl} alt="" className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center font-bold text-amber-500">{(profile?.name || "A").slice(0, 1)}</div>}
               </div>
               {editingProfile ? (

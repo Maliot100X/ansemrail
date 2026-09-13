@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { agentPalette, seededRandom } from "@/lib/agent-seed";
 
 type RingParticle = {
   ring: number;
@@ -10,17 +11,18 @@ type RingParticle = {
   gold: boolean;
 };
 
-function createParticles(): RingParticle[] {
+function createParticles(seed: string, vivid: number): RingParticle[] {
+  const rand = seededRandom(seed || "ansem-orb");
   const particles: RingParticle[] = [];
   for (let ring = 0; ring < 4; ring += 1) {
-    const count = ring === 0 ? 36 : 26 - ring * 4;
+    const count = ring === 0 ? 34 : 24 - ring * 4;
     for (let i = 0; i < count; i += 1) {
       particles.push({
         ring,
-        angle: (Math.PI * 2 * i) / count,
-        speed: 0.18 + ring * 0.07 + (i % 5) * 0.015,
-        size: 1 + Math.random() * 1.8,
-        gold: ring % 2 === 0,
+        angle: (Math.PI * 2 * i) / count + rand() * 0.5,
+        speed: (0.16 + ring * 0.07 + rand() * 0.06) * vivid,
+        size: 1 + rand() * 2,
+        gold: rand() > 0.42,
       });
     }
   }
@@ -32,7 +34,27 @@ function project(x: number, y: number, z: number, fov: number) {
   return { x: x * perspective, y: y * perspective, z, scale: perspective };
 }
 
-export function AnsemOrb({ className = "" }: { className?: string }) {
+function hexToRgb(hex: string): [number, number, number] {
+  const value = hex.replace("#", "");
+  const int = parseInt(value.length === 3 ? value.split("").map((c) => c + c).join("") : value, 16);
+  return [(int >> 16) & 255, (int >> 8) & 255, int & 255];
+}
+
+export function AnsemOrb({
+  className = "",
+  seed,
+  status,
+  animate = true,
+  interactive = true,
+  label = "Animated AnsemRail orbital profile",
+}: {
+  className?: string;
+  seed?: string;
+  status?: string;
+  animate?: boolean;
+  interactive?: boolean;
+  label?: string;
+}) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -47,10 +69,24 @@ export function AnsemOrb({ className = "" }: { className?: string }) {
     let height = parent?.clientHeight ?? 640;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const particles = createParticles();
+    const palette = agentPalette(seed || "ansem", status);
+    const vivid = 0.8 + palette.accentHue % 3 * 0.35;
+    const particles = createParticles(seed || "ansem", vivid);
     const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
     let frame = 0;
     let running = true;
+
+    const [r1, g1, b1] = hexToRgb(palette.primary);
+    const [r2, g2, b2] = hexToRgb(palette.secondary);
+    const [rg, gg, bg] = hexToRgb(palette.glow);
+    const [ra, ga, ba] = hexToRgb(status ? palette.glow : "#f5b301");
+
+    const ringColors = [
+      `rgba(${r1}, ${g1}, ${b1}, 0.28)`,
+      `rgba(${r2}, ${g2}, ${b2}, 0.22)`,
+      `rgba(${r1}, ${g1}, ${b1}, 0.22)`,
+      `rgba(${r2}, ${g2}, ${b2}, 0.16)`,
+    ];
 
     const resize = () => {
       width = parent?.clientWidth ?? 640;
@@ -69,14 +105,16 @@ export function AnsemOrb({ className = "" }: { className?: string }) {
       pointer.ty = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
     };
 
-    canvas.addEventListener("pointermove", onPointerMove, { passive: true });
+    if (interactive) canvas.addEventListener("pointermove", onPointerMove, { passive: true });
 
     const draw = (timeSeconds: number) => {
       context.setTransform(dpr, 0, 0, dpr, 0, 0);
       context.clearRect(0, 0, width, height);
 
-      pointer.x += (pointer.tx - pointer.x) * 0.045;
-      pointer.y += (pointer.ty - pointer.y) * 0.045;
+      if (interactive) {
+        pointer.x += (pointer.tx - pointer.x) * 0.045;
+        pointer.y += (pointer.ty - pointer.y) * 0.045;
+      }
 
       const centerX = width / 2;
       const centerY = height / 2;
@@ -86,13 +124,6 @@ export function AnsemOrb({ className = "" }: { className?: string }) {
 
       context.save();
       context.translate(centerX + pointer.x * 8, centerY + pointer.y * 8);
-
-      const ringColors = [
-        "rgba(245, 179, 1, 0.28)",
-        "rgba(65, 224, 255, 0.2)",
-        "rgba(255, 138, 0, 0.24)",
-        "rgba(82, 255, 168, 0.16)",
-      ];
 
       for (let ring = 0; ring < 4; ring += 1) {
         const ringRadius = radius * (0.34 + ring * 0.21);
@@ -119,10 +150,10 @@ export function AnsemOrb({ className = "" }: { className?: string }) {
           const point = project(rotatedX, y * tilt + (1 - tilt) * 0, rotatedZ, fov);
           const alpha = 0.25 + point.scale * 0.75;
           const color = particle.gold
-            ? `rgba(255, 208, 80, ${alpha})`
-            : `rgba(140, 235, 255, ${alpha * 0.8})`;
+            ? `rgba(${r1}, ${g1}, ${b1}, ${alpha})`
+            : `rgba(${r2}, ${g2}, ${b2}, ${alpha * 0.8})`;
           context.fillStyle = color;
-          context.shadowColor = particle.gold ? "rgba(245, 179, 1, 0.8)" : "rgba(65, 224, 255, 0.6)";
+          context.shadowColor = `rgba(${ra}, ${ga}, ${ba}, 0.8)`;
           context.shadowBlur = 8;
           context.beginPath();
           context.arc(point.x, point.y, particle.size * point.scale, 0, Math.PI * 2);
@@ -134,10 +165,10 @@ export function AnsemOrb({ className = "" }: { className?: string }) {
 
       const coreRadius = radius * (0.2 + pulse);
       const coreGradient = context.createRadialGradient(0, 0, 0, 0, 0, coreRadius * 2.1);
-      coreGradient.addColorStop(0, "rgba(255, 210, 90, 0.96)");
-      coreGradient.addColorStop(0.4, "rgba(245, 179, 1, 0.55)");
-      coreGradient.addColorStop(0.72, "rgba(255, 74, 64, 0.18)");
-      coreGradient.addColorStop(1, "rgba(255, 74, 64, 0)");
+      coreGradient.addColorStop(0, `rgba(${ra}, ${ga}, ${ba}, 0.96)`);
+      coreGradient.addColorStop(0.4, `rgba(${rg}, ${gg}, ${bg}, 0.55)`);
+      coreGradient.addColorStop(0.72, `rgba(${r1}, ${g1}, ${b1}, 0.18)`);
+      coreGradient.addColorStop(1, `rgba(${r1}, ${g1}, ${b1}, 0)`);
       context.fillStyle = coreGradient;
       context.beginPath();
       context.arc(0, 0, coreRadius * 2.1, 0, Math.PI * 2);
@@ -151,7 +182,7 @@ export function AnsemOrb({ className = "" }: { className?: string }) {
       context.lineJoin = "round";
 
       context.strokeStyle = "rgba(255, 255, 255, 0.92)";
-      context.fillStyle = "rgba(26, 20, 4, 0.9)";
+      context.fillStyle = "rgba(10, 10, 14, 0.9)";
       context.lineWidth = 6;
       context.beginPath();
       context.moveTo(-30, -22);
@@ -170,11 +201,11 @@ export function AnsemOrb({ className = "" }: { className?: string }) {
       context.quadraticCurveTo(0, -34, -18, -26);
       context.closePath();
       context.fill();
-      context.strokeStyle = "rgba(245, 179, 1, 0.95)";
+      context.strokeStyle = `rgba(${ra}, ${ga}, ${ba}, 0.95)`;
       context.lineWidth = 2.4;
       context.stroke();
 
-      context.fillStyle = "rgba(255, 179, 71, 0.95)";
+      context.fillStyle = `rgba(${ra}, ${ga}, ${ba}, 0.95)`;
       context.beginPath();
       context.arc(-7, 8, 2.4, 0, Math.PI * 2);
       context.arc(7, 8, 2.4, 0, Math.PI * 2);
@@ -184,7 +215,7 @@ export function AnsemOrb({ className = "" }: { className?: string }) {
       context.restore();
     };
 
-    if (reduced) {
+    if (!animate || reduced) {
       draw(0);
     } else {
       const start = performance.now();
@@ -200,14 +231,15 @@ export function AnsemOrb({ className = "" }: { className?: string }) {
       running = false;
       cancelAnimationFrame(frame);
       observer.disconnect();
-      canvas.removeEventListener("pointermove", onPointerMove);
+      if (interactive) canvas.removeEventListener("pointermove", onPointerMove);
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seed, status, animate, interactive]);
 
   return (
     <canvas
       ref={canvasRef}
-      aria-label="Animated AnsemRail orbital profile"
+      aria-label={label}
       role="img"
       className={`h-full w-full select-none ${className}`}
     />
