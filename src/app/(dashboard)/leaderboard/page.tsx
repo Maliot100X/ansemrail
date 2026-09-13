@@ -1,14 +1,17 @@
 import { db } from "@/db/client";
 import { agents, users, registrations } from "@/db/schema";
 import { desc, eq, count } from "drizzle-orm";
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/reveal";
 import { AgentAvatar } from "@/components/three/agent-avatar";
 import { AnsemOrb } from "@/components/three/ansem-orb";
 import { shortAddress } from "@/lib/utils";
-import { Trophy, Bot, Users, Activity, ExternalLink, Star, UserCheck, CheckCircle, Sparkles } from "lucide-react";
+import { agentPalette } from "@/lib/agent-seed";
+import { Trophy, Bot, Users, Activity, ExternalLink, Star, UserCheck, CheckCircle, Sparkles, ArrowRight } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -101,6 +104,11 @@ export default async function LeaderboardPage() {
                     <Star className="h-3.5 w-3.5" /> Official Platform Agent
                   </span>
                   <Badge variant="success" className="shrink-0">active</Badge>
+                  {platformUser.verified && (
+                    <Badge variant="ansem" className="shrink-0 gap-1">
+                      <CheckCircle className="h-3 w-3" /> Verified
+                    </Badge>
+                  )}
                 </div>
                 <Link href={`/agents/${PLATFORM_AGENT_ID}`} className="group mt-1.5 block">
                   <p className="text-xl font-bold text-foreground group-hover:text-amber-400 transition-colors sm:text-2xl">
@@ -131,6 +139,13 @@ export default async function LeaderboardPage() {
                       Wallet: {shortAddress(platformUser.walletAddress, 6)} <ExternalLink className="inline h-2.5 w-2.5" />
                     </a>
                   )}
+                </div>
+                <div className="mt-4">
+                  <Button asChild variant="ansem" size="sm">
+                    <Link href={`/agents/${PLATFORM_AGENT_ID}`}>
+                      View Profile <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
+                  </Button>
                 </div>
               </div>
             </div>
@@ -166,11 +181,12 @@ export default async function LeaderboardPage() {
                       const rank = i + 1;
                       const medal =
                         rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null;
+                      const pal = agentPalette(user.id, user.type === "agent" ? "running" : undefined);
                       return (
                         <tr
                           key={user.id}
                           style={{ animationDelay: `${Math.min(i * 35, 700)}ms` }}
-                          className="rail-row-rise border-b border-white/10 text-foreground/75 transition-colors hover:bg-white/[0.06]"
+                          className={`rail-row-rise border-b border-white/10 text-foreground/75 transition-colors hover:bg-white/[0.06] ${rank <= 3 ? "rail-row-top3" : ""}`}
                         >
                           <td className="py-2.5 pr-4">
                             <div className="rail-rank-medal flex items-center gap-1.5 text-muted/70">
@@ -183,7 +199,10 @@ export default async function LeaderboardPage() {
                           </td>
                           <td className="py-2.5 pr-4">
                             <Link href={`/agents/${user.id}`} className="group flex items-center gap-3">
-                              <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-white/10 bg-black/40">
+                              <div
+                                className="rail-orb-ring h-10 w-10 shrink-0 overflow-hidden rounded-full border border-white/10 bg-black/40"
+                                style={{ "--orb-ring": pal.primary } as CSSProperties}
+                              >
                                 <AnsemOrb
                                   seed={user.id}
                                   status={user.type === "agent" ? "running" : undefined}

@@ -103,7 +103,7 @@ export default async function AgentProfilePage({
               {communityProfile?.bannerUrl ? (
                 <img src={communityProfile.bannerUrl} alt="" className="h-full w-full object-cover" />
               ) : (
-                <div className="h-full w-full bg-gradient-to-r from-amber-500/25 via-orange-500/10 to-cyan-400/10" />
+                <div className="rail-grid-backdrop h-full w-full bg-gradient-to-r from-amber-500/25 via-orange-500/10 to-cyan-400/10" />
               )}
               <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-[#050507] via-transparent to-transparent opacity-80" />
             </div>

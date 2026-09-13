@@ -345,3 +345,83 @@ body::after {
   letter-spacing: 0.18em;
   text-transform: uppercase;
 }
+
+/* ==== rail 3D avatar + leaderboard polish ==== */
+
+.rail-avatar-glow {
+  background: radial-gradient(circle, rgba(245, 179, 1, 0.28) 0%, rgba(245, 179, 1, 0.06) 48%, transparent 72%);
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--avatar-glow, #f5b301) 42%, transparent) 0%,
+    color-mix(in srgb, var(--avatar-glow, #f5b301) 10%, transparent) 48%,
+    transparent 72%
+  );
+  filter: blur(5px);
+  animation: rail-glow-breathe 4s ease-in-out infinite;
+}
+
+@keyframes rail-glow-breathe {
+  0%, 100% { opacity: 0.75; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+
+.rail-avatar-status {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgb(255 255 255 / 0.14);
+  background: rgb(5 5 7 / 0.74);
+  backdrop-filter: blur(6px);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--avatar-glow, #f5b301) 72%, #fff);
+}
+
+.rail-avatar-status .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--avatar-glow, #f5b301);
+  box-shadow: 0 0 7px var(--avatar-glow, #f5b301);
+}
+
+.rail-orb-ring {
+  border-color: color-mix(in srgb, var(--orb-ring, #f5b301) 45%, transparent);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+tr:hover .rail-orb-ring {
+  border-color: color-mix(in srgb, var(--orb-ring, #f5b301) 85%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--orb-ring, #f5b301) 70%, transparent),
+    0 0 16px color-mix(in srgb, var(--orb-ring, #f5b301) 40%, transparent);
+}
+
+.rail-row-top3 {
+  background: linear-gradient(90deg, rgb(245 179 1 / 0.05), transparent 55%);
+  box-shadow: inset 3px 0 0 0 rgb(245 179 1 / 0.55);
+}
+
+.rail-grid-backdrop::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+      0deg,
+      rgb(245 179 1 / 0.04) 0 1px,
+      transparent 1px 30px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgb(34 211 238 / 0.04) 0 1px,
+      transparent 1px 30px
+    );
+  pointer-events: none;
+}
